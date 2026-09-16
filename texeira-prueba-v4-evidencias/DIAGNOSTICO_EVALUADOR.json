@@ -1,0 +1,27 @@
+{
+  "reproduced_error": "AttributeError",
+  "provider_statement_reached": false,
+  "archived_call_record_keys": [
+    [
+      [
+        "number"
+      ]
+    ],
+    [
+      [
+        "number"
+      ]
+    ],
+    [
+      [
+        "number"
+      ]
+    ],
+    [
+      [
+        "number"
+      ]
+    ]
+  ],
+  "explanation": "The call counter was incremented before formatting. Formatting failed at tuple.content before the llm.invoke statement. No record contains input_messages, status, usage or raw_answer."
+}

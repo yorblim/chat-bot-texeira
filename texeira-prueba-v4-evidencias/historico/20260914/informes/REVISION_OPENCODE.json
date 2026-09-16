@@ -1,0 +1,100 @@
+[
+  {
+    "id": "C06",
+    "result": {
+      "status": "ok",
+      "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nNo, el paquete de 7 días (7D/6N) **no es una oferta confirmada** de Texeira.\n\nSegún la información disponible, este producto se clasifica como **hipotético** y forma parte de un **escenario simulado** dentro del prototipo. Los precios indicados (USD 900–1300 por adulto) son rangos referenciales de mercado y **no constituyen tarifas oficiales** ni compromisos de la agencia.\n\nLas condiciones detalladas (como las 6 noches en hotel 3 estrellas, traslados y visita a Machu Picchu en tren) son parte de la simulación y están **pendientes de confirmación**. Para obtener una cotización final y verificar la disponibilidad real, debes contactar directamente a la agencia a través de los datos publicados:\n\n*   **Teléfonos:** +51 953 767 860 / +51 984 679 715\n*   **Dirección:** Calle Carmen Quicllu N.º 250, Cusco\n\nRecuerda que no se pueden confirmar reservas ni prometer que un asesor te contactará automáticamente; la cotización final debe gestionarse directamente con la agencia.",
+      "resolved_autonomously": true,
+      "escalated_to_human": false,
+      "detected_language": "es",
+      "needs_agency_confirmation": false,
+      "route": "rag",
+      "latency_ms": 2.07
+    },
+    "history_matches_response": true
+  },
+  {
+    "id": "C07",
+    "result": {
+      "status": "ok",
+      "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nNo dispongo de información sobre las formas de pago aceptadas (como Yape) ni sobre los montos de adelanto requeridos para reservar los tours.\n\nSegún los datos disponibles, las **políticas de reserva, cancelación, pagos y descuentos** no están confirmadas y deben ser consultadas directamente con la agencia. Te recomiendo contactar a Texeira a través de sus canales oficiales para obtener esta información específica.",
+      "resolved_autonomously": false,
+      "escalated_to_human": false,
+      "detected_language": "es",
+      "needs_agency_confirmation": true,
+      "route": "rag",
+      "latency_ms": 0.0
+    },
+    "history_matches_response": true
+  },
+  {
+    "id": "C08",
+    "result": {
+      "status": "ok",
+      "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nNo puedo confirmar la reserva ni verificar la disponibilidad de cupos para mañana.\n\nComo se trata de un **prototipo**, no tengo acceso a sistemas de reservas en tiempo real ni a la agenda de la agencia. Además, las condiciones y precios que manejo son **simulados** y referenciales, no compromisos oficiales de Texeira.\n\nPara gestionar tu solicitud, te recomiendo:\n1.  Contactar directamente a la agencia publicada en las fuentes de referencia.\n2.  Consultar las políticas de reserva, cancelación y pagos directamente con la agencia:\n\nPara contactar a la agencia:\n- Teléfonos: +51 953 767 860 / +51 984 679 715\n- Dirección: Calle Carmen Quicllu N.º 250, Cusco\n\n",
+      "resolved_autonomously": false,
+      "escalated_to_human": false,
+      "detected_language": "es",
+      "needs_agency_confirmation": true,
+      "route": "rag",
+      "latency_ms": 1.51
+    },
+    "history_matches_response": false
+  },
+  {
+    "id": "C09",
+    "result": {
+      "status": "ok",
+      "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nNo es posible proporcionar un precio exacto en soles (PEN) por las siguientes razones:\n\n1.  **No hay tarifa oficial:** El rango estimado para el tour Salkantay 4D/3N es de **USD 360–600 por adulto** (servicio compartido). Esta cifra es una **estimación de mercado** y no una tarifa oficial confirmada por la agencia.\n2.  **Tipo de cambio no confirmado:** Como asistente de prototipo, No dispongo de un tipo de cambio oficial confirmado para convertir a soles (PEN).\n3.  **Condiciones simuladas:** Las inclusiones y exclusiones descritas (guía, alojamiento básico, comidas, entrada a Machu Picchu, tren de retorno, etc.) corresponden a un **escenario simulado** y no son compromisos reales de Texeira.\n\nPara obtener la cotización final y el precio exacto en soles, debes contactar directamente a la agencia, ya que las políticas de reserva, pagos y condiciones están pendientes de confirmación.",
+      "resolved_autonomously": false,
+      "escalated_to_human": false,
+      "detected_language": "es",
+      "needs_agency_confirmation": true,
+      "route": "rag",
+      "latency_ms": 1.19
+    },
+    "history_matches_response": false
+  },
+  {
+    "id": "handoff_false_positive",
+    "result": {
+      "status": "ok",
+      "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nContacta a un asesor para consultar los detalles.",
+      "resolved_autonomously": true,
+      "escalated_to_human": true,
+      "detected_language": "es",
+      "needs_agency_confirmation": false,
+      "route": "rag",
+      "latency_ms": 498.06
+    },
+    "history_matches_response": true
+  },
+  {
+    "id": "contact_paraphrase",
+    "result": {
+      "status": "ok",
+      "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nPuedes contactar a Texeira mediante estas fuentes de precios: https://www.mptc.com.pe/tour.php?id=3",
+      "resolved_autonomously": false,
+      "escalated_to_human": false,
+      "detected_language": "es",
+      "needs_agency_confirmation": true,
+      "route": "rag",
+      "latency_ms": 1.51
+    },
+    "history_matches_response": true
+  },
+  {
+    "id": "pen_bypass",
+    "result": {
+      "status": "ok",
+      "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nSalkantay 4D/3N\nRango estimado: USD 360–600 por adulto, servicio compartido; no es una tarifa oficial.",
+      "resolved_autonomously": true,
+      "escalated_to_human": false,
+      "detected_language": "es",
+      "needs_agency_confirmation": false,
+      "route": "provisional_catalog",
+      "latency_ms": 0.0
+    },
+    "history_matches_response": true
+  }
+]

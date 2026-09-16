@@ -1,0 +1,231 @@
+{
+  "version": "v4-evidencias-2026-09-11",
+  "status": "canonical_from_evidence",
+  "description": "Catalogo canónico generado desde evidence_facts.json. NO escoge entre fuentes conflictivas. Los conflictos se resuelven con la agencia.",
+  "last_updated": "2026-09-11",
+  "currency": "USD",
+  "unit": "adulto por persona, servicio compartido salvo indicacion",
+  "agency": {
+    "name": "TEXEIRA TRAVEL — TRAVEL AGENCY E.I.R.L.",
+    "phones": ["+51 953 767 860", "+51 984 679 715"],
+    "emails": ["texeiratraveltour@hotmail.com", "eugenio.tejeira@hotmail.com"],
+    "address": "Carmen Quicllu #250 Cusco",
+    "address_source": "F2 (catalogo PDF, pagina 1)",
+    "contact_source": "F1 (folleto fisico) + F2 (catalogo PDF)",
+    "identity_confirmed_by_user": true
+  },
+  "policies": {
+    "payment_methods": {"status": "unknown", "note": "No documentado en ninguna fuente."},
+    "cancellation": {"status": "unknown", "note": "No documentado en ninguna fuente."},
+    "discounts": {"status": "unknown", "note": "No documentado en ninguna fuente."},
+    "availability": {"status": "unknown", "note": "Sin conexion a inventario de reservas."},
+    "insurance": {"status": "unknown", "note": "No documentado en ninguna fuente."},
+    "deposit": {"status": "unknown", "note": "No documentado en ninguna fuente."}
+  },
+  "tours": [
+    {
+      "entity_id": "city-tour-cusco",
+      "name": "City Tour Cusco",
+      "confirmed_product": true,
+      "product_sources": ["F2"],
+      "schedule_status": "conflict",
+      "schedule_note": "Horarios diferentes entre F1 y F3. Confirmar con agencia.",
+      "includes_status": "confirmed",
+      "excludes_status": "unknown",
+      "route_status": "confirmed"
+    },
+    {
+      "entity_id": "valle-sagrado",
+      "name": "Valle Sagrado",
+      "confirmed_product": true,
+      "product_sources": ["F2"],
+      "schedule_status": "conflict",
+      "schedule_note": "Hora de salida difiere: 07:30 (F1) vs 07:00 (F3). Confirmar con agencia.",
+      "includes_status": "confirmed",
+      "excludes_status": "partial",
+      "excludes_note": "F3 confirma exclusión de boleto turístico.",
+      "route_status": "confirmed"
+    },
+    {
+      "entity_id": "valle-sur",
+      "name": "Valle Sur",
+      "confirmed_product": true,
+      "product_sources": ["F2"],
+      "schedule_status": "confirmed",
+      "includes_status": "confirmed",
+      "excludes_status": "unknown",
+      "route_status": "confirmed"
+    },
+    {
+      "entity_id": "montana-7-colores",
+      "name": "Montaña de 7 Colores",
+      "confirmed_product": true,
+      "product_sources": ["F2"],
+      "schedule_status": "conflict",
+      "schedule_note": "Horarios diferentes entre F1 y F3. Confirmar con agencia.",
+      "includes_status": "confirmed_complementary",
+      "includes_note": "F3 agrega entrada y oxígeno. Información complementaria.",
+      "excludes_status": "unknown",
+      "route_status": "confirmed"
+    },
+    {
+      "entity_id": "laguna-humantay",
+      "name": "Laguna Humantay",
+      "confirmed_product": true,
+      "product_sources": ["F2"],
+      "schedule_status": "confirmed",
+      "includes_status": "confirmed",
+      "includes_note": "Desayuno respaldado por F1+F3 aunque F2 no lo menciona.",
+      "excludes_status": "unknown",
+      "route_status": "confirmed"
+    },
+    {
+      "entity_id": "waqra-pukara",
+      "name": "Waqra Pukara",
+      "confirmed_product": true,
+      "product_sources": ["F2", "F3"],
+      "schedule_status": "unknown",
+      "includes_status": "confirmed",
+      "includes_note": "F3 confirma transporte y guía.",
+      "excludes_status": "unknown",
+      "route_status": "confirmed"
+    },
+    {
+      "entity_id": "machu-picchu-car",
+      "name": "Machu Picchu by Car",
+      "confirmed_product": true,
+      "product_sources": ["F2"],
+      "schedule_status": "unknown",
+      "includes_status": "unknown",
+      "excludes_status": "unknown",
+      "route_status": "unknown"
+    },
+    {
+      "entity_id": "machu-picchu-tren",
+      "name": "Machu Picchu en Tren",
+      "confirmed_product": true,
+      "product_sources": ["F1", "F3"],
+      "schedule_status": "unknown",
+      "schedule_note": "Sujeto a horario de tren.",
+      "includes_status": "confirmed_complementary",
+      "includes_note": "F3 agrega recojo del hotel y especifica tickets de tren.",
+      "excludes_status": "unknown",
+      "route_status": "confirmed"
+    },
+    {
+      "entity_id": "camino-inka",
+      "name": "Camino Inka",
+      "confirmed_product": true,
+      "product_sources": ["F2"],
+      "schedule_status": "unknown",
+      "includes_status": "unknown",
+      "excludes_status": "unknown",
+      "route_status": "confirmed"
+    },
+    {
+      "entity_id": "salkantay-trek",
+      "name": "Salkantay Trek",
+      "confirmed_product": true,
+      "product_sources": ["F2"],
+      "schedule_status": "unknown",
+      "duration": "4 días / 3 noches",
+      "includes_status": "unknown",
+      "excludes_status": "unknown",
+      "route_status": "confirmed",
+      "note": "Confirmado en F2. En v3 era no confirmado porque F1 no lo mostraba."
+    },
+    {
+      "entity_id": "inka-jungle",
+      "name": "Inka Jungle to Machu Picchu",
+      "confirmed_product": true,
+      "product_sources": ["F2"],
+      "schedule_status": "unknown",
+      "duration": "4 días",
+      "includes_status": "unknown",
+      "excludes_status": "unknown",
+      "route_status": "confirmed"
+    },
+    {
+      "entity_id": "choquequirao",
+      "name": "Choquequirao Trek",
+      "confirmed_product": true,
+      "product_sources": ["F2"],
+      "schedule_status": "unknown",
+      "duration": "4 días",
+      "includes_status": "unknown",
+      "excludes_status": "unknown",
+      "route_status": "confirmed"
+    },
+    {
+      "entity_id": "tour-mistico",
+      "name": "Tour Místico",
+      "confirmed_product": true,
+      "product_sources": ["F2"],
+      "schedule_status": "unknown",
+      "includes_status": "unknown",
+      "excludes_status": "unknown",
+      "route_status": "confirmed"
+    },
+    {
+      "entity_id": "islas-titicaca",
+      "name": "Islas del Lago Titicaca",
+      "confirmed_product": true,
+      "product_sources": ["F2"],
+      "schedule_status": "unknown",
+      "includes_status": "unknown",
+      "excludes_status": "unknown",
+      "route_status": "confirmed"
+    },
+    {
+      "entity_id": "canon-colca",
+      "name": "Cañón del Colca / Baños Termales de Chacapi",
+      "confirmed_product": true,
+      "product_sources": ["F2"],
+      "schedule_status": "unknown",
+      "includes_status": "unknown",
+      "excludes_status": "unknown",
+      "route_status": "confirmed"
+    },
+    {
+      "entity_id": "ruta-del-sol",
+      "name": "Ruta del Sol Cusco-Puno",
+      "confirmed_product": true,
+      "product_sources": ["F2"],
+      "schedule_status": "unknown",
+      "includes_status": "unknown",
+      "excludes_status": "unknown",
+      "route_status": "confirmed"
+    },
+    {
+      "entity_id": "maras-moray",
+      "name": "Maras - Moray",
+      "confirmed_product": true,
+      "product_sources": ["F1"],
+      "schedule_status": "confirmed",
+      "includes_status": "confirmed",
+      "excludes_status": "unknown",
+      "route_status": "confirmed"
+    },
+    {
+      "entity_id": "maras-moray-cuatrimoto",
+      "name": "Tour Cuatrimoto / Maras-Moray",
+      "confirmed_product": true,
+      "product_sources": ["F3"],
+      "schedule_status": "unknown",
+      "includes_status": "confirmed",
+      "includes_note": "F3 confirma cuatrimotos, casco/equipo, visita a Salineras y Moray, transporte.",
+      "excludes_status": "unknown",
+      "route_status": "confirmed",
+      "note": "Variante del tour Maras-Moray. Relación comercial exacta por confirmar con agencia."
+    }
+  ],
+  "non_tour_services": [
+    {"service_id": "perurail-expedition", "name": "PeruRail Expedition", "type": "train_service", "source": "F2"},
+    {"service_id": "perurail-vistadome", "name": "PeruRail Vistadome", "type": "train_service", "source": "F2"},
+    {"service_id": "inca-rail-voyager", "name": "Inca Rail Voyager", "type": "train_service", "source": "F2"},
+    {"service_id": "inca-rail-360", "name": "Inca Rail 360", "type": "train_service", "source": "F2"}
+  ],
+  "unconfirmed_products": [
+    {"product_id": "paquete-completo-7d", "name": "Paquete Cusco 7D/6N", "note": "No documentado en ninguna fuente."}
+  ]
+}

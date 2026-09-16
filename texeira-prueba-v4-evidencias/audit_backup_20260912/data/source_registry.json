@@ -1,0 +1,131 @@
+{
+  "version": "v4-evidencias-2026-09-11",
+  "description": "Registro de fuentes documentales de Texeira Travel. Cada fuente tiene trazabilidad completa.",
+  "sources": [
+    {
+      "source_id": "F1",
+      "source_name": "Folleto fisico Texeira Travel",
+      "source_type": "brochure_physical",
+      "agency_provided": true,
+      "file_path": "data/agency_sources/brochure_page_1.jpeg / brochure_page_2.jpeg",
+      "pages": 2,
+      "page_mapping": {
+        "B1": "Pagina 2 del folleto: Machu Picchu, Maras-Moray, Valle Sur, Montaña 7 Colores, Laguna Humantay",
+        "B2": "Pagina 1 del folleto: Logos, contactos, City Tour, Valle Sagrado"
+      },
+      "notes": "Folleto fisico de 2 paginas fotografiado como JPEG. Contiene horarios, rutas, inclusiones y datos de contacto. NO contiene precios ni politicas. La direccion no esta en el folleto (solo foto del local).",
+      "contains_prices": false,
+      "contains_policies": false,
+      "contains_address_text": false
+    },
+    {
+      "source_id": "F2",
+      "source_name": "TOURS - Agencia TEXEIRA TRAVEL.pdf",
+      "source_type": "catalog_pdf",
+      "agency_provided": true,
+      "file_path": "data/agency_sources/TOURS - Agencia TEXEIRA TRAVEL.pdf",
+      "pages": 25,
+      "page_mapping": {
+        "1": "Contacto: Eugenio Tejeira Maldonado, Manager. Telefono: 953767860, 984679715. Direccion: Carmen Quicllu #250 Cusco.",
+        "2": "Mapa circuito del Cusco",
+        "3": "City Tour - paradas con altitudes",
+        "4-5": "Valle Sagrado Tour Full Day - incluye transporte, guia, almuerzo",
+        "6": "Valle Sur - incluye transporte, guia",
+        "7": "Montaña de Siete Colores / Valle Rojo - incluye transporte, guia, desayuno, almuerzo",
+        "8": "Puente de Q'eswachaca",
+        "9": "Laguna Humantay - incluye transporte, guia, almuerzo",
+        "10": "Waqra Pukara",
+        "11-12": "Machu Picchu by Car",
+        "13": "Seccion AVENTURA",
+        "14": "Camino Inka",
+        "15": "Salkantay Trek y Camino Inca (vista general)",
+        "16": "Salkantay Trek 4 dias - itinerario dia por dia",
+        "17": "Inka Jungle to Machu Picchu 4 dias",
+        "18": "Choquequirao Trek 4 dias",
+        "19": "Tour Mistico",
+        "20": "Islas del Lago Titicaca",
+        "21": "Canon del Colca / Banos Termales de Chacapi",
+        "22": "Ruta del Sol Cusco-Puno",
+        "23": "PeruRail: Expedition, Vistadome",
+        "24": "Inca Rail: Voyager, 360",
+        "25": "Contacto: Texeira Tours Travel. Telefono: 953767860, 984679715. Direccion: Carmen Quicllu #250 Cusco."
+      },
+      "notes": "Catalogo extenso de 25 paginas proporcionado por la agencia. Contiene rutas, itinerarios detallados, opciones de tren. Paginas basadas en imagenes (mapas, graficos). NO contiene precios oficiales visibles en extraccion de texto.",
+      "contains_prices": false,
+      "contains_policies": false,
+      "contains_address_text": true,
+      "address_text": "Carmen Quicllu #250 Cusco"
+    },
+    {
+      "source_id": "F3",
+      "source_name": "Texeira Travel - Tours (1).pdf",
+      "source_type": "promotional_pdf",
+      "agency_provided": true,
+      "file_path": "data/agency_sources/Texeira Travel - Tours (1).pdf",
+      "pages": null,
+      "page_mapping": {
+        "2": "City Tour",
+        "3": "Valle Sagrado",
+        "4": "Montaña de 7 Colores",
+        "5": "Laguna Humantay",
+        "6": "Waqra Pukara",
+        "7": "Tour Cuatrimoto / Maras-Moray",
+        "8": "Machu Picchu"
+      },
+      "notes": "Material promocional adicional proporcionado por la agencia. Transcripcion validada externamente a partir del documento original Texeira Travel - Tours (1).pdf. El PDF no pudo ser leido automaticamente; los datos provienen de la transcripcion proporcionada por el usuario. NO inventar datos adicionales no proporcionados.",
+      "contains_prices": false,
+      "contains_policies": false,
+      "transcription_method": "Externa - proporcionada por usuario"
+    }
+  ],
+  "non_tour_services": [
+    {
+      "service_id": "perurail-expedition",
+      "name": "PeruRail Expedition",
+      "type": "train_service",
+      "source_id": "F2",
+      "source_page": "23",
+      "notes": "Opcion de transporte documentada. NO es tour propio de Texeira. Clasificar como servicio de transporte."
+    },
+    {
+      "service_id": "perurail-vistadome",
+      "name": "PeruRail Vistadome",
+      "type": "train_service",
+      "source_id": "F2",
+      "source_page": "23",
+      "notes": "Opcion de transporte documentada. NO es tour propio de Texeira."
+    },
+    {
+      "service_id": "inca-rail-voyager",
+      "name": "Inca Rail Voyager",
+      "type": "train_service",
+      "source_id": "F2",
+      "source_page": "24",
+      "notes": "Opcion de transporte documentada. NO es tour propio de Texeira."
+    },
+    {
+      "service_id": "inca-rail-360",
+      "name": "Inca Rail 360",
+      "type": "train_service",
+      "source_id": "F2",
+      "source_page": "24",
+      "notes": "Opcion de transporte documentada. NO es tour propio de Texeira."
+    }
+  ],
+  "unconfirmed_products": [
+    {
+      "product_id": "paquete-completo-7d",
+      "name": "Paquete Cusco 7D/6N",
+      "note": "NO confirmado en ninguna fuente documental. No incluir como servicio oficial."
+    }
+  ],
+  "categories_not_products": [
+    {
+      "category_id": "aventura",
+      "name": "AVENTURA",
+      "source_id": "F2",
+      "source_page": "13",
+      "note": "Seccion visual en F2 con actividades. NO convertir automaticamente en producto especifico. Clasificar como categoria/promocion mientras no haya nombre formal del tour."
+    }
+  ]
+}

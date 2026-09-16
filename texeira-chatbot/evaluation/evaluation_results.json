@@ -1,0 +1,350 @@
+{
+  "timestamp": "2026-09-03 14:27:50",
+  "total_questions": 24,
+  "questions_with_llm_response": 22,
+  "avg_metrics": {
+    "faithfulness": 1.0,
+    "answer_relevancy": 1.0,
+    "context_precision": 0.8864,
+    "completeness": 0.7714
+  },
+  "avg_latency_s": 1.62,
+  "details": [
+    {
+      "question": "¿Cuánto cuesta el tour a Machu Picchu?",
+      "answer": "El tour a Machu Picchu Clásico tiene un precio de **$120 USD por persona**. Incluye transporte, guía turístico, entradas a Machu Picchu y almuerzo buffet. La salida es a las 5:30 AM desde la Plaza de Armas de Cusco.",
+      "ground_truth": "El Tour Machu Picchu Clásico cuesta $120 USD por persona. Incluye transporte, guía turístico, entradas a Machu Picchu y almuerzo buffet. Dura 1 día con salida a las 5:30 AM desde Cusco.",
+      "latency_s": 2.8,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 0.9
+      }
+    },
+    {
+      "question": "What is the price of the Sacred Valley tour?",
+      "answer": "The Sacred Valley Full Tour costs **$65 USD per person**.",
+      "ground_truth": "The Sacred Valley Complete Tour costs $65 USD per person. It includes transportation, guide, buffet lunch, and entrance to all sites. It lasts 1 day departing at 8:00 AM from Cusco.",
+      "latency_s": 0.82,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 0.3
+      }
+    },
+    {
+      "question": "Qual é o preço do tour Montanha de Cores?",
+      "answer": "O tour Montanha de Cores (Vinicunca) custa **$85 USD por pessoa**.",
+      "ground_truth": "O Tour Montanha de Cores (Vinicunca) custa $85 USD por pessoa. Inclui transporte, café da manhã, entradas, almoço e oxigênio de emergência. Dura 1 dia com saída às 4:30 AM de Cusco.",
+      "latency_s": 0.99,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 0.4
+      }
+    },
+    {
+      "question": "Quels tours proposez-vous?",
+      "answer": "Je vous propose le tour de la Vallée Sacrée, qui inclut :\n\n- Le point de vue de Pisac avec vue sur la vallée\n- Le marché artisanal de Pisac (artisanat, bijoux, textiles)\n- La forteresse d'Ollantaytambo\n- Les terrasses agricoles de Moray (en option)\n- Les salines de Maras (en option)\n\n**Note :** Le t",
+      "ground_truth": "Nous proposons trois tours principaux: Machu Picchu Classique ($120 USD), Vallée Sacrée Complète ($65 USD), et Montagne des Couleurs ($85 USD). Tous durent 1 jour et partent de Cusco.",
+      "latency_s": 1.74,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 0.0,
+        "completeness": 0.0
+      }
+    },
+    {
+      "question": "¿Qué incluye el tour a Machu Picchu?",
+      "answer": "El tour a Machu Picchu Clásico incluye:\n\n- Transporte\n- Guía turístico\n- Entradas a Machu Picchu\n- Almuerzo buffet\n\nNo incluye: Propinas ni bebidas adicionales.",
+      "ground_truth": "El Tour Machu Picchu Clásico incluye: transporte, guía turístico, entradas a Machu Picchu y almuerzo buffet. No incluye propinas ni bebidas adicionales.",
+      "latency_s": 1.17,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 1.0
+      }
+    },
+    {
+      "question": "¿Cuál es el itinerario del Valle Sagrado?",
+      "answer": "Claro, aquí tienes el itinerario del **Tour Valle Sagrado Completo**:\n\n- **8:00 AM**: Recogida en el hotel  \n- **9:30 AM**: Visita a Pisac (templo inca y mercado artesanal)  \n- **12:00 PM**: Almuerzo buffet en Urubamba (restaurante panorámico)  \n- **2:00 PM**: Recorrido por Ollantaytambo (fortaleza ",
+      "ground_truth": "El itinerario del Valle Sagrado Completo es: 8:00 AM recogida en el hotel, 9:30 AM visita a Pisac, 12:00 PM almuerzo en Urubamba, 2:00 PM Ollantaytambo, 4:00 PM Chinchero, 5:30 PM regreso a Cusco.",
+      "latency_s": 2.31,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 1.0
+      }
+    },
+    {
+      "question": "¿Qué tours me recomiendas para una pareja joven?",
+      "answer": "Para una pareja joven, te recomiendo especialmente el **Tour a la Montaña de Colores (Vinicunca)**, ya que es una experiencia única y activa, ideal para quienes buscan aventura y paisajes impresionantes. Aquí los detalles:\n\n- **Duración:** 1 día completo\n- **Precio:** $85 USD por persona\n- **Horario",
+      "ground_truth": "Para una pareja joven, recomiendo el Tour Valle Sagrado Completo ($65 USD) que es ideal y menos exigente, o el Tour Machu Picchu Clásico ($120 USD) para la experiencia icónica. El Tour Montaña de Colores ($85 USD) es más exigente físicamente.",
+      "latency_s": 3.98,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 0.7,
+        "completeness": 0.6
+      }
+    },
+    {
+      "question": "¿Cuáles son los requisitos para hacer el tour a Machu Picchu?",
+      "answer": "No dispongo de esa información exacta. Por favor, contacta a un asesor humano de la agencia para ayudarte.",
+      "ground_truth": "Los requisitos para el tour a Machu Picchu son: pasaporte original obligatorio, crema solar y sombrero, zapatillas cómodas, agua y snacks.",
+      "latency_s": 1.14,
+      "is_fallback": true,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 0.0,
+        "answer_relevancy": 0.0,
+        "context_precision": 0.0,
+        "completeness": 0.0
+      }
+    },
+    {
+      "question": "¿Se puede hacer el tour Montaña de Colores con problemas cardíacos?",
+      "answer": "No, no se recomienda realizar el tour Montaña de Colores si se tienen problemas cardíacos. Según nuestras recomendaciones importantes, las personas con problemas cardíacos **NO deben realizar esta excursión** debido a la altitud elevada (hasta 5,050 m.s.n.m.) y el nivel de dificultad moderada a alta",
+      "ground_truth": "No, personas con problemas cardíacos NO deben realizar el tour Montaña de Colores. Este tour tiene un nivel de dificultad moderada a alta, llegando a 5,050 m.s.n.m.",
+      "latency_s": 2.13,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 1.0
+      }
+    },
+    {
+      "question": "¿Cuál es la política de cancelación?",
+      "answer": "Nuestra política de cancelación es la siguiente:\n\n- **Más de 30 días antes:** Reembolso del 100%\n- **15 a 30 días antes:** Reembolso del 50%\n- **Menos de 15 días:** Sin reembolso\n- **No show:** Sin reembolso\n\n¿Hay algo más en lo que pueda ayudarte?",
+      "ground_truth": "La política de cancelación es: más de 30 días antes: reembolso del 100%, 15-30 días antes: reembolso del 50%, menos de 15 días: sin reembolso, no show: sin reembolso.",
+      "latency_s": 1.24,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 1.0
+      }
+    },
+    {
+      "question": "¿Qué formas de pago aceptan?",
+      "answer": "No dispongo de esa información exacta. Por favor, contacta a un asesor humano de la agencia para ayudarte.",
+      "ground_truth": "Aceptamos: efectivo (Soles o Dólares), transferencia bancaria, tarjeta de crédito/débito (Visa, Mastercard) y PayPal (para reservas internacionales).",
+      "latency_s": 0.95,
+      "is_fallback": true,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 0.0,
+        "answer_relevancy": 0.0,
+        "context_precision": 0.0,
+        "completeness": 0.0
+      }
+    },
+    {
+      "question": "¿Cuál es el teléfono de la agencia?",
+      "answer": "El teléfono de Texeira Travel Tour es el **+51 84 245678**. También puedes contactarnos por WhatsApp al **+51 984 123456**.",
+      "ground_truth": "El teléfono de Texeira Travel Tour es +51 84 245678. También tenemos WhatsApp: +51 984 123456 y email: info@texeiratraveltour.com.",
+      "latency_s": 1.35,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 0.67
+      }
+    },
+    {
+      "question": "¿Dónde está ubicada la agencia?",
+      "answer": "La agencia Texeira Travel Tour está ubicada en la **Calle Plateros 348, Centro Histórico de Cusco, Perú**.",
+      "ground_truth": "Texeira Travel Tour está ubicada en Calle Plateros 348, Centro Histórico de Cusco, Perú. Horario de atención: Lunes a Domingo 7:00 AM a 9:00 PM.",
+      "latency_s": 0.99,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 0.5
+      }
+    },
+    {
+      "question": "¿Qué servicios adicionales ofrecen?",
+      "answer": "Según la información disponible, ofrecemos la posibilidad de personalizar el tour agregando dos destinos opcionales:\n\n- **Moray** (terrazas agrícolas)\n- **Salinas de Maras**\n\nEste servicio adicional tiene un costo de **$20 USD** por persona.\n\nSi deseas más detalles o necesitas ayuda con otra consult",
+      "ground_truth": "Además de tours, ofrecemos: trekking (Salkantay, Inca Trail, Lares), paquetes turísticos completos, traslados aeropuerto-hotel, reservas de hoteles y restaurantes, y guías en español, inglés y portugués.",
+      "latency_s": 1.46,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 0.0,
+        "completeness": 0.0
+      }
+    },
+    {
+      "question": "¿Cuánto cuesta agregar Moray y Salinas de Maras al tour del Valle Sagrado?",
+      "answer": "Agregar Moray y las Salinas de Maras al tour del Valle Sagrado tiene un costo adicional de **$20 USD por persona**.",
+      "ground_truth": "Se puede agregar Moray y las Salinas de Maras al tour del Valle Sagrado por $20 USD adicionales por persona, making the total $85 USD por persona.",
+      "latency_s": 1.41,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 0.8
+      }
+    },
+    {
+      "question": "¿En qué temporada se puede hacer el tour Montaña de Colores?",
+      "answer": "El tour a la Montaña de Colores (Vinicunca) está disponible de **abril a noviembre**, que corresponde a la temporada seca en Cusco.",
+      "ground_truth": "El tour Montaña de Colores está disponible de Abril a Noviembre (temporada seca).",
+      "latency_s": 1.25,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 1.0
+      }
+    },
+    {
+      "question": "¿Cuál es el horario de salida del tour Machu Picchu?",
+      "answer": "El horario de salida del tour Machu Picchu Clásico es a las **5:30 AM** desde Cusco, con punto de encuentro en la **Plaza de Armas de Cusco, fuente central**.",
+      "ground_truth": "El tour Machu Picchu Clásico sale a las 5:30 AM desde Cusco, con punto de encuentro en la Plaza de Armas, fuente central.",
+      "latency_s": 1.55,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 1.0
+      }
+    },
+    {
+      "question": "What are the health recommendations for Rainbow Mountain?",
+      "answer": "Based on the information available, here are the health recommendations for the Rainbow Mountain tour:\n\n- Arrive in Cusco at least 2 days in advance to acclimatize to the altitude.\n- Drink coca tea in the days leading up to the excursion.\n- Do not consume alcohol the night before.\n- Bring SPF 50+ su",
+      "ground_truth": "Recommendations for Rainbow Mountain: arrive in Cusco at least 2 days before to acclimatize, drink coca tea in the days before, do not consume alcohol the night before, bring SPF 50+ sunscreen, warm clothing (it can snow), and original documentation.",
+      "latency_s": 2.12,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 1.0
+      }
+    },
+    {
+      "question": "¿Tienen garantía de satisfacción?",
+      "answer": "Sí, contamos con una garantía de satisfacción. Si no estás satisfecho con nuestro servicio, te ofrecemos un reembolso parcial o un tour gratuito, sujeto a evaluación.",
+      "ground_truth": "Sí, Texeira Travel Tour ofrece garantía de satisfacción: si no estás satisfecho con nuestro servicio, te ofrecemos un reembolso parcial o un tour gratuito sujeto a evaluación.",
+      "latency_s": 1.54,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 1.0
+      }
+    },
+    {
+      "question": "¿Cuánto cuesta el tour Valle Sagrado y qué visitas?",
+      "answer": "El tour Valle Sagrado tiene un precio de **$65 USD por persona** e incluye transporte, guía, almuerzo buffet y entradas a todos los sitios.  \n\n**Visitas incluidas:**  \n- Pisac (templo inca y mercado artesanal)  \n- Ollantaytambo (fortaleza inca)  \n- Chinchero (textiles andinos)  \n\n**Opcional:**  \n- M",
+      "ground_truth": "El Tour Valle Sagrado Completo cuesta $65 USD por persona. Visita: Pisac (templo inca y mercado artesanal), almuerzo en Urubamba, Ollantaytambo (fortaleza inca) y Chinchero (textiles andinos). Opcional: Moray y Salinas de Maras por $20 USD extra.",
+      "latency_s": 1.92,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 1.0
+      }
+    },
+    {
+      "question": "Tengo 150 dólares, ¿qué tour puedo hacer?",
+      "answer": "Con tu presupuesto de $150 USD, puedes realizar cualquiera de nuestros tours principales. Aquí tienes las opciones disponibles:\n\n- **Tour Machu Picchu Clásico**: $120 USD por persona (1 día completo)\n- **Tour Montaña de Colores (Vinicunca)**: $85 USD por persona (1 día)\n- **Tour Valle Sagrado Comple",
+      "ground_truth": "Con $150 USD puedes hacer cualquier de nuestros tres tours: Machu Picchu Clásico ($120 USD), Valle Sagrado Completo ($65 USD) o Montaña de Colores ($85 USD). Todos están dentro de tu presupuesto.",
+      "latency_s": 2.63,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 1.0
+      }
+    },
+    {
+      "question": "¿El tour Valle Sagrado incluye almuerzo?",
+      "answer": "Sí, el tour Valle Sagrado incluye almuerzo buffet. Está especificado en el itinerario: a las 12:00 PM se realiza el almuerzo buffet en Urubamba (restaurante panorámico). El precio de $65 USD por persona ya lo incluye.",
+      "ground_truth": "Sí, el Tour Valle Sagrado Completo incluye almuerzo buffet en Urubamba (restaurante panorámico). No incluye propinas ni bebidas en el almuerzo.",
+      "latency_s": 1.2,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 0.8
+      }
+    },
+    {
+      "question": "¿Necesito pasaporte para el tour a Machu Picchu?",
+      "answer": "Sí, para el Tour Machu Picchu Clásico es obligatorio presentar tu **pasaporte original**. No se aceptan copias ni documentos alternativos. Asegúrate de llevarlo contigo el día del tour.",
+      "ground_truth": "Sí, el pasaporte original es obligatorio para el tour a Machu Picchu.",
+      "latency_s": 1.08,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 1.0,
+        "completeness": 1.0
+      }
+    },
+    {
+      "question": "How do I get to the agency?",
+      "answer": "Our agency is located at **Calle Plateros 348, Centro Histórico de Cusco**. We are open from Monday to Sunday, 7:00 AM to 9:00 PM. If you need further assistance, feel free to contact us by phone at +51 84 245678 or via WhatsApp at +51 984 123456.",
+      "ground_truth": "Texeira Travel Tour is located at Calle Plateros 348, Centro Histórico de Cusco, Peru. We are open Monday to Sunday from 7:00 AM to 9:00 PM.",
+      "latency_s": 1.18,
+      "is_fallback": false,
+      "num_contexts": 4,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 1.0,
+        "context_precision": 0.8,
+        "completeness": 1.0
+      }
+    }
+  ]
+}

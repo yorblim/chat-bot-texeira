@@ -1,0 +1,1918 @@
+{
+  "timestamp": "2026-09-12 01:37:01",
+  "total_queries": 25,
+  "global_metrics": {
+    "bm25": {
+      "hit3": 0.48,
+      "hit5": 0.6,
+      "p3": 0.187,
+      "p5": 0.192,
+      "mrr": 0.382
+    },
+    "vector": {
+      "hit3": 0.2,
+      "hit5": 0.28,
+      "p3": 0.067,
+      "p5": 0.064,
+      "mrr": 0.184
+    },
+    "rrf": {
+      "hit3": 0.48,
+      "hit5": 0.68,
+      "p3": 0.2,
+      "p5": 0.184,
+      "mrr": 0.499
+    }
+  },
+  "queries": [
+    {
+      "query": "Quiero conocer lugares arqueológicos cerca de Cusco",
+      "relevant": [
+        "valle-sur",
+        "city-tour-cusco",
+        "valle-sagrado"
+      ],
+      "bm25_top5": [
+        "agency",
+        "city-tour-cusco",
+        "canon-colca",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "machu-picchu-tren",
+        "camino-inka"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "canon-colca",
+        "ruta-del-sol",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.039286,
+          "bm25_rank": 20,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "canon-colca",
+          "score": 0.032002,
+          "bm25_rank": 3,
+          "vector_rank": 2
+        },
+        {
+          "tour_id": "ruta-del-sol",
+          "score": 0.031319,
+          "bm25_rank": 7,
+          "vector_rank": 1
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.03101,
+          "bm25_rank": 4,
+          "vector_rank": 5
+        },
+        {
+          "tour_id": "tour-mistico",
+          "score": 0.030536,
+          "bm25_rank": 5,
+          "vector_rank": 6
+        }
+      ],
+      "hit3_bm25": 1,
+      "hit5_bm25": 1,
+      "p3_bm25": 0.333,
+      "p5_bm25": 0.2,
+      "mrr_bm25": 0.5,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.143,
+      "hit3_rrf": 1,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.333,
+      "p5_rrf": 0.2,
+      "mrr_rrf": 1.0
+    },
+    {
+      "query": "Somos una pareja y queremos conocer algo cultural en Cusco, qué alternativas de la agencia podrían ser relevantes?",
+      "relevant": [
+        "valle-sur",
+        "city-tour-cusco",
+        "tour-mistico",
+        "valle-sagrado"
+      ],
+      "bm25_top5": [
+        "machu-picchu-tren",
+        "canon-colca",
+        "camino-inka",
+        "tour-mistico",
+        "ruta-del-sol"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "camino-inka",
+        "machu-picchu-tren"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "canon-colca",
+        "machu-picchu-tren",
+        "ruta-del-sol",
+        "camino-inka"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.038889,
+          "bm25_rank": 20,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "canon-colca",
+          "score": 0.032258,
+          "bm25_rank": 2,
+          "vector_rank": 2
+        },
+        {
+          "tour_id": "machu-picchu-tren",
+          "score": 0.031778,
+          "bm25_rank": 1,
+          "vector_rank": 5
+        },
+        {
+          "tour_id": "ruta-del-sol",
+          "score": 0.031778,
+          "bm25_rank": 5,
+          "vector_rank": 1
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.031498,
+          "bm25_rank": 3,
+          "vector_rank": 4
+        }
+      ],
+      "hit3_bm25": 0,
+      "hit5_bm25": 1,
+      "p3_bm25": 0.0,
+      "p5_bm25": 0.2,
+      "mrr_bm25": 0.25,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.167,
+      "hit3_rrf": 1,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.333,
+      "p5_rrf": 0.2,
+      "mrr_rrf": 1.0
+    },
+    {
+      "query": "Qué tours históricos ofrecen en la ciudad?",
+      "relevant": [
+        "city-tour-cusco"
+      ],
+      "bm25_top5": [
+        "machu-picchu-tren",
+        "camino-inka",
+        "tour-mistico",
+        "ruta-del-sol",
+        "islas-titicaca"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "maras-moray-cuatrimoto",
+        "canon-colca",
+        "machu-picchu-tren",
+        "tour-mistico"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "machu-picchu-tren",
+        "ruta-del-sol",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.038514,
+          "bm25_rank": 20,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "machu-picchu-tren",
+          "score": 0.032018,
+          "bm25_rank": 1,
+          "vector_rank": 4
+        },
+        {
+          "tour_id": "ruta-del-sol",
+          "score": 0.032018,
+          "bm25_rank": 4,
+          "vector_rank": 1
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.031281,
+          "bm25_rank": 2,
+          "vector_rank": 6
+        },
+        {
+          "tour_id": "tour-mistico",
+          "score": 0.031258,
+          "bm25_rank": 3,
+          "vector_rank": 5
+        }
+      ],
+      "hit3_bm25": 0,
+      "hit5_bm25": 0,
+      "p3_bm25": 0.0,
+      "p5_bm25": 0.0,
+      "mrr_bm25": 0.056,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.091,
+      "hit3_rrf": 0,
+      "hit5_rrf": 0,
+      "p3_rrf": 0.0,
+      "p5_rrf": 0.0,
+      "mrr_rrf": 0.067
+    },
+    {
+      "query": "Quiero visitar Ollantaytambo y Pisac",
+      "relevant": [
+        "valle-sagrado"
+      ],
+      "bm25_top5": [
+        "agency",
+        "maras-moray-cuatrimoto",
+        "valle-sagrado",
+        "valle-sagrado",
+        "valle-sur"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "maras-moray-cuatrimoto",
+        "valle-sur",
+        "camino-inka",
+        "ruta-del-sol"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.041639,
+          "bm25_rank": 4,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "maras-moray-cuatrimoto",
+          "score": 0.032002,
+          "bm25_rank": 2,
+          "vector_rank": 3
+        },
+        {
+          "tour_id": "valle-sur",
+          "score": 0.03009,
+          "bm25_rank": 5,
+          "vector_rank": 8
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.02971,
+          "bm25_rank": 11,
+          "vector_rank": 4
+        },
+        {
+          "tour_id": "ruta-del-sol",
+          "score": 0.029214,
+          "bm25_rank": 18,
+          "vector_rank": 1
+        }
+      ],
+      "hit3_bm25": 1,
+      "hit5_bm25": 1,
+      "p3_bm25": 0.333,
+      "p5_bm25": 0.4,
+      "mrr_bm25": 0.333,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.071,
+      "hit3_rrf": 1,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.333,
+      "p5_rrf": 0.2,
+      "mrr_rrf": 1.0
+    },
+    {
+      "query": "Hay algún tour que incluya Chinchero y Moray?",
+      "relevant": [
+        "valle-sur",
+        "valle-sagrado"
+      ],
+      "bm25_top5": [
+        "agency",
+        "maras-moray-cuatrimoto",
+        "valle-sagrado",
+        "valle-sagrado",
+        "valle-sur"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "maras-moray-cuatrimoto",
+        "canon-colca",
+        "machu-picchu-tren",
+        "camino-inka"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "maras-moray-cuatrimoto",
+        "valle-sur",
+        "machu-picchu-tren",
+        "camino-inka"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.04221,
+          "bm25_rank": 4,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "maras-moray-cuatrimoto",
+          "score": 0.032258,
+          "bm25_rank": 2,
+          "vector_rank": 2
+        },
+        {
+          "tour_id": "valle-sur",
+          "score": 0.030536,
+          "bm25_rank": 5,
+          "vector_rank": 6
+        },
+        {
+          "tour_id": "machu-picchu-tren",
+          "score": 0.029911,
+          "bm25_rank": 10,
+          "vector_rank": 4
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.029469,
+          "bm25_rank": 11,
+          "vector_rank": 5
+        }
+      ],
+      "hit3_bm25": 1,
+      "hit5_bm25": 1,
+      "p3_bm25": 0.333,
+      "p5_bm25": 0.6,
+      "mrr_bm25": 0.333,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.167,
+      "hit3_rrf": 1,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.667,
+      "p5_rrf": 0.4,
+      "mrr_rrf": 1.0
+    },
+    {
+      "query": "Quiero hacer trekking, qué opciones tienen?",
+      "relevant": [
+        "salkantay-trek",
+        "camino-inka",
+        "choquequirao",
+        "inka-jungle"
+      ],
+      "bm25_top5": [
+        "agency",
+        "maras-moray-cuatrimoto",
+        "valle-sagrado",
+        "valle-sagrado",
+        "valle-sur"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "maras-moray-cuatrimoto",
+        "canon-colca",
+        "camino-inka",
+        "valle-sur"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "maras-moray-cuatrimoto",
+        "valle-sur",
+        "camino-inka",
+        "ruta-del-sol"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.04221,
+          "bm25_rank": 4,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "maras-moray-cuatrimoto",
+          "score": 0.032258,
+          "bm25_rank": 2,
+          "vector_rank": 2
+        },
+        {
+          "tour_id": "valle-sur",
+          "score": 0.030769,
+          "bm25_rank": 5,
+          "vector_rank": 5
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.02971,
+          "bm25_rank": 11,
+          "vector_rank": 4
+        },
+        {
+          "tour_id": "ruta-del-sol",
+          "score": 0.029214,
+          "bm25_rank": 18,
+          "vector_rank": 1
+        }
+      ],
+      "hit3_bm25": 0,
+      "hit5_bm25": 0,
+      "p3_bm25": 0.0,
+      "p5_bm25": 0.0,
+      "mrr_bm25": 0.091,
+      "hit3_vec": 0,
+      "hit5_vec": 1,
+      "p3_vec": 0.0,
+      "p5_vec": 0.2,
+      "mrr_vec": 0.25,
+      "hit3_rrf": 0,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.0,
+      "p5_rrf": 0.2,
+      "mrr_rrf": 0.25
+    },
+    {
+      "query": "Busco una caminata de varios días hasta Machu Picchu",
+      "relevant": [
+        "salkantay-trek",
+        "camino-inka",
+        "inka-jungle"
+      ],
+      "bm25_top5": [
+        "machu-picchu-car",
+        "inka-jungle",
+        "machu-picchu-tren",
+        "canon-colca",
+        "camino-inka"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "machu-picchu-tren",
+        "maras-moray-cuatrimoto",
+        "canon-colca",
+        "camino-inka"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "machu-picchu-tren",
+        "machu-picchu-car",
+        "ruta-del-sol",
+        "canon-colca"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.039286,
+          "bm25_rank": 20,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "machu-picchu-tren",
+          "score": 0.032002,
+          "bm25_rank": 3,
+          "vector_rank": 2
+        },
+        {
+          "tour_id": "machu-picchu-car",
+          "score": 0.031319,
+          "bm25_rank": 1,
+          "vector_rank": 7
+        },
+        {
+          "tour_id": "ruta-del-sol",
+          "score": 0.031319,
+          "bm25_rank": 7,
+          "vector_rank": 1
+        },
+        {
+          "tour_id": "canon-colca",
+          "score": 0.03125,
+          "bm25_rank": 4,
+          "vector_rank": 4
+        }
+      ],
+      "hit3_bm25": 1,
+      "hit5_bm25": 1,
+      "p3_bm25": 0.333,
+      "p5_bm25": 0.4,
+      "mrr_bm25": 0.5,
+      "hit3_vec": 0,
+      "hit5_vec": 1,
+      "p3_vec": 0.0,
+      "p5_vec": 0.2,
+      "mrr_vec": 0.2,
+      "hit3_rrf": 0,
+      "hit5_rrf": 0,
+      "p3_rrf": 0.0,
+      "p5_rrf": 0.0,
+      "mrr_rrf": 0.167
+    },
+    {
+      "query": "Qué es el Inka Jungle?",
+      "relevant": [
+        "inka-jungle"
+      ],
+      "bm25_top5": [
+        "camino-inka",
+        "inka-jungle",
+        "machu-picchu-tren",
+        "valle-sagrado",
+        "valle-sagrado"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "machu-picchu-tren",
+        "camino-inka"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "camino-inka",
+        "machu-picchu-tren",
+        "inka-jungle",
+        "valle-sur"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.041774,
+          "bm25_rank": 5,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.031778,
+          "bm25_rank": 1,
+          "vector_rank": 5
+        },
+        {
+          "tour_id": "machu-picchu-tren",
+          "score": 0.031498,
+          "bm25_rank": 3,
+          "vector_rank": 4
+        },
+        {
+          "tour_id": "inka-jungle",
+          "score": 0.031054,
+          "bm25_rank": 2,
+          "vector_rank": 7
+        },
+        {
+          "tour_id": "valle-sur",
+          "score": 0.030303,
+          "bm25_rank": 6,
+          "vector_rank": 6
+        }
+      ],
+      "hit3_bm25": 1,
+      "hit5_bm25": 1,
+      "p3_bm25": 0.333,
+      "p5_bm25": 0.2,
+      "mrr_bm25": 0.5,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.143,
+      "hit3_rrf": 0,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.0,
+      "p5_rrf": 0.2,
+      "mrr_rrf": 0.25
+    },
+    {
+      "query": "Tienen tours de aventura para adictos a la adrenalina?",
+      "relevant": [
+        "salkantay-trek",
+        "inka-jungle",
+        "maras-moray-cuatrimoto"
+      ],
+      "bm25_top5": [
+        "canon-colca",
+        "camino-inka",
+        "tour-mistico",
+        "machu-picchu-car",
+        "ruta-del-sol"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "canon-colca",
+        "ruta-del-sol",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.038699,
+          "bm25_rank": 20,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "canon-colca",
+          "score": 0.032522,
+          "bm25_rank": 1,
+          "vector_rank": 2
+        },
+        {
+          "tour_id": "ruta-del-sol",
+          "score": 0.031778,
+          "bm25_rank": 5,
+          "vector_rank": 1
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.031754,
+          "bm25_rank": 2,
+          "vector_rank": 4
+        },
+        {
+          "tour_id": "tour-mistico",
+          "score": 0.031258,
+          "bm25_rank": 3,
+          "vector_rank": 5
+        }
+      ],
+      "hit3_bm25": 0,
+      "hit5_bm25": 0,
+      "p3_bm25": 0.0,
+      "p5_bm25": 0.0,
+      "mrr_bm25": 0.125,
+      "hit3_vec": 1,
+      "hit5_vec": 1,
+      "p3_vec": 0.333,
+      "p5_vec": 0.2,
+      "mrr_vec": 0.333,
+      "hit3_rrf": 0,
+      "hit5_rrf": 0,
+      "p3_rrf": 0.0,
+      "p5_rrf": 0.0,
+      "mrr_rrf": 0.143
+    },
+    {
+      "query": "Quiero ir a Machu Picchu, qué opciones hay?",
+      "relevant": [
+        "machu-picchu-car",
+        "salkantay-trek",
+        "camino-inka",
+        "machu-picchu-tren",
+        "inka-jungle"
+      ],
+      "bm25_top5": [
+        "machu-picchu-car",
+        "inka-jungle",
+        "machu-picchu-tren",
+        "agency",
+        "valle-sagrado"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "maras-moray-cuatrimoto",
+        "machu-picchu-tren",
+        "canon-colca",
+        "camino-inka"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "machu-picchu-tren",
+        "machu-picchu-car",
+        "inka-jungle",
+        "maras-moray-cuatrimoto"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.04154,
+          "bm25_rank": 6,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "machu-picchu-tren",
+          "score": 0.031746,
+          "bm25_rank": 3,
+          "vector_rank": 3
+        },
+        {
+          "tour_id": "machu-picchu-car",
+          "score": 0.031545,
+          "bm25_rank": 1,
+          "vector_rank": 6
+        },
+        {
+          "tour_id": "inka-jungle",
+          "score": 0.030835,
+          "bm25_rank": 2,
+          "vector_rank": 8
+        },
+        {
+          "tour_id": "maras-moray-cuatrimoto",
+          "score": 0.030018,
+          "bm25_rank": 12,
+          "vector_rank": 2
+        }
+      ],
+      "hit3_bm25": 1,
+      "hit5_bm25": 1,
+      "p3_bm25": 1.0,
+      "p5_bm25": 0.6,
+      "mrr_bm25": 1.0,
+      "hit3_vec": 1,
+      "hit5_vec": 1,
+      "p3_vec": 0.333,
+      "p5_vec": 0.4,
+      "mrr_vec": 0.333,
+      "hit3_rrf": 1,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.667,
+      "p5_rrf": 0.6,
+      "mrr_rrf": 0.5
+    },
+    {
+      "query": "Machu Picchu en tren, qué incluye?",
+      "relevant": [
+        "machu-picchu-tren"
+      ],
+      "bm25_top5": [
+        "machu-picchu-tren",
+        "machu-picchu-car",
+        "inka-jungle",
+        "agency",
+        "valle-sagrado"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "machu-picchu-tren",
+        "maras-moray-cuatrimoto",
+        "canon-colca",
+        "camino-inka"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "machu-picchu-tren",
+        "machu-picchu-car",
+        "inka-jungle",
+        "maras-moray-cuatrimoto"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.04154,
+          "bm25_rank": 6,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "machu-picchu-tren",
+          "score": 0.032522,
+          "bm25_rank": 1,
+          "vector_rank": 2
+        },
+        {
+          "tour_id": "machu-picchu-car",
+          "score": 0.031281,
+          "bm25_rank": 2,
+          "vector_rank": 6
+        },
+        {
+          "tour_id": "inka-jungle",
+          "score": 0.030798,
+          "bm25_rank": 3,
+          "vector_rank": 7
+        },
+        {
+          "tour_id": "maras-moray-cuatrimoto",
+          "score": 0.029762,
+          "bm25_rank": 12,
+          "vector_rank": 3
+        }
+      ],
+      "hit3_bm25": 1,
+      "hit5_bm25": 1,
+      "p3_bm25": 0.333,
+      "p5_bm25": 0.2,
+      "mrr_bm25": 1.0,
+      "hit3_vec": 1,
+      "hit5_vec": 1,
+      "p3_vec": 0.333,
+      "p5_vec": 0.2,
+      "mrr_vec": 0.5,
+      "hit3_rrf": 1,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.333,
+      "p5_rrf": 0.2,
+      "mrr_rrf": 0.5
+    },
+    {
+      "query": "Machu Picchu por carretera, es posible?",
+      "relevant": [
+        "machu-picchu-car"
+      ],
+      "bm25_top5": [
+        "machu-picchu-car",
+        "inka-jungle",
+        "machu-picchu-tren",
+        "valle-sagrado",
+        "montana-7-colores"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "machu-picchu-tren",
+        "maras-moray-cuatrimoto",
+        "canon-colca",
+        "camino-inka"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "machu-picchu-tren",
+        "machu-picchu-car",
+        "inka-jungle",
+        "maras-moray-cuatrimoto"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.038699,
+          "bm25_rank": 20,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "machu-picchu-tren",
+          "score": 0.032002,
+          "bm25_rank": 3,
+          "vector_rank": 2
+        },
+        {
+          "tour_id": "machu-picchu-car",
+          "score": 0.031545,
+          "bm25_rank": 1,
+          "vector_rank": 6
+        },
+        {
+          "tour_id": "inka-jungle",
+          "score": 0.031054,
+          "bm25_rank": 2,
+          "vector_rank": 7
+        },
+        {
+          "tour_id": "maras-moray-cuatrimoto",
+          "score": 0.030579,
+          "bm25_rank": 8,
+          "vector_rank": 3
+        }
+      ],
+      "hit3_bm25": 1,
+      "hit5_bm25": 1,
+      "p3_bm25": 0.333,
+      "p5_bm25": 0.2,
+      "mrr_bm25": 1.0,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.167,
+      "hit3_rrf": 1,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.333,
+      "p5_rrf": 0.2,
+      "mrr_rrf": 0.333
+    },
+    {
+      "query": "Quiero ver paisajes impresionantes cerca de Cusco",
+      "relevant": [
+        "valle-sur",
+        "montana-7-colores",
+        "laguna-humantay",
+        "valle-sagrado"
+      ],
+      "bm25_top5": [
+        "agency",
+        "city-tour-cusco",
+        "canon-colca",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "canon-colca",
+        "ruta-del-sol",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.038699,
+          "bm25_rank": 20,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "canon-colca",
+          "score": 0.032002,
+          "bm25_rank": 3,
+          "vector_rank": 2
+        },
+        {
+          "tour_id": "ruta-del-sol",
+          "score": 0.031319,
+          "bm25_rank": 7,
+          "vector_rank": 1
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.03125,
+          "bm25_rank": 4,
+          "vector_rank": 4
+        },
+        {
+          "tour_id": "tour-mistico",
+          "score": 0.030769,
+          "bm25_rank": 5,
+          "vector_rank": 5
+        }
+      ],
+      "hit3_bm25": 0,
+      "hit5_bm25": 0,
+      "p3_bm25": 0.0,
+      "p5_bm25": 0.0,
+      "mrr_bm25": 0.1,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.125,
+      "hit3_rrf": 1,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.333,
+      "p5_rrf": 0.2,
+      "mrr_rrf": 1.0
+    },
+    {
+      "query": "Hay algún tour para ver la laguna Humantay?",
+      "relevant": [
+        "laguna-humantay"
+      ],
+      "bm25_top5": [
+        "camino-inka",
+        "tour-mistico",
+        "machu-picchu-car",
+        "ruta-del-sol",
+        "islas-titicaca"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "maras-moray-cuatrimoto",
+        "canon-colca",
+        "machu-picchu-tren",
+        "valle-sur"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "ruta-del-sol",
+        "camino-inka",
+        "tour-mistico",
+        "canon-colca"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.039085,
+          "bm25_rank": 20,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "ruta-del-sol",
+          "score": 0.032018,
+          "bm25_rank": 4,
+          "vector_rank": 1
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.031545,
+          "bm25_rank": 1,
+          "vector_rank": 6
+        },
+        {
+          "tour_id": "tour-mistico",
+          "score": 0.031054,
+          "bm25_rank": 2,
+          "vector_rank": 7
+        },
+        {
+          "tour_id": "canon-colca",
+          "score": 0.031025,
+          "bm25_rank": 6,
+          "vector_rank": 3
+        }
+      ],
+      "hit3_bm25": 0,
+      "hit5_bm25": 0,
+      "p3_bm25": 0.0,
+      "p5_bm25": 0.0,
+      "mrr_bm25": 0.071,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.056,
+      "hit3_rrf": 0,
+      "hit5_rrf": 0,
+      "p3_rrf": 0.0,
+      "p5_rrf": 0.0,
+      "mrr_rrf": 0.059
+    },
+    {
+      "query": "La montaña de 7 colores queda lejos?",
+      "relevant": [
+        "montana-7-colores"
+      ],
+      "bm25_top5": [
+        "montana-7-colores",
+        "canon-colca",
+        "camino-inka",
+        "tour-mistico",
+        "machu-picchu-car"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "machu-picchu-tren",
+        "camino-inka"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "canon-colca",
+        "ruta-del-sol",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.038889,
+          "bm25_rank": 20,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "canon-colca",
+          "score": 0.032258,
+          "bm25_rank": 2,
+          "vector_rank": 2
+        },
+        {
+          "tour_id": "ruta-del-sol",
+          "score": 0.031545,
+          "bm25_rank": 6,
+          "vector_rank": 1
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.031258,
+          "bm25_rank": 3,
+          "vector_rank": 5
+        },
+        {
+          "tour_id": "tour-mistico",
+          "score": 0.03055,
+          "bm25_rank": 4,
+          "vector_rank": 7
+        }
+      ],
+      "hit3_bm25": 1,
+      "hit5_bm25": 1,
+      "p3_bm25": 0.333,
+      "p5_bm25": 0.2,
+      "mrr_bm25": 1.0,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.077,
+      "hit3_rrf": 0,
+      "hit5_rrf": 0,
+      "p3_rrf": 0.0,
+      "p5_rrf": 0.0,
+      "mrr_rrf": 0.167
+    },
+    {
+      "query": "Quiero ver Vinicunca, la montaña de colores",
+      "relevant": [
+        "montana-7-colores"
+      ],
+      "bm25_top5": [
+        "canon-colca",
+        "camino-inka",
+        "tour-mistico",
+        "machu-picchu-car",
+        "ruta-del-sol"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "machu-picchu-tren",
+        "valle-sur"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "canon-colca",
+        "ruta-del-sol",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.038889,
+          "bm25_rank": 20,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "canon-colca",
+          "score": 0.032522,
+          "bm25_rank": 1,
+          "vector_rank": 2
+        },
+        {
+          "tour_id": "ruta-del-sol",
+          "score": 0.031778,
+          "bm25_rank": 5,
+          "vector_rank": 1
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.031281,
+          "bm25_rank": 2,
+          "vector_rank": 6
+        },
+        {
+          "tour_id": "tour-mistico",
+          "score": 0.030798,
+          "bm25_rank": 3,
+          "vector_rank": 7
+        }
+      ],
+      "hit3_bm25": 0,
+      "hit5_bm25": 0,
+      "p3_bm25": 0.0,
+      "p5_bm25": 0.0,
+      "mrr_bm25": 0.083,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.111,
+      "hit3_rrf": 0,
+      "hit5_rrf": 0,
+      "p3_rrf": 0.0,
+      "p5_rrf": 0.0,
+      "mrr_rrf": 0.083
+    },
+    {
+      "query": "Qué puedo hacer solo medio día en Cusco?",
+      "relevant": [
+        "valle-sur",
+        "city-tour-cusco",
+        "maras-moray"
+      ],
+      "bm25_top5": [
+        "machu-picchu-tren",
+        "agency",
+        "maras-moray-cuatrimoto",
+        "valle-sagrado",
+        "valle-sagrado"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "camino-inka",
+        "machu-picchu-tren"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "machu-picchu-tren",
+        "maras-moray-cuatrimoto",
+        "valle-sur",
+        "camino-inka"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.041774,
+          "bm25_rank": 5,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "machu-picchu-tren",
+          "score": 0.031778,
+          "bm25_rank": 1,
+          "vector_rank": 5
+        },
+        {
+          "tour_id": "maras-moray-cuatrimoto",
+          "score": 0.031746,
+          "bm25_rank": 3,
+          "vector_rank": 3
+        },
+        {
+          "tour_id": "valle-sur",
+          "score": 0.030077,
+          "bm25_rank": 6,
+          "vector_rank": 7
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.02971,
+          "bm25_rank": 11,
+          "vector_rank": 4
+        }
+      ],
+      "hit3_bm25": 0,
+      "hit5_bm25": 0,
+      "p3_bm25": 0.0,
+      "p5_bm25": 0.0,
+      "mrr_bm25": 0.167,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.143,
+      "hit3_rrf": 0,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.0,
+      "p5_rrf": 0.2,
+      "mrr_rrf": 0.25
+    },
+    {
+      "query": "Tienen algún tour de full day?",
+      "relevant": [
+        "valle-sagrado",
+        "laguna-humantay",
+        "valle-sur",
+        "montana-7-colores",
+        "waqra-pukara"
+      ],
+      "bm25_top5": [
+        "canon-colca",
+        "camino-inka",
+        "tour-mistico",
+        "machu-picchu-car",
+        "ruta-del-sol"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "canon-colca",
+        "ruta-del-sol",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.038158,
+          "bm25_rank": 20,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "canon-colca",
+          "score": 0.032522,
+          "bm25_rank": 1,
+          "vector_rank": 2
+        },
+        {
+          "tour_id": "ruta-del-sol",
+          "score": 0.031778,
+          "bm25_rank": 5,
+          "vector_rank": 1
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.031754,
+          "bm25_rank": 2,
+          "vector_rank": 4
+        },
+        {
+          "tour_id": "tour-mistico",
+          "score": 0.031258,
+          "bm25_rank": 3,
+          "vector_rank": 5
+        }
+      ],
+      "hit3_bm25": 0,
+      "hit5_bm25": 0,
+      "p3_bm25": 0.0,
+      "p5_bm25": 0.0,
+      "mrr_bm25": 0.125,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.143,
+      "hit3_rrf": 1,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.333,
+      "p5_rrf": 0.2,
+      "mrr_rrf": 1.0
+    },
+    {
+      "query": "Algo rápido para hacer por la mañana y regresar a comer",
+      "relevant": [
+        "valle-sur",
+        "city-tour-cusco",
+        "maras-moray"
+      ],
+      "bm25_top5": [
+        "maras-moray-cuatrimoto",
+        "waqra-pukara",
+        "machu-picchu-tren",
+        "valle-sur",
+        "laguna-humantay"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "camino-inka",
+        "machu-picchu-tren"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "maras-moray-cuatrimoto",
+        "machu-picchu-tren",
+        "valle-sur",
+        "waqra-pukara"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.039085,
+          "bm25_rank": 20,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "maras-moray-cuatrimoto",
+          "score": 0.032266,
+          "bm25_rank": 1,
+          "vector_rank": 3
+        },
+        {
+          "tour_id": "machu-picchu-tren",
+          "score": 0.031258,
+          "bm25_rank": 3,
+          "vector_rank": 5
+        },
+        {
+          "tour_id": "valle-sur",
+          "score": 0.03055,
+          "bm25_rank": 4,
+          "vector_rank": 7
+        },
+        {
+          "tour_id": "waqra-pukara",
+          "score": 0.030018,
+          "bm25_rank": 2,
+          "vector_rank": 12
+        }
+      ],
+      "hit3_bm25": 0,
+      "hit5_bm25": 1,
+      "p3_bm25": 0.0,
+      "p5_bm25": 0.2,
+      "mrr_bm25": 0.25,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.143,
+      "hit3_rrf": 0,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.0,
+      "p5_rrf": 0.2,
+      "mrr_rrf": 0.25
+    },
+    {
+      "query": "Tour para toda la familia con niños pequeños",
+      "relevant": [
+        "valle-sur",
+        "city-tour-cusco",
+        "valle-sagrado",
+        "maras-moray"
+      ],
+      "bm25_top5": [
+        "tour-mistico",
+        "maras-moray-cuatrimoto",
+        "city-tour-cusco",
+        "camino-inka",
+        "islas-titicaca"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "maras-moray-cuatrimoto",
+        "tour-mistico",
+        "ruta-del-sol",
+        "camino-inka"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.038699,
+          "bm25_rank": 20,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "maras-moray-cuatrimoto",
+          "score": 0.032002,
+          "bm25_rank": 2,
+          "vector_rank": 3
+        },
+        {
+          "tour_id": "tour-mistico",
+          "score": 0.031778,
+          "bm25_rank": 1,
+          "vector_rank": 5
+        },
+        {
+          "tour_id": "ruta-del-sol",
+          "score": 0.031545,
+          "bm25_rank": 6,
+          "vector_rank": 1
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.03125,
+          "bm25_rank": 4,
+          "vector_rank": 4
+        }
+      ],
+      "hit3_bm25": 1,
+      "hit5_bm25": 1,
+      "p3_bm25": 0.333,
+      "p5_bm25": 0.2,
+      "mrr_bm25": 0.333,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.167,
+      "hit3_rrf": 1,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.333,
+      "p5_rrf": 0.2,
+      "mrr_rrf": 1.0
+    },
+    {
+      "query": "Algo tranquilo para personas mayores",
+      "relevant": [
+        "valle-sur",
+        "city-tour-cusco",
+        "valle-sagrado",
+        "maras-moray"
+      ],
+      "bm25_top5": [
+        "agency",
+        "maras-moray-cuatrimoto",
+        "valle-sagrado",
+        "valle-sagrado",
+        "valle-sur"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "maras-moray-cuatrimoto",
+        "valle-sur",
+        "camino-inka",
+        "machu-picchu-tren"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.042014,
+          "bm25_rank": 4,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "maras-moray-cuatrimoto",
+          "score": 0.032002,
+          "bm25_rank": 2,
+          "vector_rank": 3
+        },
+        {
+          "tour_id": "valle-sur",
+          "score": 0.03009,
+          "bm25_rank": 5,
+          "vector_rank": 8
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.02971,
+          "bm25_rank": 11,
+          "vector_rank": 4
+        },
+        {
+          "tour_id": "machu-picchu-tren",
+          "score": 0.029437,
+          "bm25_rank": 10,
+          "vector_rank": 6
+        }
+      ],
+      "hit3_bm25": 1,
+      "hit5_bm25": 1,
+      "p3_bm25": 0.333,
+      "p5_bm25": 0.6,
+      "mrr_bm25": 0.333,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.125,
+      "hit3_rrf": 1,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.667,
+      "p5_rrf": 0.4,
+      "mrr_rrf": 1.0
+    },
+    {
+      "query": "Tienen tours con cuatrimotos?",
+      "relevant": [
+        "maras-moray-cuatrimoto"
+      ],
+      "bm25_top5": [
+        "camino-inka",
+        "tour-mistico",
+        "machu-picchu-car",
+        "ruta-del-sol",
+        "islas-titicaca"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "tour-mistico",
+        "camino-inka"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "ruta-del-sol",
+        "camino-inka",
+        "tour-mistico",
+        "canon-colca"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.038333,
+          "bm25_rank": 20,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "ruta-del-sol",
+          "score": 0.032018,
+          "bm25_rank": 4,
+          "vector_rank": 1
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.031778,
+          "bm25_rank": 1,
+          "vector_rank": 5
+        },
+        {
+          "tour_id": "tour-mistico",
+          "score": 0.031754,
+          "bm25_rank": 2,
+          "vector_rank": 4
+        },
+        {
+          "tour_id": "canon-colca",
+          "score": 0.031281,
+          "bm25_rank": 6,
+          "vector_rank": 2
+        }
+      ],
+      "hit3_bm25": 0,
+      "hit5_bm25": 0,
+      "p3_bm25": 0.0,
+      "p5_bm25": 0.0,
+      "mrr_bm25": 0.083,
+      "hit3_vec": 1,
+      "hit5_vec": 1,
+      "p3_vec": 0.333,
+      "p5_vec": 0.2,
+      "mrr_vec": 0.333,
+      "hit3_rrf": 0,
+      "hit5_rrf": 0,
+      "p3_rrf": 0.0,
+      "p5_rrf": 0.0,
+      "mrr_rrf": 0.125
+    },
+    {
+      "query": "Quiero recorrer Maras y Moray en cuatrimoto",
+      "relevant": [
+        "maras-moray",
+        "maras-moray-cuatrimoto"
+      ],
+      "bm25_top5": [
+        "maras-moray",
+        "machu-picchu-tren",
+        "agency",
+        "valle-sagrado",
+        "valle-sagrado"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "machu-picchu-tren",
+        "valle-sur"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "machu-picchu-tren",
+        "valle-sur",
+        "maras-moray",
+        "maras-moray-cuatrimoto"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.042377,
+          "bm25_rank": 5,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "machu-picchu-tren",
+          "score": 0.031754,
+          "bm25_rank": 2,
+          "vector_rank": 4
+        },
+        {
+          "tour_id": "valle-sur",
+          "score": 0.030536,
+          "bm25_rank": 6,
+          "vector_rank": 5
+        },
+        {
+          "tour_id": "maras-moray",
+          "score": 0.030282,
+          "bm25_rank": 1,
+          "vector_rank": 12
+        },
+        {
+          "tour_id": "maras-moray-cuatrimoto",
+          "score": 0.029762,
+          "bm25_rank": 12,
+          "vector_rank": 3
+        }
+      ],
+      "hit3_bm25": 1,
+      "hit5_bm25": 1,
+      "p3_bm25": 0.333,
+      "p5_bm25": 0.2,
+      "mrr_bm25": 1.0,
+      "hit3_vec": 1,
+      "hit5_vec": 1,
+      "p3_vec": 0.333,
+      "p5_vec": 0.2,
+      "mrr_vec": 0.333,
+      "hit3_rrf": 0,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.0,
+      "p5_rrf": 0.4,
+      "mrr_rrf": 0.25
+    },
+    {
+      "query": "Algo cerca de la ciudad que no tome todo el día",
+      "relevant": [
+        "valle-sur",
+        "city-tour-cusco",
+        "maras-moray"
+      ],
+      "bm25_top5": [
+        "canon-colca",
+        "camino-inka",
+        "tour-mistico",
+        "machu-picchu-car",
+        "ruta-del-sol"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "canon-colca",
+        "ruta-del-sol",
+        "camino-inka",
+        "tour-mistico"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.038514,
+          "bm25_rank": 20,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "canon-colca",
+          "score": 0.032522,
+          "bm25_rank": 1,
+          "vector_rank": 2
+        },
+        {
+          "tour_id": "ruta-del-sol",
+          "score": 0.031778,
+          "bm25_rank": 5,
+          "vector_rank": 1
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.031754,
+          "bm25_rank": 2,
+          "vector_rank": 4
+        },
+        {
+          "tour_id": "tour-mistico",
+          "score": 0.031258,
+          "bm25_rank": 3,
+          "vector_rank": 5
+        }
+      ],
+      "hit3_bm25": 0,
+      "hit5_bm25": 0,
+      "p3_bm25": 0.0,
+      "p5_bm25": 0.0,
+      "mrr_bm25": 0.077,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.125,
+      "hit3_rrf": 0,
+      "hit5_rrf": 0,
+      "p3_rrf": 0.0,
+      "p5_rrf": 0.0,
+      "mrr_rrf": 0.091
+    },
+    {
+      "query": "Qué puedo hacer si solo tengo un día libre en Cusco?",
+      "relevant": [
+        "valle-sur",
+        "city-tour-cusco",
+        "valle-sagrado"
+      ],
+      "bm25_top5": [
+        "machu-picchu-tren",
+        "agency",
+        "maras-moray-cuatrimoto",
+        "valle-sagrado",
+        "valle-sagrado"
+      ],
+      "vector_top5": [
+        "ruta-del-sol",
+        "canon-colca",
+        "maras-moray-cuatrimoto",
+        "machu-picchu-tren",
+        "camino-inka"
+      ],
+      "rrf_top5": [
+        "valle-sagrado",
+        "machu-picchu-tren",
+        "maras-moray-cuatrimoto",
+        "valle-sur",
+        "camino-inka"
+      ],
+      "rrf_scores": [
+        {
+          "tour_id": "valle-sagrado",
+          "score": 0.041774,
+          "bm25_rank": 5,
+          "vector_rank": 20
+        },
+        {
+          "tour_id": "machu-picchu-tren",
+          "score": 0.032018,
+          "bm25_rank": 1,
+          "vector_rank": 4
+        },
+        {
+          "tour_id": "maras-moray-cuatrimoto",
+          "score": 0.031746,
+          "bm25_rank": 3,
+          "vector_rank": 3
+        },
+        {
+          "tour_id": "valle-sur",
+          "score": 0.030303,
+          "bm25_rank": 6,
+          "vector_rank": 6
+        },
+        {
+          "tour_id": "camino-inka",
+          "score": 0.029469,
+          "bm25_rank": 11,
+          "vector_rank": 5
+        }
+      ],
+      "hit3_bm25": 0,
+      "hit5_bm25": 1,
+      "p3_bm25": 0.0,
+      "p5_bm25": 0.4,
+      "mrr_bm25": 0.25,
+      "hit3_vec": 0,
+      "hit5_vec": 0,
+      "p3_vec": 0.0,
+      "p5_vec": 0.0,
+      "mrr_vec": 0.167,
+      "hit3_rrf": 1,
+      "hit5_rrf": 1,
+      "p3_rrf": 0.333,
+      "p5_rrf": 0.4,
+      "mrr_rrf": 1.0
+    }
+  ]
+}

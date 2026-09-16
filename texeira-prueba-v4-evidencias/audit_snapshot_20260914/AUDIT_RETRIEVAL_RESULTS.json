@@ -1,0 +1,42 @@
+[
+  {
+    "question": "bus subida bajada Machu Picchu en Tren",
+    "ids": [
+      "machu-picchu-tren",
+      "machu-picchu-car",
+      "city-tour-cusco",
+      "waqra-pukara",
+      "inka-jungle"
+    ]
+  },
+  {
+    "question": "Salkantay Trek duración",
+    "ids": [
+      "salkantay-trek",
+      "choquequirao",
+      "valle-sur",
+      "city-tour-cusco",
+      "inka-jungle"
+    ]
+  },
+  {
+    "question": "Puente Q’eswachaca",
+    "ids": [
+      "puente-qeswachaca",
+      "valle-sur",
+      "waqra-pukara",
+      "camino-inka",
+      "machu-picchu-car"
+    ]
+  },
+  {
+    "question": "Tour Cuatrimoto casco equipo",
+    "ids": [
+      "maras-moray-cuatrimoto",
+      "city-tour-cusco",
+      "tour-mistico",
+      "machu-picchu-tren",
+      "machu-picchu-car"
+    ]
+  }
+]

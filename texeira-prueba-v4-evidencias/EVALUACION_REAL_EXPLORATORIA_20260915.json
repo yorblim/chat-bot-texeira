@@ -1,0 +1,633 @@
+{
+  "mode": "exploratory_real_llm",
+  "provider": "groq",
+  "model": "qwen/qwen3.8-27b",
+  "total_llm_calls": 4,
+  "cases": [
+    {
+      "id": "new-es-comparison",
+      "language": "es",
+      "question": "Compara Humantay y Montaña de 7 Colores según los servicios del folleto.",
+      "criteria": "Ambos: transporte turístico, guía, desayuno y almuerzo según F1. No inventar precios, cupos ni igualdad de horarios.",
+      "result": {
+        "response": "Según la información documentada por Texeira Travel, aquí tienes la comparación de los servicios incluidos en los tours de **Laguna Humantay** y **Montaña de 7 Colores**:\n\n### Servicios Confirmados\n\n| Servicio | Laguna Humantay | Montaña de 7 Colores |\n| :--- | :---: | :---: |\n| **Transporte** | ✅ Confirmado (Ida y vuelta) | ✅ Confirmado (Ida y vuelta) |\n| **Guía Profesional** | ✅ Confirmado (Bilingüe) | ✅ Confirmado (Bilingüe) |\n| **Desayuno** | ✅ Confirmado | ✅ Confirmado |\n| **Almuerzo** | ✅ Confirmado | ✅ Confirmado |\n| **Entrada a la Montaña** | ❌ No mencionado | ✅ Confirmado |\n| **Oxígeno** | ❌ No mencionado | ✅ Confirmado |\n\n### Diferencias Clave\n*   **Montaña de 7 Colores** incluye explícitamente la **entrada a la montaña** y el suministro de **oxígeno**, servicios que no aparecen listados como incluidos en el folleto de Laguna Humantay.\n*   Ambos tours comparten la base de servicios: transporte turístico de ida y vuelta, guía profesional bilingüe, desayuno y almuerzo.\n\n### ⚠️ Importante\n*   **Horarios:** Existe un conflicto de datos en los horarios del tour de Montaña de 7 Colores entre las fuentes internas. Por lo tanto, **no se puede proporcionar un horario vigente** y debe confirmarse directamente con la agencia.\n*   **Tarifas y Disponibilidad:** La información proporcionada corresponde a los servicios incluidos. Las tarifas, cupos y vigencia exactos **no están confirmados** en este contexto y deben verificarse con la agencia.",
+        "context_used": true,
+        "is_fallback": false,
+        "is_escalation": false,
+        "is_predefined": false,
+        "needs_agency_confirmation": false,
+        "resolved_autonomously": true,
+        "response_route": "rag_llm",
+        "evidence_status": "rag_context",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": []
+      },
+      "retrieved": [
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMontaña de 7 Colores\n- confirmed_product: sí (fuente: F2)\n- includes/transporte: confirmado por F1\n- includes/guia_profesional: confirmado por F1+F3\n- includes/desayuno: confirmado por F1+F2+F3\n- includes/almuerzo: confirmado por F1+F2+F3\n- includes/transporte_ida_vuelta: confirmado por F2+F3\n- includes/guia_profesional_bilingue: confirmado por F2\n- includes/entrada_montana: confirmado por F3\n- includes/oxigeno: confirmado por F3\n\nCONFLICTOS PENDIENTES DE CONFIRMACIÓN:\n- schedule: difiere entre F1 y F3. No proporcionar un valor vigente; confirmar con agencia.",
+          "metadata": {
+            "tour_id": "montana-7-colores",
+            "tour_name": "Montaña de 7 Colores",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "has_conflict",
+            "needs_confirmation": true,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 3.7012411273700163,
+            "rank": 1,
+            "rrf_score": 0.032787,
+            "bm25_rank": 1,
+            "vector_rank": 1
+          }
+        },
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nCamino Inka\n- confirmed_product: sí (fuente: F2)",
+          "metadata": {
+            "tour_id": "camino-inka",
+            "tour_name": "Camino Inka",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 0.0,
+            "rank": 9,
+            "rrf_score": 0.029644,
+            "bm25_rank": 9,
+            "vector_rank": 6
+          }
+        },
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMachu Picchu by Car\n- confirmed_product: sí (fuente: F2)",
+          "metadata": {
+            "tour_id": "machu-picchu-car",
+            "tour_name": "Machu Picchu by Car",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 0.0,
+            "rank": 7,
+            "rrf_score": 0.029631,
+            "bm25_rank": 7,
+            "vector_rank": 8
+          }
+        },
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nWaqra Pukara\n- confirmed_product: sí (fuente: F2+F3)\n- includes/transporte_turistico: confirmado por F3\n- includes/guia_profesional: confirmado por F3",
+          "metadata": {
+            "tour_id": "waqra-pukara",
+            "tour_name": "Waqra Pukara",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 0.0,
+            "rank": 6,
+            "rrf_score": 0.029437,
+            "bm25_rank": 6,
+            "vector_rank": 10
+          }
+        },
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nLaguna Humantay\n- confirmed_product: sí (fuente: F2)\n- schedule: 04:30-17:00 (fuente: F1, página: None)\n- includes/transporte: confirmado por F1\n- includes/guia_profesional: confirmado por F1\n- includes/desayuno: confirmado por F1\n- includes/almuerzo: confirmado por F1+F2\n- includes/transporte_ida_vuelta: confirmado por F2\n- includes/guia_profesional_bilingue: confirmado por F2",
+          "metadata": {
+            "tour_id": "laguna-humantay",
+            "tour_name": "Laguna Humantay",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 2.1792343637597864,
+            "rank": 2,
+            "rrf_score": 0.016129,
+            "bm25_rank": 2,
+            "vector_rank": null
+          }
+        }
+      ],
+      "calls": [
+        {
+          "number": 1,
+          "input_messages": [
+            {
+              "type": "system",
+              "content": "Eres Texeira Bot, asistente virtual de Texeira Travel. Responde en el idioma del usuario.\nUsa solo los datos del contexto proporcionado por el motor de evidencia. El historial sirve para identificar el tour, no como fuente de precios.\nLos rangos son estimaciones de mercado, nunca tarifas oficiales.\nSi el contexto indica un CONFLICTO de horarios o datos, NO elijas uno. Indica que el dato debe confirmarse con la agencia.\nSi un campo es \"unknown\" o \"por confirmar\", NO inventes datos. Indica que falta informacion.\nLa ausencia de un dato NO significa que este excluido. Solo lo que se confirma explicitamente como excluido lo esta.\nLos productos \"confirmed_product=true\" significan que Texeira los documenta, NO que todos sus datos esten confirmados.\nNo inventes politicas, seguros, descuentos, disponibilidad, importes PEN ni conversiones.\nNo confirmes reservas ni prometas que un asesor contactara al usuario.\nIMPORTANTE: Cuando el usuario pregunte por condiciones comerciales no confirmadas (pagos, adelantos, disponibilidad, precio exacto en soles), indica que faltan datos y remite al contacto publicado de la agencia.\nContexto: [Información del tour]\n\nTour: Montaña de 7 Colores\n\nID: montana-7-colores\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMontaña de 7 Colores\n- confirmed_product: sí (fuente: F2)\n- includes/transporte: confirmado por F1\n- includes/guia_profesional: confirmado por F1+F3\n- includes/desayuno: confirmado por F1+F2+F3\n- includes/almuerzo: confirmado por F1+F2+F3\n- includes/transporte_ida_vuelta: confirmado por F2+F3\n- includes/guia_profesional_bilingue: confirmado por F2\n- includes/entrada_montana: confirmado por F3\n- includes/oxigeno: confirmado por F3\n\nCONFLICTOS PENDIENTES DE CONFIRMACIÓN:\n- schedule: difiere entre F1 y F3. No proporcionar un valor vigente; confirmar con agencia.\n\n[Información del tour]\n\nTour: Camino Inka\n\nID: camino-inka\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nCamino Inka\n- confirmed_product: sí (fuente: F2)\n\n[Información del tour]\n\nTour: Machu Picchu by Car\n\nID: machu-picchu-car\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMachu Picchu by Car\n- confirmed_product: sí (fuente: F2)\n\n[Información del tour]\n\nTour: Waqra Pukara\n\nID: waqra-pukara\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nWaqra Pukara\n- confirmed_product: sí (fuente: F2+F3)\n- includes/transporte_turistico: confirmado por F3\n- includes/guia_profesional: confirmado por F3\n\n[Información del tour]\n\nTour: Laguna Humantay\n\nID: laguna-humantay\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nLaguna Humantay\n- confirmed_product: sí (fuente: F2)\n- includes/transporte: confirmado por F1\n- includes/guia_profesional: confirmado por F1\n- includes/desayuno: confirmado por F1\n- includes/almuerzo: confirmado por F1+F2\n- includes/transporte_ida_vuelta: confirmado por F2\n- includes/guia_profesional_bilingue: confirmado por F2\nPregunta: Compara Humantay y Montaña de 7 Colores según los servicios del folleto."
+            },
+            {
+              "type": "human",
+              "content": "Compara Humantay y Montaña de 7 Colores según los servicios del folleto."
+            }
+          ],
+          "usage": {
+            "input_tokens": 948,
+            "output_tokens": 391,
+            "total_tokens": 1339,
+            "input_token_details": {},
+            "output_token_details": {}
+          },
+          "raw_answer": "Según la información documentada por Texeira Travel, aquí tienes la comparación de los servicios incluidos en los tours de **Laguna Humantay** y **Montaña de 7 Colores**:\n\n### Servicios Confirmados\n\n| Servicio | Laguna Humantay | Montaña de 7 Colores |\n| :--- | :---: | :---: |\n| **Transporte** | ✅ Confirmado (Ida y vuelta) | ✅ Confirmado (Ida y vuelta) |\n| **Guía Profesional** | ✅ Confirmado (Bilingüe) | ✅ Confirmado (Bilingüe) |\n| **Desayuno** | ✅ Confirmado | ✅ Confirmado |\n| **Almuerzo** | ✅ Confirmado | ✅ Confirmado |\n| **Entrada a la Montaña** | ❌ No mencionado | ✅ Confirmado |\n| **Oxígeno** | ❌ No mencionado | ✅ Confirmado |\n\n### Diferencias Clave\n*   **Montaña de 7 Colores** incluye explícitamente la **entrada a la montaña** y el suministro de **oxígeno**, servicios que no aparecen listados como incluidos en el folleto de Laguna Humantay.\n*   Ambos tours comparten la base de servicios: transporte turístico de ida y vuelta, guía profesional bilingüe, desayuno y almuerzo.\n\n### ⚠️ Importante\n*   **Horarios:** Existe un conflicto de datos en los horarios del tour de Montaña de 7 Colores entre las fuentes internas. Por lo tanto, **no se puede proporcionar un horario vigente** y debe confirmarse directamente con la agencia.\n*   **Tarifas y Disponibilidad:** La información proporcionada corresponde a los servicios incluidos. Las tarifas, cupos y vigencia exactos **no están confirmados** en este contexto y deben verificarse con la agencia.",
+          "status": "completed"
+        }
+      ],
+      "elapsed_ms": 31388.4,
+      "review_status": "reviewed",
+      "review": {
+        "pertinence": {
+          "status": "pass",
+          "details": "Compara directamente Humantay y 7 Colores según los servicios documentados."
+        },
+        "fidelity": {
+          "status": "pass",
+          "details": "Detalla transporte ida/vuelta, guía bilingüe, desayuno y almuerzo para ambos según F1/F2; entrada y oxígeno confirmados solo para 7 Colores según F3. No inventa precios ni cupos."
+        },
+        "language": {
+          "status": "pass",
+          "details": "Español gramaticalmente correcto y estructurado."
+        },
+        "missing_info": {
+          "status": "pass",
+          "details": "Señala conflicto de horarios en 7 Colores y aclara que tarifas y disponibilidad no están confirmadas en el contexto."
+        },
+        "verdict": "approved"
+      }
+    },
+    {
+      "id": "new-en-train",
+      "language": "en",
+      "question": "Please summarize the services for a visitor taking the Machu Picchu train tour.",
+      "criteria": "English. Transfer Cusco–Ollanta–Cusco, return train, bus up/down, entrance, guide; hotel pickup in F3. No invented meal/hotel night.",
+      "result": {
+        "response": "Based on the provided context for the **Machu Picchu en Tren** tour, the following services are confirmed to be included:\n\n*   **Transportation:**\n    *   Round-trip train tickets.\n    *   Round-trip bus service to and from the Machu Picchu citadel.\n    *   Round-trip transfer between Cusco and Ollantaytambo.\n    *   Hotel pickup.\n*   **Admission:**\n    *   Entrance tickets to the Machu Picchu citadel.\n*   **Guidance:**\n    *   Professional guide.\n\n*Note: Specific tariffs, availability, and validity periods must be confirmed directly with the agency.*",
+        "context_used": true,
+        "is_fallback": false,
+        "is_escalation": false,
+        "is_predefined": false,
+        "needs_agency_confirmation": false,
+        "resolved_autonomously": true,
+        "response_route": "rag_llm",
+        "evidence_status": "rag_context",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": []
+      },
+      "retrieved": [
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nTour Místico\n- confirmed_product: sí (fuente: F2)",
+          "metadata": {
+            "tour_id": "tour-mistico",
+            "tour_name": "Tour Místico",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 2.1960644057175864,
+            "rank": 1,
+            "rrf_score": 0.032266,
+            "bm25_rank": 1,
+            "vector_rank": 3
+          }
+        },
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nTour Cuatrimoto / Maras-Moray\n- confirmed_product: sí (fuente: F3)\n- includes/cuatrimotos_modernas: confirmado por F3\n- includes/casco_equipo_proteccion: confirmado por F3\n- includes/visita_salineras: confirmado por F3\n- includes/visita_moray: confirmado por F3\n- includes/transporte_ida_vuelta: confirmado por F3",
+          "metadata": {
+            "tour_id": "maras-moray-cuatrimoto",
+            "tour_name": "Tour Cuatrimoto / Maras-Moray",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 1.5774987149400315,
+            "rank": 2,
+            "rrf_score": 0.031054,
+            "bm25_rank": 2,
+            "vector_rank": 7
+          }
+        },
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMachu Picchu by Car\n- confirmed_product: sí (fuente: F2)",
+          "metadata": {
+            "tour_id": "machu-picchu-car",
+            "tour_name": "Machu Picchu by Car",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 0.0,
+            "rank": 9,
+            "rrf_score": 0.030622,
+            "bm25_rank": 9,
+            "vector_rank": 2
+          }
+        },
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMachu Picchu en Tren\n- confirmed_product: sí (fuente: F1)\n- includes/traslado_cusco_ollanta_cusco: confirmado por F1\n- includes/tren_ida_vuelta: confirmado por F1\n- includes/bus_subida_bajada: confirmado por F1\n- includes/ingresos_machu_picchu: confirmado por F1\n- includes/guia_profesional: confirmado por F1+F3\n- includes/recojo_hotel: confirmado por F3\n- includes/tickets_tren: confirmado por F3\n- includes/entradas_ciudadela: confirmado por F3",
+          "metadata": {
+            "tour_id": "machu-picchu-tren",
+            "tour_name": "Machu Picchu en Tren",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 0.0,
+            "rank": 10,
+            "rrf_score": 0.029911,
+            "bm25_rank": 10,
+            "vector_rank": 4
+          }
+        },
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nInka Jungle to Machu Picchu\n- confirmed_product: sí (fuente: F2)\n- duration: 4 días (itinerario publicado; confirmar variante y noches) (fuente: F2, página: 17)\n- duration: 4 días (itinerario publicado; confirmar variante y noches) (fuente: F2, página: 17)",
+          "metadata": {
+            "category": "evidence_based",
+            "chunk_index": 0,
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "source": "evidence-v4-2026-09-11",
+            "tour_id": "inka-jungle",
+            "tour_name": "Inka Jungle to Machu Picchu",
+            "retrieval_method": "hybrid_rrf",
+            "rrf_score": 0.016393,
+            "bm25_rank": null,
+            "vector_rank": 1
+          }
+        }
+      ],
+      "calls": [
+        {
+          "number": 2,
+          "input_messages": [
+            {
+              "type": "system",
+              "content": "Eres Texeira Bot, asistente virtual de Texeira Travel. Responde en el idioma del usuario.\nUsa solo los datos del contexto proporcionado por el motor de evidencia. El historial sirve para identificar el tour, no como fuente de precios.\nLos rangos son estimaciones de mercado, nunca tarifas oficiales.\nSi el contexto indica un CONFLICTO de horarios o datos, NO elijas uno. Indica que el dato debe confirmarse con la agencia.\nSi un campo es \"unknown\" o \"por confirmar\", NO inventes datos. Indica que falta informacion.\nLa ausencia de un dato NO significa que este excluido. Solo lo que se confirma explicitamente como excluido lo esta.\nLos productos \"confirmed_product=true\" significan que Texeira los documenta, NO que todos sus datos esten confirmados.\nNo inventes politicas, seguros, descuentos, disponibilidad, importes PEN ni conversiones.\nNo confirmes reservas ni prometas que un asesor contactara al usuario.\nIMPORTANTE: Cuando el usuario pregunte por condiciones comerciales no confirmadas (pagos, adelantos, disponibilidad, precio exacto en soles), indica que faltan datos y remite al contacto publicado de la agencia.\nContexto: [Información del tour]\n\nTour: Tour Místico\n\nID: tour-mistico\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nTour Místico\n- confirmed_product: sí (fuente: F2)\n\n[Información del tour]\n\nTour: Tour Cuatrimoto / Maras-Moray\n\nID: maras-moray-cuatrimoto\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nTour Cuatrimoto / Maras-Moray\n- confirmed_product: sí (fuente: F3)\n- includes/cuatrimotos_modernas: confirmado por F3\n- includes/casco_equipo_proteccion: confirmado por F3\n- includes/visita_salineras: confirmado por F3\n- includes/visita_moray: confirmado por F3\n- includes/transporte_ida_vuelta: confirmado por F3\n\n[Información del tour]\n\nTour: Machu Picchu by Car\n\nID: machu-picchu-car\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMachu Picchu by Car\n- confirmed_product: sí (fuente: F2)\n\n[Información del tour]\n\nTour: Machu Picchu en Tren\n\nID: machu-picchu-tren\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMachu Picchu en Tren\n- confirmed_product: sí (fuente: F1)\n- includes/traslado_cusco_ollanta_cusco: confirmado por F1\n- includes/tren_ida_vuelta: confirmado por F1\n- includes/bus_subida_bajada: confirmado por F1\n- includes/ingresos_machu_picchu: confirmado por F1\n- includes/guia_profesional: confirmado por F1+F3\n- includes/recojo_hotel: confirmado por F3\n- includes/tickets_tren: confirmado por F3\n- includes/entradas_ciudadela: confirmado por F3\n\n[Información del tour]\n\nTour: Inka Jungle to Machu Picchu\n\nID: inka-jungle\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nInka Jungle to Machu Picchu\n- confirmed_product: sí (fuente: F2)\n- duration: 4 días (itinerario publicado; confirmar variante y noches) (fuente: F2, página: 17)\n- duration: 4 días (itinerario publicado; confirmar variante y noches) (fuente: F2, página: 17)\nPregunta: Please summarize the services for a visitor taking the Machu Picchu train tour."
+            },
+            {
+              "type": "human",
+              "content": "Please summarize the services for a visitor taking the Machu Picchu train tour."
+            }
+          ],
+          "usage": {
+            "input_tokens": 944,
+            "output_tokens": 146,
+            "total_tokens": 1090,
+            "input_token_details": {},
+            "output_token_details": {}
+          },
+          "raw_answer": "Based on the provided context for the **Machu Picchu en Tren** tour, the following services are confirmed to be included:\n\n*   **Transportation:**\n    *   Round-trip train tickets.\n    *   Round-trip bus service to and from the Machu Picchu citadel.\n    *   Round-trip transfer between Cusco and Ollantaytambo.\n    *   Hotel pickup.\n*   **Admission:**\n    *   Entrance tickets to the Machu Picchu citadel.\n*   **Guidance:**\n    *   Professional guide.\n\n*Note: Specific tariffs, availability, and validity periods must be confirmed directly with the agency.*",
+          "status": "completed"
+        }
+      ],
+      "elapsed_ms": 1060.43,
+      "review_status": "reviewed",
+      "review": {
+        "pertinence": {
+          "status": "pass",
+          "details": "Responde en inglés resumiendo los servicios para el visitante en Machu Picchu en tren."
+        },
+        "fidelity": {
+          "status": "pass",
+          "details": "Lista traslados Cusco-Ollanta-Cusco, tren ida/vuelta, bus subida/bajada, entrada a ciudadela, guía y recojo del hotel. No inventa comidas ni alojamiento."
+        },
+        "language": {
+          "status": "pass",
+          "details": "Inglés natural y preciso."
+        },
+        "missing_info": {
+          "status": "pass",
+          "details": "Incluye nota explícita indicando que tarifas y disponibilidad deben confirmarse con la agencia."
+        },
+        "verdict": "approved"
+      }
+    },
+    {
+      "id": "new-es-hotel",
+      "language": "es",
+      "question": "¿Cuál es el nombre exacto del hotel donde dormiré con el tour Machu Picchu en tren?",
+      "criteria": "No hay hotel ni pernocte documentado para esta modalidad. No inventar nombre ni convertir recojo del hotel en alojamiento incluido.",
+      "result": {
+        "response": "El contexto proporcionado no incluye el nombre exacto del hotel donde se alojará durante el tour \"Machu Picchu en Tren\".\n\nLa información disponible confirma que el tour incluye traslados, tren, buses, ingresos a Machu Picchu, guía profesional, recojo en hotel y tickets, pero **no especifica el nombre del alojamiento**.\n\nPara obtener el nombre exacto del hotel y confirmar la disponibilidad, debes contactar directamente a la agencia Texeira Travel.\n\nPara contactar a la agencia:\n- Teléfonos: +51 953 767 860 / +51 984 679 715\n- Dirección: Calle Carmen Quicllu N.º 250, Cusco",
+        "context_used": true,
+        "is_fallback": false,
+        "is_escalation": false,
+        "is_predefined": false,
+        "needs_agency_confirmation": false,
+        "resolved_autonomously": true,
+        "response_route": "rag_llm",
+        "evidence_status": "rag_context",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": []
+      },
+      "retrieved": [
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nTour Místico\n- confirmed_product: sí (fuente: F2)",
+          "metadata": {
+            "tour_id": "tour-mistico",
+            "tour_name": "Tour Místico",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 2.1960644057175864,
+            "rank": 1,
+            "rrf_score": 0.032018,
+            "bm25_rank": 1,
+            "vector_rank": 4
+          }
+        },
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMachu Picchu en Tren\n- confirmed_product: sí (fuente: F1)\n- includes/traslado_cusco_ollanta_cusco: confirmado por F1\n- includes/tren_ida_vuelta: confirmado por F1\n- includes/bus_subida_bajada: confirmado por F1\n- includes/ingresos_machu_picchu: confirmado por F1\n- includes/guia_profesional: confirmado por F1+F3\n- includes/recojo_hotel: confirmado por F3\n- includes/tickets_tren: confirmado por F3\n- includes/entradas_ciudadela: confirmado por F3",
+          "metadata": {
+            "tour_id": "machu-picchu-tren",
+            "tour_name": "Machu Picchu en Tren",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 2.1792343637597864,
+            "rank": 2,
+            "rrf_score": 0.032002,
+            "bm25_rank": 2,
+            "vector_rank": 3
+          }
+        },
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nTour Cuatrimoto / Maras-Moray\n- confirmed_product: sí (fuente: F3)\n- includes/cuatrimotos_modernas: confirmado por F3\n- includes/casco_equipo_proteccion: confirmado por F3\n- includes/visita_salineras: confirmado por F3\n- includes/visita_moray: confirmado por F3\n- includes/transporte_ida_vuelta: confirmado por F3",
+          "metadata": {
+            "tour_id": "maras-moray-cuatrimoto",
+            "tour_name": "Tour Cuatrimoto / Maras-Moray",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 1.5774987149400315,
+            "rank": 3,
+            "rrf_score": 0.031025,
+            "bm25_rank": 3,
+            "vector_rank": 6
+          }
+        },
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nCity Tour Cusco\n- confirmed_product: sí (fuente: F2)\n- stops/koricancha: confirmado por F1+F2\n- stops/sacsayhuaman: confirmado por F1+F2\n- stops/qenqo: confirmado por F1+F2\n- stops/puka_pukara: confirmado por F1+F2\n- stops/tambomachay: confirmado por F1+F2\n- includes/bus_turistico: confirmado por F1\n- includes/guia_profesional: confirmado por F1\n\nCONFLICTOS PENDIENTES DE CONFIRMACIÓN:\n- schedule: difiere entre F1 y F3. No proporcionar un valor vigente; confirmar con agencia.",
+          "metadata": {
+            "tour_id": "city-tour-cusco",
+            "tour_name": "City Tour Cusco",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "has_conflict",
+            "needs_confirmation": true,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 1.2067062643964257,
+            "rank": 4,
+            "rrf_score": 0.03055,
+            "bm25_rank": 4,
+            "vector_rank": 7
+          }
+        },
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMachu Picchu by Car\n- confirmed_product: sí (fuente: F2)",
+          "metadata": {
+            "tour_id": "machu-picchu-car",
+            "tour_name": "Machu Picchu by Car",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 0.0,
+            "rank": 10,
+            "rrf_score": 0.030415,
+            "bm25_rank": 10,
+            "vector_rank": 2
+          }
+        }
+      ],
+      "calls": [
+        {
+          "number": 3,
+          "input_messages": [
+            {
+              "type": "system",
+              "content": "Eres Texeira Bot, asistente virtual de Texeira Travel. Responde en el idioma del usuario.\nUsa solo los datos del contexto proporcionado por el motor de evidencia. El historial sirve para identificar el tour, no como fuente de precios.\nLos rangos son estimaciones de mercado, nunca tarifas oficiales.\nSi el contexto indica un CONFLICTO de horarios o datos, NO elijas uno. Indica que el dato debe confirmarse con la agencia.\nSi un campo es \"unknown\" o \"por confirmar\", NO inventes datos. Indica que falta informacion.\nLa ausencia de un dato NO significa que este excluido. Solo lo que se confirma explicitamente como excluido lo esta.\nLos productos \"confirmed_product=true\" significan que Texeira los documenta, NO que todos sus datos esten confirmados.\nNo inventes politicas, seguros, descuentos, disponibilidad, importes PEN ni conversiones.\nNo confirmes reservas ni prometas que un asesor contactara al usuario.\nIMPORTANTE: Cuando el usuario pregunte por condiciones comerciales no confirmadas (pagos, adelantos, disponibilidad, precio exacto en soles), indica que faltan datos y remite al contacto publicado de la agencia.\nContexto: [Información del tour]\n\nTour: Tour Místico\n\nID: tour-mistico\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nTour Místico\n- confirmed_product: sí (fuente: F2)\n\n[Información del tour]\n\nTour: Machu Picchu en Tren\n\nID: machu-picchu-tren\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMachu Picchu en Tren\n- confirmed_product: sí (fuente: F1)\n- includes/traslado_cusco_ollanta_cusco: confirmado por F1\n- includes/tren_ida_vuelta: confirmado por F1\n- includes/bus_subida_bajada: confirmado por F1\n- includes/ingresos_machu_picchu: confirmado por F1\n- includes/guia_profesional: confirmado por F1+F3\n- includes/recojo_hotel: confirmado por F3\n- includes/tickets_tren: confirmado por F3\n- includes/entradas_ciudadela: confirmado por F3\n\n[Información del tour]\n\nTour: Tour Cuatrimoto / Maras-Moray\n\nID: maras-moray-cuatrimoto\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nTour Cuatrimoto / Maras-Moray\n- confirmed_product: sí (fuente: F3)\n- includes/cuatrimotos_modernas: confirmado por F3\n- includes/casco_equipo_proteccion: confirmado por F3\n- includes/visita_salineras: confirmado por F3\n- includes/visita_moray: confirmado por F3\n- includes/transporte_ida_vuelta: confirmado por F3\n\n[Información del tour]\n\nTour: City Tour Cusco\n\nID: city-tour-cusco\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nCity Tour Cusco\n- confirmed_product: sí (fuente: F2)\n- stops/koricancha: confirmado por F1+F2\n- stops/sacsayhuaman: confirmado por F1+F2\n- stops/qenqo: confirmado por F1+F2\n- stops/puka_pukara: confirmado por F1+F2\n- stops/tambomachay: confirmado por F1+F2\n- includes/bus_turistico: confirmado por F1\n- includes/guia_profesional: confirmado por F1\n\nCONFLICTOS PENDIENTES DE CONFIRMACIÓN:\n- schedule: difiere entre F1 y F3. No proporcionar un valor vigente; confirmar con agencia.\n\n[Información del tour]\n\nTour: Machu Picchu by Car\n\nID: machu-picchu-car\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMachu Picchu by Car\n- confirmed_product: sí (fuente: F2)\nPregunta: ¿Cuál es el nombre exacto del hotel donde dormiré con el tour Machu Picchu en tren?"
+            },
+            {
+              "type": "human",
+              "content": "¿Cuál es el nombre exacto del hotel donde dormiré con el tour Machu Picchu en tren?"
+            }
+          ],
+          "usage": {
+            "input_tokens": 1021,
+            "output_tokens": 97,
+            "total_tokens": 1118,
+            "input_token_details": {},
+            "output_token_details": {}
+          },
+          "raw_answer": "El contexto proporcionado no incluye el nombre exacto del hotel donde se alojará durante el tour \"Machu Picchu en Tren\".\n\nLa información disponible confirma que el tour incluye traslados, tren, buses, ingresos a Machu Picchu, guía profesional, recojo en hotel y tickets, pero **no especifica el nombre del alojamiento**.\n\nPara obtener el nombre exacto del hotel y confirmar la disponibilidad, debes contactar directamente a la agencia Texeira Travel.",
+          "status": "completed"
+        }
+      ],
+      "elapsed_ms": 731.25,
+      "review_status": "reviewed",
+      "review": {
+        "pertinence": {
+          "status": "pass",
+          "details": "Aborda directamente la pregunta sobre el nombre del hotel para pernoctar."
+        },
+        "fidelity": {
+          "status": "pass",
+          "details": "No inventa nombre de hotel ni asume que el recojo del hotel equivalga a pernocte o alojamiento incluido."
+        },
+        "language": {
+          "status": "pass",
+          "details": "Español formal y claro."
+        },
+        "missing_info": {
+          "status": "pass",
+          "details": "Indica que no está documentado el nombre del hotel y remite a los canales de contacto oficiales de Texeira Travel."
+        },
+        "verdict": "approved"
+      }
+    },
+    {
+      "id": "new-en-access",
+      "language": "en",
+      "question": "Tell me whether the Humantay excursion can accommodate a wheelchair throughout the entire trip.",
+      "criteria": "English. No accessibility guarantee documented. Require confirmation; no invented arrangements or confident suitability claim.",
+      "result": {
+        "response": "The provided context does not contain any information regarding accessibility, wheelchair accommodations, or terrain conditions for the Laguna Humantay tour.\n\nTherefore, I cannot confirm whether the excursion can accommodate a wheelchair throughout the entire trip. Please contact Texeira Travel directly to verify accessibility details and confirm if the route is suitable for your specific needs.",
+        "context_used": true,
+        "is_fallback": false,
+        "is_escalation": false,
+        "is_predefined": false,
+        "needs_agency_confirmation": false,
+        "resolved_autonomously": true,
+        "response_route": "rag_llm",
+        "evidence_status": "rag_context",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": []
+      },
+      "retrieved": [
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nLaguna Humantay\n- confirmed_product: sí (fuente: F2)\n- schedule: 04:30-17:00 (fuente: F1, página: None)\n- includes/transporte: confirmado por F1\n- includes/guia_profesional: confirmado por F1\n- includes/desayuno: confirmado por F1\n- includes/almuerzo: confirmado por F1+F2\n- includes/transporte_ida_vuelta: confirmado por F2\n- includes/guia_profesional_bilingue: confirmado por F2",
+          "metadata": {
+            "tour_id": "laguna-humantay",
+            "tour_name": "Laguna Humantay",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 2.1792343637597864,
+            "rank": 1,
+            "rrf_score": 0.032018,
+            "bm25_rank": 1,
+            "vector_rank": 4
+          }
+        },
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nCity Tour Cusco\n- confirmed_product: sí (fuente: F2)\n- stops/koricancha: confirmado por F1+F2\n- stops/sacsayhuaman: confirmado por F1+F2\n- stops/qenqo: confirmado por F1+F2\n- stops/puka_pukara: confirmado por F1+F2\n- stops/tambomachay: confirmado por F1+F2\n- includes/bus_turistico: confirmado por F1\n- includes/guia_profesional: confirmado por F1\n\nCONFLICTOS PENDIENTES DE CONFIRMACIÓN:\n- schedule: difiere entre F1 y F3. No proporcionar un valor vigente; confirmar con agencia.",
+          "metadata": {
+            "tour_id": "city-tour-cusco",
+            "tour_name": "City Tour Cusco",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "has_conflict",
+            "needs_confirmation": true,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 0.0,
+            "rank": 2,
+            "rrf_score": 0.030835,
+            "bm25_rank": 2,
+            "vector_rank": 8
+          }
+        },
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nSalkantay Trek\n- confirmed_product: sí (fuente: F2)\n- duration: 4 días (itinerario publicado; confirmar variante y noches) (fuente: F2, página: 16)\n- duration: 4 días (itinerario publicado; confirmar variante y noches) (fuente: F2, página: 16)",
+          "metadata": {
+            "tour_id": "salkantay-trek",
+            "tour_name": "Salkantay Trek",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 0.0,
+            "rank": 10,
+            "rrf_score": 0.030159,
+            "bm25_rank": 10,
+            "vector_rank": 3
+          }
+        },
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nWaqra Pukara\n- confirmed_product: sí (fuente: F2+F3)\n- includes/transporte_turistico: confirmado por F3\n- includes/guia_profesional: confirmado por F3",
+          "metadata": {
+            "tour_id": "waqra-pukara",
+            "tour_name": "Waqra Pukara",
+            "chunk_index": 0,
+            "source": "evidence-v4-2026-09-11",
+            "category": "evidence_based",
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "retrieval_method": "hybrid_rrf",
+            "bm25_score": 0.0,
+            "rank": 6,
+            "rrf_score": 0.029644,
+            "bm25_rank": 6,
+            "vector_rank": 9
+          }
+        },
+        {
+          "text": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nTour Místico\n- confirmed_product: sí (fuente: F2)",
+          "metadata": {
+            "category": "evidence_based",
+            "chunk_index": 0,
+            "evidence_status": "no_conflict",
+            "needs_confirmation": false,
+            "source": "evidence-v4-2026-09-11",
+            "tour_id": "tour-mistico",
+            "tour_name": "Tour Místico",
+            "retrieval_method": "hybrid_rrf",
+            "rrf_score": 0.016393,
+            "bm25_rank": null,
+            "vector_rank": 1
+          }
+        }
+      ],
+      "calls": [
+        {
+          "number": 4,
+          "input_messages": [
+            {
+              "type": "system",
+              "content": "Eres Texeira Bot, asistente virtual de Texeira Travel. Responde en el idioma del usuario.\nUsa solo los datos del contexto proporcionado por el motor de evidencia. El historial sirve para identificar el tour, no como fuente de precios.\nLos rangos son estimaciones de mercado, nunca tarifas oficiales.\nSi el contexto indica un CONFLICTO de horarios o datos, NO elijas uno. Indica que el dato debe confirmarse con la agencia.\nSi un campo es \"unknown\" o \"por confirmar\", NO inventes datos. Indica que falta informacion.\nLa ausencia de un dato NO significa que este excluido. Solo lo que se confirma explicitamente como excluido lo esta.\nLos productos \"confirmed_product=true\" significan que Texeira los documenta, NO que todos sus datos esten confirmados.\nNo inventes politicas, seguros, descuentos, disponibilidad, importes PEN ni conversiones.\nNo confirmes reservas ni prometas que un asesor contactara al usuario.\nIMPORTANTE: Cuando el usuario pregunte por condiciones comerciales no confirmadas (pagos, adelantos, disponibilidad, precio exacto en soles), indica que faltan datos y remite al contacto publicado de la agencia.\nContexto: [Información del tour]\n\nTour: Laguna Humantay\n\nID: laguna-humantay\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nLaguna Humantay\n- confirmed_product: sí (fuente: F2)\n- schedule: 04:30-17:00 (fuente: F1, página: None)\n- includes/transporte: confirmado por F1\n- includes/guia_profesional: confirmado por F1\n- includes/desayuno: confirmado por F1\n- includes/almuerzo: confirmado por F1+F2\n- includes/transporte_ida_vuelta: confirmado por F2\n- includes/guia_profesional_bilingue: confirmado por F2\n\n[Información del tour]\n\nTour: City Tour Cusco\n\nID: city-tour-cusco\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nCity Tour Cusco\n- confirmed_product: sí (fuente: F2)\n- stops/koricancha: confirmado por F1+F2\n- stops/sacsayhuaman: confirmado por F1+F2\n- stops/qenqo: confirmado por F1+F2\n- stops/puka_pukara: confirmado por F1+F2\n- stops/tambomachay: confirmado por F1+F2\n- includes/bus_turistico: confirmado por F1\n- includes/guia_profesional: confirmado por F1\n\nCONFLICTOS PENDIENTES DE CONFIRMACIÓN:\n- schedule: difiere entre F1 y F3. No proporcionar un valor vigente; confirmar con agencia.\n\n[Información del tour]\n\nTour: Salkantay Trek\n\nID: salkantay-trek\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nSalkantay Trek\n- confirmed_product: sí (fuente: F2)\n- duration: 4 días (itinerario publicado; confirmar variante y noches) (fuente: F2, página: 16)\n- duration: 4 días (itinerario publicado; confirmar variante y noches) (fuente: F2, página: 16)\n\n[Información del tour]\n\nTour: Waqra Pukara\n\nID: waqra-pukara\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nWaqra Pukara\n- confirmed_product: sí (fuente: F2+F3)\n- includes/transporte_turistico: confirmado por F3\n- includes/guia_profesional: confirmado por F3\n\n[Información del tour]\n\nTour: Tour Místico\n\nID: tour-mistico\n\nCategoría: evidence_based\n\n\n\nInformación de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nTour Místico\n- confirmed_product: sí (fuente: F2)\nPregunta: Tell me whether the Humantay excursion can accommodate a wheelchair throughout the entire trip."
+            },
+            {
+              "type": "human",
+              "content": "Tell me whether the Humantay excursion can accommodate a wheelchair throughout the entire trip."
+            }
+          ],
+          "usage": {
+            "input_tokens": 1004,
+            "output_tokens": 66,
+            "total_tokens": 1070,
+            "input_token_details": {},
+            "output_token_details": {}
+          },
+          "raw_answer": "The provided context does not contain any information regarding accessibility, wheelchair accommodations, or terrain conditions for the Laguna Humantay tour.\n\nTherefore, I cannot confirm whether the excursion can accommodate a wheelchair throughout the entire trip. Please contact Texeira Travel directly to verify accessibility details and confirm if the route is suitable for your specific needs.",
+          "status": "completed"
+        }
+      ],
+      "elapsed_ms": 644.21,
+      "review_status": "reviewed",
+      "review": {
+        "pertinence": {
+          "status": "pass",
+          "details": "Responde sobre la posibilidad de accesibilidad para silla de ruedas durante todo el recorrido de Humantay."
+        },
+        "fidelity": {
+          "status": "pass",
+          "details": "No inventa condiciones de accesibilidad, rampas ni senderos adaptados."
+        },
+        "language": {
+          "status": "pass",
+          "details": "Inglés formal y adecuado."
+        },
+        "missing_info": {
+          "status": "pass",
+          "details": "Declara explícitamente la ausencia de datos de accesibilidad en el contexto y requiere confirmación directa con la agencia."
+        },
+        "verdict": "approved"
+      }
+    }
+  ],
+  "code_sha256": "ac5d81f6adbcfde22742a4f615a53557fc8d46a24cd3e09e5701342649a12e3a"
+}

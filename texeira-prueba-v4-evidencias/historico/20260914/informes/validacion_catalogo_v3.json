@@ -1,0 +1,11 @@
+{
+  "tours_count": 7,
+  "tours_ok": 7,
+  "errors": [],
+  "unconfirmed_count": 2,
+  "bus_confirmed": true,
+  "new_tours": [
+    "maras-moray",
+    "valle-sur"
+  ]
+}

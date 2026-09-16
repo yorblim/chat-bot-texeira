@@ -1,0 +1,391 @@
+{
+  "version": "brochure-v3-2026-09-11",
+  "status": "agency_brochure_confirmed",
+  "source": "Folleto fisico confirmado por Texeira Travel",
+  "source_date": "2026-09-11",
+  "notice": "Informacion confirmada por folleto fisico de la agencia. Precios son referenciales de mercado, no tarifas oficiales.",
+  "agency": {
+    "name": "TEXEIRA TRAVEL — TRAVEL AGENCY E.I.R.L.",
+    "published_phone": "+51 953 767 860",
+    "published_secondary_phone": "+51 984 679 715",
+    "emails": [
+      "texeiratraveltour@hotmail.com",
+      "eugeniotejeira@hotmail.com"
+    ],
+    "published_address": "Calle Carmen Quicllu N.º 250, Cusco",
+    "address_source": "F1 (Facebook anterior; no figura en el folleto fisico)",
+    "contact_source": "B2 (folleto fisico)"
+  },
+  "policies": {
+    "payment_methods": "No confirmado en folleto. Consultar a la agencia.",
+    "deposit_required": "No confirmado en folleto. Consultar a la agencia.",
+    "cancellation_policy": "No confirmado en folleto. Consultar a la agencia.",
+    "children_discount": "No confirmado en folleto. Consultar a la agencia.",
+    "group_discount": "No confirmado en folleto. Consultar a la agencia.",
+    "availability": "Consultar; sin conexion a inventario de reservas.",
+    "note": "El folleto no detalla politicas de pago, cancelacion ni descuentos. Consultar directamente a la agencia."
+  },
+  "tours": [
+    {
+      "id": "city-tour-cusco",
+      "name": "City Tour Cusco",
+      "name_en": "Cusco City Tour",
+      "category": "city_tour",
+      "description": "Recorrido por los principales sitios arqueologicos de Cusco.",
+      "description_en": "Tour of the main archaeological sites in Cusco.",
+      "schedule": {
+        "departure": "10:00 AM (Turno 1) / 13:30 PM (Turno 2)",
+        "return": "14:00 PM (Turno 1) / 18:30 PM (Turno 2)",
+        "frequency": "Diario",
+        "note": "Horario textual del folleto: 'de 10am 14pm y de 13:30pm 18:30pm'. Notacion ambigua/inconsistente. Confirmar horas exactas."
+      },
+      "duration_hours": 4,
+      "highlights": [
+        "Templo de Koricancha",
+        "Sacsayhuaman",
+        "Qenqo",
+        "Puca pucara",
+        "Tambomachay"
+      ],
+      "itinerary": [
+        "Recogida en el hotel",
+        "Visita al Templo de Koricancha",
+        "Traslado a Sacsayhuaman",
+        "Visita a Qenqo",
+        "Visita a Puca pucara",
+        "Visita a Tambomachay",
+        "Retorno al hotel"
+      ],
+      "includes": [
+        "Bus turistico",
+        "Guia profesional"
+      ],
+      "not_includes": [
+        "Boleto turistico (ingresos)",
+        "Almuerzo",
+        "Seguro de viaje"
+      ],
+      "price_usd": 20,
+      "price_pen": null,
+      "price_note": "Precio referencial de mercado, no confirmado por la agencia.",
+      "market_sources": ["M1"],
+      "physical_requirements": "Moderado. Caminata ligera en sitios arqueologicos.",
+      "keywords": ["city tour", "cusco", "koricancha", "sacsayhuaman", "qenqo", "puca pucara", "tambomachay"],
+      "keywords_en": ["city tour", "cusco", "koricancha", "sacsayhuaman", "qenqo", "puca pucara", "tambomachay"],
+      "aliases_quechua": ["qorikancha", "sacsaywaman", "qenqo", "puka pukara", "tambomachay"],
+      "source": "B2",
+      "source_note": "Informacion confirmada por folleto fisico de Texeira Travel."
+    },
+    {
+      "id": "valle-sagrado",
+      "name": "Valle Sagrado",
+      "name_en": "Sacred Valley",
+      "category": "full_day",
+      "description": "Recorrido completo por el Valle Sagrado de los Incas.",
+      "description_en": "Complete tour of the Sacred Valley of the Incas.",
+      "schedule": {
+        "departure": "07:30 AM",
+        "return": "18:30 PM",
+        "frequency": "Diario",
+        "note": "Horario confirmado por folleto: 'de 7:30 am a 18:30 pm'."
+      },
+      "duration_hours": 11,
+      "highlights": [
+        "Chinchero",
+        "Moray",
+        "Maras salineras",
+        "Ollantaytambo",
+        "Pisac",
+        "Urubamba"
+      ],
+      "itinerary": [
+        "Recogida en el hotel a las 07:30 AM",
+        "Traslado a Chinchero",
+        "Visita a Moray",
+        "Visita a Maras salineras",
+        "Almuerzo buffet en Urubamba",
+        "Visita a Ollantaytambo",
+        "Visita a Pisac",
+        "Retorno a Cusco a las 18:30 PM"
+      ],
+      "includes": [
+        "Almuerzo buffet en Urubamba",
+        "Bus turistico",
+        "Guia profesional"
+      ],
+      "not_includes": [
+        "Boleto turistico (ingresos)",
+        "Seguro de viaje"
+      ],
+      "price_usd": 50,
+      "price_pen": null,
+      "price_note": "Precio referencial de mercado, no confirmado por la agencia.",
+      "market_sources": ["M2"],
+      "physical_requirements": "Moderado. Caminata ligera en sitios arqueologicos.",
+      "keywords": ["valle sagrado", "sacred valley", "chinchero", "moray", "maras", "ollantaytambo", "pisac", "urubamba"],
+      "keywords_en": ["sacred valley", "chinchero", "moray", "maras", "ollantaytambo", "pisac", "urubamba"],
+      "aliases_quechua": ["urubamba", "willkanuta"],
+      "source": "B2",
+      "source_note": "Informacion confirmada por folleto fisico de Texeira Travel."
+    },
+    {
+      "id": "machu-picchu-clasico",
+      "name": "Machu Picchu",
+      "name_en": "Machu Picchu",
+      "category": "full_day",
+      "description": "Traslado completo a Machu Picchu con tren, bus y guia.",
+      "description_en": "Complete transfer to Machu Picchu with train, bus and guide.",
+      "schedule": {
+        "departure": "Segun horario de tren",
+        "return": "Segun horario de tren",
+        "frequency": "Diario",
+        "note": "Horario sujeto a disponibilidad de tren y entrada."
+      },
+      "duration_hours": null,
+      "highlights": [
+        "Machu Picchu"
+      ],
+      "itinerary": [
+        "Recogida en el hotel",
+        "Traslado Cusco - Ollantaytambo",
+        "Tren a Aguas Calientes",
+        "Bus de subida a Machu Picchu",
+        "Recorrido guiado por Machu Picchu",
+        "Bus de bajada a Aguas Calientes",
+        "Tren a Ollantaytambo",
+        "Traslado a Cusco"
+      ],
+      "includes": [
+        "Traslado Cusco - Ollanta - Cusco",
+        "Tren ida y vuelta",
+        "Bus de subida y bajada",
+        "Ingresos a Machu Picchu",
+        "Guia profesional"
+      ],
+      "not_includes": [
+        "Almuerzo",
+        "Seguro de viaje",
+        "Propinas"
+      ],
+      "price_usd": 350,
+      "price_pen": null,
+      "price_note": "Precio referencial de mercado, no confirmado por la agencia. El folleto no incluye precios.",
+      "market_sources": ["M3"],
+      "physical_requirements": "Moderado. Caminata en Machu Picchu.",
+      "keywords": ["machu picchu", "machupicchu", "tren", "bus", "aguas calientes"],
+      "keywords_en": ["machu picchu", "train", "bus", "aguas calientes"],
+      "aliases_quechua": ["machupicchu", "machu pikchu"],
+      "source": "B1",
+      "source_note": "Informacion confirmada por folleto fisico de Texeira Travel. INCLUYE BUS DE SUBIDA Y BAJADA (confirmado)."
+    },
+    {
+      "id": "maras-moray",
+      "name": "Maras - Moray",
+      "name_en": "Maras - Moray",
+      "category": "half_day",
+      "description": "Recorrido por las salineras de Maras y los circulos de Moray.",
+      "description_en": "Tour of the Maras salt mines and Moray circles.",
+      "schedule": {
+        "departure": "08:40 AM",
+        "return": "14:00 PM",
+        "frequency": "Diario",
+        "note": "Horario textual del folleto: 'de 8:40 am a 14:00 pm'. Notacion inconsistente (14:00 pm). Confirmar horas exactas."
+      },
+      "duration_hours": 5,
+      "highlights": [
+        "Awana de Chinchero",
+        "Moray",
+        "Salineras"
+      ],
+      "itinerary": [
+        "Recogida en el hotel",
+        "Traslado a Awana de Chinchero",
+        "Visita a Moray",
+        "Visita a Salineras de Maras",
+        "Retorno al hotel"
+      ],
+      "includes": [
+        "Bus turistico o cuatrimotos (alternativas; modalidad por confirmar)",
+        "Guia profesional"
+      ],
+      "not_includes": [
+        "Almuerzo",
+        "Seguro de viaje"
+      ],
+      "price_usd": null,
+      "price_pen": null,
+      "price_note": "Sin precio confirmado. El folleto no incluye precios.",
+      "market_sources": [],
+      "physical_requirements": "Leve. Caminata corta.",
+      "keywords": ["maras", "moray", "salineras", "salinas", "awana", "chinchero"],
+      "keywords_en": ["maras", "moray", "salt mines", "salineras"],
+      "aliases_quechua": ["maras", "moray"],
+      "source": "B1",
+      "source_note": "Tour NUEVO agregado segun folleto fisico de Texeira Travel."
+    },
+    {
+      "id": "valle-sur",
+      "name": "Valle Sur",
+      "name_en": "South Valley",
+      "category": "half_day",
+      "description": "Recorrido por el Valle Sur de Cusco.",
+      "description_en": "Tour of the South Valley of Cusco.",
+      "schedule": {
+        "departure": "08:40 AM",
+        "return": "14:00 PM",
+        "frequency": "Diario",
+        "note": "Horario textual del folleto: 'de 8:40 am a 14:00 pm'. Notacion inconsistente (14:00 pm). Confirmar horas exactas."
+      },
+      "duration_hours": 5,
+      "highlights": [
+        "Tipon",
+        "Pikillaqta",
+        "Templo de Andahuaylillas"
+      ],
+      "itinerary": [
+        "Recogida en el hotel",
+        "Traslado a Tipon",
+        "Visita a Tipon",
+        "Visita a Pikillaqta",
+        "Visita al Templo de Andahuaylillas",
+        "Retorno al hotel"
+      ],
+      "includes": [
+        "Bus turistico",
+        "Guia profesional"
+      ],
+      "not_includes": [
+        "Almuerzo",
+        "Seguro de viaje"
+      ],
+      "price_usd": null,
+      "price_pen": null,
+      "price_note": "Sin precio confirmado. El folleto no incluye precios.",
+      "market_sources": [],
+      "physical_requirements": "Leve. Caminata corta.",
+      "keywords": ["valle sur", "south valley", "tipon", "pikillaqta", "andahuaylillas"],
+      "keywords_en": ["south valley", "tipon", "pikillaqta", "andahuaylillas"],
+      "aliases_quechua": ["tipon", "pikillaqta"],
+      "source": "B1",
+      "source_note": "Tour NUEVO agregado segun folleto fisico de Texeira Travel."
+    },
+    {
+      "id": "montana-7-colores",
+      "name": "Montana de 7 Colores",
+      "name_en": "Rainbow Mountain",
+      "category": "full_day",
+      "description": "Excursion a la Montana de 7 Colores (Vinicunca).",
+      "description_en": "Excursion to the Rainbow Mountain (Vinicunca).",
+      "schedule": {
+        "departure": "04:30 AM",
+        "return": "17:00 PM",
+        "frequency": "Diario",
+        "note": "Horario confirmado por folleto: 'de 4:30 am a 5:00 pm'."
+      },
+      "duration_hours": 12,
+      "highlights": [
+        "Montana de 7 Colores",
+        "Vinicunca"
+      ],
+      "itinerary": [
+        "Recogida en el hotel a las 04:30 AM",
+        "Traslado al punto de inicio del trekking",
+        "Caminata hasta la Montana de 7 Colores",
+        "Tiempo libre en la cima",
+        "Retorno al punto de inicio",
+        "Almuerzo",
+        "Retorno a Cusco a las 17:00 PM"
+      ],
+      "includes": [
+        "Transporte turistico",
+        "Guia profesional",
+        "Desayuno",
+        "Almuerzo"
+      ],
+      "not_includes": [
+        "Entradas a la montana y Valle Rojo",
+        "Caballo o cuatrimoto",
+        "Seguro de viaje"
+      ],
+      "price_usd": 35,
+      "price_pen": null,
+      "price_note": "Precio referencial de mercado, no confirmado por la agencia.",
+      "market_sources": ["M5"],
+      "physical_requirements": "Alto. Trekking exigente a 5,200 m.s.n.m.",
+      "keywords": ["montana 7 colores", "rainbow mountain", "vinicunca", "7 colores"],
+      "keywords_en": ["rainbow mountain", "vinicunca", "7 colors"],
+      "aliases_quechua": ["vinicunca", "wiñi cunca"],
+      "source": "B1",
+      "source_note": "Informacion confirmada por folleto fisico de Texeira Travel."
+    },
+    {
+      "id": "laguna-humantay",
+      "name": "Laguna Humantay",
+      "name_en": "Humantay Lagoon",
+      "category": "full_day",
+      "description": "Excursion a la Laguna Humantay.",
+      "description_en": "Excursion to the Humantay Lagoon.",
+      "schedule": {
+        "departure": "04:30 AM",
+        "return": "17:00 PM",
+        "frequency": "Diario",
+        "note": "Horario confirmado por folleto: 'de 4:30 am a 5:00 pm'."
+      },
+      "duration_hours": 12,
+      "highlights": [
+        "Laguna Humantay"
+      ],
+      "itinerary": [
+        "Recogida en el hotel a las 04:30 AM",
+        "Traslado al punto de inicio del trekking",
+        "Caminata hasta la Laguna Humantay",
+        "Tiempo libre en la laguna",
+        "Retorno al punto de inicio",
+        "Almuerzo",
+        "Retorno a Cusco a las 17:00 PM"
+      ],
+      "includes": [
+        "Transporte turistico",
+        "Guia profesional",
+        "Desayuno",
+        "Almuerzo"
+      ],
+      "not_includes": [
+        "Caballo opcional",
+        "Seguro de viaje"
+      ],
+      "price_usd": 40,
+      "price_pen": null,
+      "price_note": "Precio referencial de mercado, no confirmado por la agencia.",
+      "market_sources": ["M4"],
+      "physical_requirements": "Alto. Trekking exigente a 4,200 m.s.n.m.",
+      "keywords": ["laguna humantay", "humantay", "lagoon"],
+      "keywords_en": ["humantay", "lagoon"],
+      "aliases_quechua": ["humantay"],
+      "source": "B1",
+      "source_note": "Informacion confirmada por folleto fisico de Texeira Travel."
+    }
+  ],
+  "unconfirmed_products": [
+    {
+      "id": "salkantay-trek",
+      "name": "Salkantay Trek",
+      "note": "NO confirmado en folleto fisico. No incluir como servicio oficial de Texeira Travel."
+    },
+    {
+      "id": "paquete-completo-7d",
+      "name": "Paquete Cusco 7D/6N",
+      "note": "NO confirmado en folleto fisico. No incluir como servicio oficial de Texeira Travel."
+    }
+  ],
+  "sources": {
+    "B1": "Folleto fisico - Pagina 1 (data/agency_sources/brochure_page_1.jpeg)",
+    "B2": "Folleto fisico - Pagina 2 (data/agency_sources/brochure_page_2.jpeg)",
+    "F1": "https://www.facebook.com/EugenioTejeiraMaldonado1000",
+    "M1": "https://www.mptc.com.pe/tour.php?id=3",
+    "M2": "https://www.mptc.com.pe/tour.php?id=34",
+    "M3": "https://www.mptc.com.pe/tour.php?id=12",
+    "M4": "https://www.mptc.com.pe/tour.php?id=2",
+    "M5": "https://www.machupicchureservations.org/tour/rainbow-mountain-tour"
+  }
+}

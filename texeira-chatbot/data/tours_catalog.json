@@ -1,0 +1,484 @@
+{
+  "agency": {
+    "name": "Texeira Travel Tour",
+    "city": "Cusco",
+    "country": "Perú",
+    "currency_local": "PEN",
+    "currency_foreign": "USD",
+    "exchange_rate": 3.70,
+    "whatsapp": "+51 984 123 456",
+    "email": "info@texeiratraveltour.com",
+    "address": "Calle Plateros 348, Cusco, Perú"
+  },
+  "tours": [
+    {
+      "id": "city-tour-cusco",
+      "name": "City Tour Cusco",
+      "name_en": "Cusco City Tour",
+      "name_pt": "Tour pela Cidade do Cusco",
+      "category": "city-tour",
+      "duration_hours": 8,
+      "languages": ["es", "en", "pt"],
+      "images": [
+        {"url": "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=800&h=500&fit=crop", "alt": "Panorámica de Cusco desde Sacsayhuamán", "caption": "Vista panorámica del centro histórico de Cusco"},
+        {"url": "https://images.unsplash.com/photo-1580619305218-8423a7ef79b4?w=800&h=500&fit=crop", "alt": "Qorikancha Templo del Sol", "caption": "Qorikancha — Templo del Sol"},
+        {"url": "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=800&h=500&fit=crop", "alt": "Sacsayhuamán Cusco", "caption": "Fortaleza de Sacsayhuamán"}
+      ],
+      "description": "Recorrido panorámico por los principales monumentos históricos del centro histórico de Cusco, declarado Patrimonio de la Humanidad por la UNESCO. Incluye visita al Qorikancha (Templo del Sol), la Catedral del Cusco, Sacsayhuamán y artesanías locales.",
+      "description_en": "Panoramic tour of the main historical monuments of the historic center of Cusco, a UNESCO World Heritage Site. Includes visits to Qorikancha (Temple of the Sun), Cusco Cathedral, Sacsayhuaman, and local crafts.",
+      "description_pt": "Passeio panorâmico pelos principais monumentos históricos do centro histórico do Cusco, Patrimônio da Humanidade UNESCO. Inclui visita ao Qorikancha (Templo do Sol), Catedral de Cusco, Sacsayhuamán e artesanato local.",
+      "highlights": [
+        "Qorikancha (Templo del Sol)",
+        "Catedral del Cusco",
+        "Sacsayhuamán",
+        "Plaza de Armas",
+        "Barrio de San Blas"
+      ],
+      "itinerary": [
+        "8:00 AM - Recogida en el hotel",
+        "8:30 AM - Visita al Qorikancha (Templo del Sol)",
+        "10:00 AM - Catedral del Cusco y Plaza de Armas",
+        "11:30 AM - Ascenso a Sacsayhuamán",
+        "1:00 PM - Almuerzo (no incluido)",
+        "2:30 PM - Barrio de San Blas y artesanías",
+        "4:00 PM - Centro comercial San Pedro",
+        "4:30 PM - Retorno al hotel"
+      ],
+      "price_usd": 35,
+      "price_pen": 130,
+      "includes": [
+        "Transporte turístico",
+        "Guía bilingüe (español/inglés)",
+        "Entradas a todos los monumentos",
+        "Botella de agua",
+        "Seguro de viaje"
+      ],
+      "not_includes": [
+        "Almuerzo",
+        "Propinas",
+        "Bebidas adicionales"
+      ],
+      "schedule": {
+        "departure": "8:00 AM",
+        "return": "4:30 PM",
+        "frequency": "Diario",
+        "min_pax": 2,
+        "max_pax": 15
+      },
+      "physical_requirements": "Nivel moderado de caminata. Se recomienda bonne aptitud para caminar en pendiente.",
+      "cancellation_policy": "Cancelación gratuita hasta 48 horas antes del tour. Entre 24-48 horas se cobra 50%. Menos de 24 horas: 100%.",
+      "keywords": ["city tour", "cusco", "qorikancha", "sacsayhuaman", "catedral", "plaza de armas", "san blas", "monumentos", "centro histórico", "patrimonio", "unESCO"],
+      "keywords_en": ["city tour", "cusco", "qorikancha", "sacsayhuaman", "cathedral", "main square", "san blas", "monuments", "historic center", "heritage"],
+      "aliases_quechua": ["sacsayhuaman", "sacsahuaman", "sacsaywaman", "saqsaywaman", "sacsahuaman", "sacsaywaman", "qorikancha", "qorikanka", "korikancha"]
+    },
+    {
+      "id": "valle-sagrado",
+      "name": "Valle Sagrado de los Incas",
+      "name_en": "Sacred Valley of the Incas",
+      "name_pt": "Vale Sagrado dos Incas",
+      "category": "full-day",
+      "duration_hours": 12,
+      "languages": ["es", "en", "pt"],
+      "images": [
+        {"url": "https://images.unsplash.com/photo-1580619305218-8423a7ef79b4?w=800&h=500&fit=crop", "alt": "Valle Sagrado de los Incas", "caption": "Valle Sagrado — Paisaje entre Pisac y Ollantaytambo"},
+        {"url": "https://images.unsplash.com/photo-1587595431973-160d0d821e83?w=800&h=500&fit=crop", "alt": "Terrazas de Moray", "caption": "Terrazas agrícolas de Moray"},
+        {"url": "https://images.unsplash.com/photo-1580619305218-8423a7ef79b4?w=800&h=500&fit=crop", "alt": "Salinas de Maras", "caption": "Salinas de Maras — Agricultura ancestral"}
+      ],
+      "description": "Recorrido completo por el Valle Sagrado de los Incas, comprendido entre Pisac, Ollantaytambo y Chinchero. Incluye visitas a los mercados artesanales, ruinas incas y terrazas agrícolas ancestrales.",
+      "description_en": "Complete tour of the Sacred Valley of the Incas, covering Pisac, Ollantaytambo, and Chinchero. Includes visits to craft markets, Inca ruins, and ancestral agricultural terraces.",
+      "description_pt": "Passeio completo pelo Vale Sagrado dos Incas, cobrindo Pisac, Ollantaytambo e Chinchero. Inclui visitas a mercados de artesanato, ruínas incas e terraços agrícolas ancestrais.",
+      "highlights": [
+        "Mercado de Pisac",
+        "Ruinas de Ollantaytambo",
+        "Agricultura en terrazas",
+        "Piscina de Chinchero",
+        "Salinas de Maras",
+        "Moray"
+      ],
+      "itinerary": [
+        "6:30 AM - Recogida en el hotel",
+        "8:00 AM - Mercado de Pisac y ruinas",
+        "10:30 AM - Mirador del Valle",
+        "11:30 AM - Almuerzo buffet en Urubamba",
+        "1:00 PM - Ruinas de Ollantaytambo",
+        "3:00 PM - Piscinas de terrazas de Moray",
+        "4:00 PM - Salinas de Maras",
+        "5:30 PM - Retorno a Cusco"
+      ],
+      "price_usd": 55,
+      "price_pen": 205,
+      "includes": [
+        "Transporte turístico",
+        "Guía bilingüe",
+        "Entradas a los sitios arqueológicos",
+        "Almuerzo buffet",
+        "Botella de agua",
+        "Seguro de viaje"
+      ],
+      "not_includes": [
+        "Propinas",
+        "Bebidas en el almuerzo",
+        "Compras personales"
+      ],
+      "schedule": {
+        "departure": "6:30 AM",
+        "return": "5:30 PM",
+        "frequency": "Diario",
+        "min_pax": 2,
+        "max_pax": 20
+      },
+      "physical_requirements": "Nivel moderado. Caminatas de 1-2 km en terreno irregular.",
+      "cancellation_policy": "Cancelación gratuita hasta 48 horas antes. Entre 24-48 horas: 50%. Menos de 24 horas: 100%.",
+      "keywords": ["valle sagrado", "pisac", "ollantaytambo", "chinchero", "moray", "maras", "salinas", "incas", "ruinas", "terracerías", "almuerzo"],
+      "keywords_en": ["sacred valley", "pisac", "ollantaytambo", "chinchero", "moray", "maras", "salt mines", "incas", "ruins", "terraces", "lunch"],
+      "aliases_quechua": ["ollantaytambo", "ollantay tampo", "uyantay tambo", "pisac", "pisraq", "chinchero", "chincheru"]
+    },
+    {
+      "id": "machu-picchu-clasico",
+      "name": "Machu Picchu Clásico",
+      "name_en": "Classic Machu Picchu",
+      "name_pt": "Machu Picchu Clássico",
+      "category": "full-day",
+      "duration_hours": 16,
+      "languages": ["es", "en", "pt"],
+      "images": [
+        {"url": "https://images.unsplash.com/photo-1587595431973-160d0d821e83?w=800&h=500&fit=crop", "alt": "Machu Picchu Ciudadela Inca", "caption": "Machu Picchu — La ciudadela inca más emblemática del mundo"},
+        {"url": "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=800&h=500&fit=crop", "alt": "Machu Picchu Huayna Picchu", "caption": "Vista clásica con Huayna Picchu de fondo"},
+        {"url": "https://images.unsplash.com/photo-1580619305218-8423a7ef79b4?w=800&h=500&fit=crop", "alt": "Tren a Aguas Calientes", "caption": "Trayecto en tren por el valle del Urubamba"}
+      ],
+      "description": "Excursión de día completo a Machu Picchu, la ciudadela inca más emblemática del mundo. Incluye transporte en tren de Ollantaytambo a Aguas Calientes, ingreso a la ciudadela y guiado por un guía oficial de turismo.",
+      "description_en": "Full-day excursion to Machu Picchu, the most iconic Inca citadel in the world. Includes train transport from Ollantaytambo to Aguas Calientes, entry to the citadel, and guided tour by an official tourism guide.",
+      "description_pt": "Excursão de dia completo a Machu Picchu, a cidadela inca mais emblemática do mundo. Inclui transporte de trem de Ollantaytambo a Aguas Calientes, entrada na cidadela e tour com guia oficial de turismo.",
+      "highlights": [
+        "Ciudadela de Machu Picchu",
+        "Huayna Picchu (opcional)",
+        "Templo del Sol",
+        "Intihuatana",
+        "Aguas Calientes"
+      ],
+      "itinerary": [
+        "4:00 AM - Recogida en el hotel",
+        "5:00 AM - Traslado a la estación de tren (Ollantaytambo)",
+        "6:00 AM - Tren a Aguas Calientes (1.5 horas)",
+        "7:30 AM - Autobús de Aguas Calientes a Machu Picchu (25 min)",
+        "8:00 AM - Ingreso a Machu Picchu con guía",
+        "8:00-12:00 PM - Recorrido guiado por la ciudadela",
+        "12:00 PM - Tiempo libre para explorar",
+        "2:00 PM - Bajada a Aguas Calientes",
+        "3:00 PM - Almuerzo en Aguas Calientes",
+        "4:30 PM - Tren de regreso a Ollantaytambo",
+        "6:00 PM - Traslado en bus a Cusco",
+        "8:00 PM - Llegada al hotel"
+      ],
+      "price_usd": 120,
+      "price_pen": 445,
+      "includes": [
+        "Transporte en tren (clase ejecutiva ida y vuelta)",
+        "Autobús round-trip Aguas Calientes-Machu Picchu",
+        "Entrada a Machu Picchu",
+        "Guía oficial de turismo en Machu Picchu",
+        "Traslado hotel-estación de tren-hotel",
+        "Botella de agua"
+      ],
+      "not_includes": [
+        "Almuerzo",
+        "Entrada adicional a Huayna Picchu ($25 USD)",
+        "Propinas",
+        "Seguro de viaje"
+      ],
+      "schedule": {
+        "departure": "4:00 AM",
+        "return": "8:00 PM",
+        "frequency": "Diario (sujeto a disponibilidad de entradas)",
+        "min_pax": 1,
+        "max_pax": 10,
+        "advance_booking": "Mínimo 30 días para entrada a Machu Picchu"
+      },
+      "physical_requirements": "Nivel moderado-alto. Caminatas de 2-3 km en la ciudadela. Huayna Picchu requiere nivel alto.",
+      "cancellation_policy": "Cancelación gratuita hasta 30 días antes. Entre 15-30 días: 50%. Menos de 15 días: no hay reembolso. Las entradas a Machu Picchu no son reembolsables.",
+      "keywords": ["machu picchu", "aguas calientes", "tren", "ciudadela", "incas", "huayna picchu", "intihuatana", "ollantaytambo", "入口"],
+      "keywords_en": ["machu picchu", "aguas calientes", "train", "citadel", "incas", "huayna picchu", "intihuatana", "ollantaytambo"],
+      "aliases_quechua": ["machu pikchu", "machu piccho", "maqchu pikchu", "old peak", "huayna picchu", "wayna picchu", "intihuatana", "inti watana"]
+    },
+    {
+      "id": "laguna-humantay",
+      "name": "Laguna Humantay",
+      "name_en": "Humantay Lagoon",
+      "name_pt": "Lagoa Humantay",
+      "category": "full-day",
+      "duration_hours": 14,
+      "languages": ["es", "en", "pt"],
+      "images": [
+        {"url": "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=800&h=500&fit=crop", "alt": "Laguna Humantay Turquesa", "caption": "Laguna Humantay — Aguas turquesas a 4,200 m.s.n.m."},
+        {"url": "https://images.unsplash.com/photo-1580619305218-8423a7ef79b4?w=800&h=500&fit=crop", "alt": "Nevado Humantay", "caption": "Nevado Humantay y cordillera Vilcabamba"}
+      ],
+      "description": "Excursión de día completo a la Laguna Humantay, ubicada a 4,200 m.s.n.m. al pie del nevado Humantay. Trekking moderado con vistas espectaculares de la cordillera Vilcabamba.",
+      "description_en": "Full-day excursion to Humantay Lagoon, located at 4,200 m.a.s.l. at the foot of Humantay snow-capped mountain. Moderate trekking with spectacular views of the Vilcabamba mountain range.",
+      "description_pt": "Excursão de dia completo à Lagoa Humantay, localizada a 4.200 m.s.n.m. aos pés do nevado Humantay. Trekking moderado com vistas espetaculares da cordilheira Vilcabamba.",
+      "highlights": [
+        "Laguna Humantay (4,200 m.s.n.m.)",
+        "Nevado Humantay",
+        "Cordillera Vilcabamba",
+        "Paisajes de altura",
+        "Flora andina"
+      ],
+      "itinerary": [
+        "4:30 AM - Recogida en el hotel",
+        "6:30 AM - Llegada a Mollepata (punto de partida)",
+        "7:00 AM - Inicio del trekking (2 horas de subida)",
+        "9:00 AM - Llegada a la Laguna Humantay",
+        "9:00-11:00 AM - Tiempo libre en la laguna",
+        "11:00 AM - Descenso (1.5 horas)",
+        "12:30 PM - Almuerzo en Mollepata",
+        "2:00 PM - Retorno a Cusco",
+        "5:00 PM - Llegada al hotel"
+      ],
+      "price_usd": 45,
+      "price_pen": 167,
+      "includes": [
+        "Transporte turístico ida y vuelta",
+        "Guía de trekking certificado",
+        "Almuerzo buffet",
+        "Botella de agua",
+        "Bastones de trekking",
+        "Seguro de viaje"
+      ],
+      "not_includes": [
+        "Entrada al sitio turístico ($10 soles / ~$3 USD)",
+        "Propinas",
+        "Caballos para el ascenso (disponible en el camino, ~$25 USD)",
+        "Bebidas adicionales"
+      ],
+      "schedule": {
+        "departure": "4:30 AM",
+        "return": "5:00 PM",
+        "frequency": "Diario",
+        "min_pax": 2,
+        "max_pax": 15
+      },
+      "physical_requirements": "Nivel alto de exigencia física. Trekking de 4-5 horas en altitud (4,200 m.s.n.m.). No recomendado para personas con problemas cardíacos o respiratorios.",
+      "cancellation_policy": "Cancelación gratuita hasta 24 horas antes del tour. Menos de 24 horas: 100%.",
+      "keywords": ["laguna", "humantay", "trekking", "neevado", "cordillera", "vilcabamba", "altitud", "camina"],
+      "keywords_en": ["lagoon", "humantay", "trekking", "snow", "mountain", "vilcabamba", "altitude", "hike"],
+      "aliases_quechua": ["humantay", "humant'a", "uman tay", "laguna humantay", "humantay lagoon"]
+    },
+    {
+      "id": "montana-7-colores",
+      "name": "Montaña de 7 Colores (Vinicunca)",
+      "name_en": "Rainbow Mountain (Vinicunca)",
+      "name_pt": "Montanha de 7 Cores (Vinicunca)",
+      "category": "full-day",
+      "duration_hours": 14,
+      "languages": ["es", "en", "pt"],
+      "images": [
+        {"url": "https://images.unsplash.com/photo-1587595431973-160d0d821e83?w=800&h=500&fit=crop", "alt": "Montaña de 7 Colores Vinicunca", "caption": "Vinicunca — La Montaña de 7 Colores a 5,200 m.s.n.m."},
+        {"url": "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=800&h=500&fit=crop", "alt": "Trekking Vinicunca", "caption": "Camino hacia Vinicunca — Paisajes de altiplano"}
+      ],
+      "description": "Excursión a la famosa Montaña de 7 Colores o Vinicunca, a 5,200 m.s.n.m. Formaciones geológicas de colores por minerales oxidados. Trekking exigente con recompensa visual única.",
+      "description_en": "Excursion to the famous Rainbow Mountain or Vinicunca, at 5,200 m.a.s.l. Colorful geological formations from oxidized minerals. Demanding trekking with unique visual reward.",
+      "description_pt": "Excursão à famosa Montanha de 7 Cores ou Vinicunca, a 5.200 m.s.n.m. Formações geológicas coloridas por minerais oxidados. Trekking exigente com recompensa visual única.",
+      "highlights": [
+        "Montaña de 7 Colores (5,200 m.s.n.m.)",
+        "Formaciones geológicas multicolor",
+        "Nevado Ausangate",
+        "Paisajes de altiplano",
+        "Experiencia de alta montaña"
+      ],
+      "itinerary": [
+        "3:30 AM - Recogida en el hotel",
+        "6:00 AM - Llegada a Cusipata (punto de partida)",
+        "6:30 AM - Inicio del trekking (1.5 horas de subida)",
+        "8:00 AM - Llegada a la Montaña de 7 Colores",
+        "8:00-10:00 AM - Tiempo libre y fotos",
+        "10:00 AM - Descenso (1 hora)",
+        "11:00 AM - Almuerzo buffet en Cusipata",
+        "12:30 PM - Retorno a Cusco",
+        "4:00 PM - Llegada al hotel"
+      ],
+      "price_usd": 50,
+      "price_pen": 185,
+      "includes": [
+        "Transporte turístico ida y vuelta",
+        "Guía de trekking certificado",
+        "Almuerzo buffet",
+        "Botella de agua",
+        "Bastones de trekking",
+        "Oxígeno de emergencia",
+        "Seguro de viaje"
+      ],
+      "not_includes": [
+        "Entrada al sitio turístico ($10 soles / ~$3 USD)",
+        "Propinas",
+        "Caballos para el ascenso (disponible, ~$30 USD)",
+        "Bebidas adicionales"
+      ],
+      "schedule": {
+        "departure": "3:30 AM",
+        "return": "4:00 PM",
+        "frequency": "Diario (sujeto a condiciones climáticas)",
+        "min_pax": 2,
+        "max_pax": 12
+      },
+      "physical_requirements": "Nivel muy alto de exigencia física. Trekking en altitud extrema (5,200 m.s.n.m.). No recomendado para personas con condiciones médicas preexistentes. Se recomienda aclimatación previa de al menos 2 días en Cusco.",
+      "cancellation_policy": "Cancelación gratuita hasta 24 horas antes. Menos de 24 horas: 100%. Se puede cancelar por mal clima sin costo.",
+      "keywords": ["montaña", "colores", "vinicunca", "rainbow", "7 colores", "ausangate", "altitud", "trekking", "colores", "geología"],
+      "keywords_en": ["mountain", "colors", "vinicunca", "rainbow", "7 colors", "ausangate", "altitude", "trekking", "geology"],
+      "aliases_quechua": ["vinicunca", "wiñi cunca", "vinicunca", "montaña de colores", "rainbow mountain"]
+    },
+    {
+      "id": "paquete-completo-7d",
+      "name": "Paquete Completo Cusco 7 Días / 6 Noches",
+      "name_en": "Complete Cusco Package 7 Days / 6 Nights",
+      "name_pt": "Pacote Completo Cusco 7 Dias / 6 Noites",
+      "category": "package",
+      "duration_days": 7,
+      "languages": ["es", "en", "pt"],
+      "images": [
+        {"url": "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=800&h=500&fit=crop", "alt": "Paquete Cusco Completo", "caption": "7 días explorando los mejores destinos de Cusco"},
+        {"url": "https://images.unsplash.com/photo-1587595431973-160d0d821e83?w=800&h=500&fit=crop", "alt": "Experiencia Cusco", "caption": "City Tour + Valle Sagrado + Machu Picchu + Humantay"}
+      ],
+      "description": "Paquete turístico integral que incluye los principales atractivos de Cusco y alrededores. Ideal para turistas que desean conocer la región de forma completa.",
+      "description_en": "Comprehensive tourist package including the main attractions of Cusco and surroundings. Ideal for tourists who want to experience the region completely.",
+      "description_pt": "Pacote turístico abrangente que inclui as principais atrações de Cusco e arredores. Ideal para turistas que desejam conhecer a região completamente.",
+      "highlights": [
+        "City Tour Cusco completo",
+        "Valle Sagrado de los Incas",
+        "Machu Picchu Clásico",
+        "Laguna Humantay",
+        "Todos los traslados incluidos",
+        "Hoteles 3 estrellas"
+      ],
+      "itinerary": [
+        "Día 1: Llegada a Cusco - Aclimatación - City Tour Cusco",
+        "Día 2: Valle Sagrado de los Incas (Pisac, Ollantaytambo, Moray, Maras)",
+        "Día 3: Machu Picchu Clásico (tren ida y vuelta)",
+        "Día 4: Día libre en Cusco - Mercados y compras",
+        "Día 5: Laguna Humantay - Trekking",
+        "Día 6: Montaña de 7 Colores o Día libre",
+        "Día 7: Traslado al aeropuerto - Salida"
+      ],
+      "price_usd": 650,
+      "price_pen": 2405,
+      "price_per_person": true,
+      "includes": [
+        "6 noches de alojamiento en hotel 3 estrellas (desayuno incluido)",
+        "Todos los tours según itinerario",
+        "Todos los traslados (aeropuerto-hotel-aeropuerto)",
+        "Transporte turístico en todos los tours",
+        "Guías bilingües en todos los tours",
+        "Entradas a todos los sitios arqueológicos",
+        "Almuerzos en tours de día completo",
+        "Entrada a Machu Picchu",
+        "Tren a Machu Picchu ida y vuelta",
+        "Seguro de viaje básico"
+      ],
+      "not_includes": [
+        "Vuelos internacionales",
+        "Almuerzos no especificados",
+        "Cenas",
+        "Propinas",
+        "Bebidas adicionales",
+        "Gastos personales",
+        "Entrada a Huayna Picchu ($25 USD)"
+      ],
+      "schedule": {
+        "departure": "Según vuelo de llegada",
+        "return": "Según vuelo de salida",
+        "frequency": "Personalizado",
+        "min_pax": 1,
+        "max_pax": 20,
+        "advance_booking": "Mínimo 60 días para entrada a Machu Picchu"
+      },
+      "physical_requirements": "Varía según el día. Los días de trekking requieren nivel alto de aptitud física.",
+      "cancellation_policy": "Cancelación gratuita hasta 60 días antes. Entre 30-60 días: 30%. Entre 15-30 días: 50%. Menos de 15 días: no hay reembolso.",
+      "keywords": ["paquete", "completo", "7 días", "6 noches", "todo incluido", "cusco", "mochileros", "familia", "honeymoon", "vacaciones"],
+      "keywords_en": ["package", "complete", "7 days", "6 nights", "all inclusive", "cusco", "backpackers", "family", "honeymoon", "vacation"],
+      "aliases_quechua": []
+    },
+    {
+      "id": "salkantay-trek",
+      "name": "Trekking Salkantay a Machu Picchu",
+      "name_en": "Salkantay Trek to Machu Picchu",
+      "name_pt": "Trekking Salkantay ao Machu Picchu",
+      "category": "trekking",
+      "duration_days": 4,
+      "duration_nights": 3,
+      "languages": ["es", "en"],
+      "images": null,
+      "description": "Trekking de 4 días / 3 noches hacia Machu Picchu por la ruta del Salkantay, considerada una de las más espectaculares del Perú. Atraviesa ecosistemas desde los 3,900 m.s.n.m. hasta la ceja de selva, pasando por el Abra Salkantay a 4,630 m.s.n.m. con imponentes vistas del nevado Salkantay (6,271 m). Incluye la visita final a la ciudadela inca de Machu Picchu.",
+      "description_en": "4-day / 3-night trek to Machu Picchu via the Salkantay route, considered one of the most spectacular in Peru. Crosses ecosystems from 3,900 m.a.s.l. to the cloud forest, passing over the Salkantay Pass at 4,630 m.a.s.l. with impressive views of the Salkantay snow-capped mountain (6,271 m). Includes the final visit to the Inca citadel of Machu Picchu.",
+      "description_pt": "Trekking de 4 dias / 3 noites ate Machu Picchu pela rota do Salkantay, considerada uma das mais espetaculares do Peru. Atravessa ecossistemas de 3.200 m.s.n.m. ate a floresta nublada, passando pelo Abra Salkantay a 4.630 m.s.n.m. com vistas impressionantes do nevado Salkantay (6.271 m). Inclui a visita final a cidadela inca de Machu Picchu.",
+      "highlights": [
+        "Nevado Salkantay (6,271 m.s.n.m.)",
+        "Abra Salkantay (4,630 m.s.n.m.)",
+        "Laguna Humantay (4,200 m.s.n.m.)",
+        "Ceja de selva y vegetación tropical",
+        "Machu Picchu — ciudadela inca",
+        "Paisajes de alta montaña y valle"
+      ],
+      "itinerary": [
+        "Día 1: Cusco - Mollepata - Challacancha - Soraypampa - Laguna Humantay",
+        "  Salida 4:30 AM en transporte hacia Mollepata. Desayuno y continuación a Challacancha. Inicio de caminata hasta Soraypampa (3,900 m.s.n.m.). Almuerzo en campamento. Por la tarde, ascenso a la Laguna Humantay (4,200 m.s.n.m., 1.5 h de subida) con aguas turquesas y vistas al glaciar. Descenso a Soraypampa para cena y pernocte.",
+        "Día 2: Soraypampa - Abra Paso Salkantay (4,630 m.s.n.m.) - Huayracmachay - Chaullay",
+        "  El día más exigente y espectacular. Ascenso temprano hacia el Paso Salkantay a 4,630 m.s.n.m., con imponentes vistas del nevado Salkantay (6,271 m). Ceremonia andina de ofrenda a la Pachamama. Descenso gradual hacia Huayracmachay para almuerzo. Continuación hacia la ceja de selva con cambio radical de clima y vegetación. Llegada a Chaullay (2,900 m.s.n.m.) para cena y campamento.",
+        "Día 3: Chaullay - Collpapampa - La Playa (Sahuayaco) - Hidroeléctrica - Aguas Calientes",
+        "  Caminata por el valle de Santa Teresa apreciando plantaciones de café, frutas tropicales y cascadas. Llegada a La Playa y almuerzo. Traslado a la estación de Hidroeléctrica. Caminata de 3 horas junto a la vía férrea bordeando el río Vilcanota hasta Aguas Calientes. Instalación en hotel, cena y coordinación.",
+        "Día 4: Aguas Calientes - Santuario Histórico de Machu Picchu - Retorno a Cusco",
+        "  Subida muy temprano hacia Machu Picchu. Visita guiada de 2.5 a 3 horas por los principales templos, recintos, andenerías y miradores. Tiempo libre para fotos. Retorno a Aguas Calientes. Tren de retorno a Ollantaytambo y conexión en bus turístico hacia Cusco (llegada ~8:00 PM)."
+      ],
+      "price_usd": 380,
+      "price_pen": null,
+      "includes": [
+        "Recojo en el hotel y transporte Cusco - Mollepata - Challacancha",
+        "Guía oficial de turismo bilingüe (español/inglés) durante todo el recorrido",
+        "Alimentación completa: 3 desayunos, 3 almuerzos, 3 cenas",
+        "Carpas cuádruples (usadas solo para 2 personas) y colchonetas aislantes",
+        "Carpa comedor, carpa cocina, mesas, sillas y menajería completa",
+        "Arrieros y caballos de carga (hasta 5 kg de equipaje personal por pasajero)",
+        "1 noche de hotel en Aguas Calientes con baño privado y agua caliente",
+        "Entrada oficial al Santuario Histórico de Machu Picchu",
+        "Boleto de tren turístico de retorno Aguas Calientes - Ollantaytambo",
+        "Transporte turístico de retorno Ollantaytambo - Plaza de Armas de Cusco",
+        "Botiquín de primeros auxilios y balón de oxígeno medicinal"
+      ],
+      "not_includes": [
+        "Primer desayuno del Día 1 y almuerzo del último día en Aguas Calientes",
+        "Bolsa de dormir (disponible en alquiler por $20 USD)",
+        "Bastones de trekking (disponibles en alquiler por $15 USD el par)",
+        "Boleto de bus Aguas Calientes - Machu Picchu ($12 USD por tramo, opcional)",
+        "Ingreso a Huayna Picchu o Montaña Machu Picchu ($65 USD adicionales)",
+        "Propinas para el personal de apoyo (guía, cocinero, arrieros)"
+      ],
+      "schedule": {
+        "departure": "4:30 AM desde Cusco",
+        "return": "~8:00 PM en Cusco (Día 4)",
+        "frequency": "Diario (Marzo a Diciembre, no recomendado en Febrero)",
+        "min_pax": 2,
+        "max_pax": 12
+      },
+      "physical_requirements": "Nivel alto de exigencia física. Trekking de 4-5 horas diarias en altitud (hasta 4,630 m.s.n.m.). No recomendado para personas con problemas cardíacos o respiratorios. Se recomienda aclimatación de al menos 2 días en Cusco antes del trekking.",
+      "cancellation_policy": null,
+      "keywords": ["salkantay", "trekking", "machu picchu", "neevado", "altitud", "campamento", "lodge", "adventure", "multi-day", "inca trail alternative"],
+      "keywords_en": ["salkantay", "trekking", "machu picchu", "snow", "altitude", "camping", "lodge", "adventure", "multi-day", "inca trail alternative"],
+      "aliases_quechua": ["sallqan tay", "salkantay", "sallqantay", "nevado salkantay"]
+    }
+  ],
+  "policies": {
+    "payment_methods": ["Efectivo (USD/PEN)", "Transferencia bancaria", "PayPal", "Tarjeta de crédito/débito (3% recargo)"],
+    "deposit_required": "30% del total para reservas confirmadas",
+    "children_discount": "Niños menores de 5 años: 50% de descuento. Menores de 2 años: gratis.",
+    "group_discount": "Grupos mayores de 10 personas: 10% de descuento",
+    "safety_notes": [
+      "Todos los tours incluyen seguro de viaje básico",
+      "Los guías cuentan con certificado de primeros auxilios",
+      "Se lleva oxígeno de emergencia en tours de alta montaña",
+      "Vehículos con GPS y seguro vehicular completo"
+    ],
+    "weather_considerations": [
+      "Temporada seca (mayo-septiembre): mejor época para visitar",
+      "Temporada de lluvias (noviembre-marzo): caminos pueden estar resbalosos",
+      "Alta montaña: llevar ropa de abrigo incluso en temporada seca",
+      "Protección solar obligatoria a partir de 3,500 m.s.n.m."
+    ]
+  }
+}

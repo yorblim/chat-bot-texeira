@@ -1,0 +1,2144 @@
+{
+  "config": {
+    "retriever": "HybridRetriever",
+    "vector_store": "./chroma_hybrid_db",
+    "final_k": 5,
+    "max_chunks_per_tour": 2,
+    "rrf_k": 60
+  },
+  "summary": {
+    "total_queries": 40,
+    "applicable_queries": 38,
+    "out_of_catalog": 2
+  },
+  "global_metrics": {
+    "hit_rate_at_5": {
+      "numerator": 36,
+      "denominator": 38,
+      "value": 0.9474
+    },
+    "mrr": {
+      "numerator": 25.9333,
+      "denominator": 38,
+      "value": 0.6825
+    },
+    "mean_recall_at_5": {
+      "numerator": 32.9,
+      "denominator": 38,
+      "value": 0.8658
+    }
+  },
+  "metrics_by_category": {
+    "general": {
+      "count": 4,
+      "hit_rate_at_5": 1.0,
+      "mrr": 0.875,
+      "mean_recall_at_5": 0.6
+    },
+    "includes": {
+      "count": 7,
+      "hit_rate_at_5": 1.0,
+      "mrr": 0.7905,
+      "mean_recall_at_5": 1.0
+    },
+    "itinerary": {
+      "count": 5,
+      "hit_rate_at_5": 1.0,
+      "mrr": 0.8,
+      "mean_recall_at_5": 1.0
+    },
+    "policy": {
+      "count": 5,
+      "hit_rate_at_5": 1.0,
+      "mrr": 0.6067,
+      "mean_recall_at_5": 1.0
+    },
+    "price": {
+      "count": 11,
+      "hit_rate_at_5": 0.9091,
+      "mrr": 0.7121,
+      "mean_recall_at_5": 0.9091
+    },
+    "recommendation": {
+      "count": 6,
+      "hit_rate_at_5": 0.8333,
+      "mrr": 0.3389,
+      "mean_recall_at_5": 0.5833
+    }
+  },
+  "metrics_by_language": {
+    "en": {
+      "count": 4,
+      "hit_rate_at_5": 1.0,
+      "mrr": 0.4333,
+      "mean_recall_at_5": 0.8571
+    },
+    "es": {
+      "count": 34,
+      "hit_rate_at_5": 0.9412,
+      "mrr": 0.7118,
+      "mean_recall_at_5": 0.8668
+    }
+  },
+  "metrics_by_query_style": {
+    "ambiguous": {
+      "count": 3,
+      "hit_rate_at_5": 1.0,
+      "mrr": 0.6667,
+      "mean_recall_at_5": 0.546
+    },
+    "paraphrase": {
+      "count": 2,
+      "hit_rate_at_5": 1.0,
+      "mrr": 0.5,
+      "mean_recall_at_5": 1.0
+    },
+    "standard": {
+      "count": 33,
+      "hit_rate_at_5": 0.9394,
+      "mrr": 0.6949,
+      "mean_recall_at_5": 0.8867
+    }
+  },
+  "errors_miss": [
+    {
+      "id": "Q08",
+      "query": "¿Cuál es el tours más económico que tienen?",
+      "relevant_tour_ids": [
+        "city-tour-cusco"
+      ],
+      "top5": [
+        {
+          "rank": 1,
+          "tour_id": "policies",
+          "chunk_index": 0
+        },
+        {
+          "rank": 2,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 0
+        },
+        {
+          "rank": 3,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 0
+        },
+        {
+          "rank": 4,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 1
+        },
+        {
+          "rank": 5,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "Q21",
+      "query": "Soy principiante, ¿qué tour es más fácil físicamente?",
+      "relevant_tour_ids": [
+        "city-tour-cusco",
+        "valle-sagrado"
+      ],
+      "top5": [
+        {
+          "rank": 1,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 0
+        },
+        {
+          "rank": 2,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 0
+        },
+        {
+          "rank": 3,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0
+        },
+        {
+          "rank": 4,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1
+        },
+        {
+          "rank": 5,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 6
+        }
+      ]
+    }
+  ],
+  "errors_low_rank": [
+    {
+      "id": "Q10",
+      "query": "¿El tour a Machu Picchu incluye el almuerzo?",
+      "relevant_tour_ids": [
+        "machu-picchu-clasico"
+      ],
+      "first_relevant_rank": 3,
+      "reciprocal_rank": 0.3333333333333333
+    },
+    {
+      "id": "Q22",
+      "query": "Quiero ver Machu Picchu pero no quiero hacer trekking. ¿Qué opciones hay?",
+      "relevant_tour_ids": [
+        "machu-picchu-clasico",
+        "paquete-completo-7d"
+      ],
+      "first_relevant_rank": 5,
+      "reciprocal_rank": 0.2
+    },
+    {
+      "id": "Q23",
+      "query": "Voy a Cusco por 2 días, ¿qué tour puedo hacer?",
+      "relevant_tour_ids": [
+        "city-tour-cusco",
+        "valle-sagrado",
+        "machu-picchu-clasico"
+      ],
+      "first_relevant_rank": 3,
+      "reciprocal_rank": 0.3333333333333333
+    },
+    {
+      "id": "Q26",
+      "query": "¿Cuánto es el anticipo para reservar un tour?",
+      "relevant_tour_ids": [
+        "policies"
+      ],
+      "first_relevant_rank": 3,
+      "reciprocal_rank": 0.3333333333333333
+    },
+    {
+      "id": "Q33",
+      "query": "How much is the Sacred Valley tour?",
+      "relevant_tour_ids": [
+        "valle-sagrado"
+      ],
+      "first_relevant_rank": 3,
+      "reciprocal_rank": 0.3333333333333333
+    },
+    {
+      "id": "Q34",
+      "query": "Is lunch included in the Rainbow Mountain tour?",
+      "relevant_tour_ids": [
+        "montana-7-colores"
+      ],
+      "first_relevant_rank": 5,
+      "reciprocal_rank": 0.2
+    },
+    {
+      "id": "Q35",
+      "query": "What payment methods do you accept?",
+      "relevant_tour_ids": [
+        "policies"
+      ],
+      "first_relevant_rank": 5,
+      "reciprocal_rank": 0.2
+    }
+  ],
+  "results": [
+    {
+      "id": "Q01",
+      "category": "price",
+      "language": "es",
+      "query_style": "standard",
+      "query": "Cuánto cuesta el City Tour de Cusco?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "city-tour-cusco"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.032522
+        },
+        {
+          "rank": 2,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 0,
+          "rrf_score": 0.032002
+        },
+        {
+          "rank": 3,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1,
+          "rrf_score": 0.030798
+        },
+        {
+          "rank": 4,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 2,
+          "rrf_score": 0.030679
+        },
+        {
+          "rank": 5,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 6,
+          "rrf_score": 0.030118
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.5,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q02",
+      "category": "price",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Cuál es el precio del tour a Machu Picchu en tren?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "machu-picchu-clasico"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 0,
+          "rrf_score": 0.032787
+        },
+        {
+          "rank": 2,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.032002
+        },
+        {
+          "rank": 3,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 0,
+          "rrf_score": 0.030769
+        },
+        {
+          "rank": 4,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 1,
+          "rrf_score": 0.030579
+        },
+        {
+          "rank": 5,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 0,
+          "rrf_score": 0.029644
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q03",
+      "category": "price",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Cuánto vale la excursión a la Laguna Humantay?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "laguna-humantay"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 0,
+          "rrf_score": 0.032787
+        },
+        {
+          "rank": 2,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 1,
+          "rrf_score": 0.031025
+        },
+        {
+          "rank": 3,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.03101
+        },
+        {
+          "rank": 4,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 1,
+          "rrf_score": 0.029857
+        },
+        {
+          "rank": 5,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 0,
+          "rrf_score": 0.029199
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q04",
+      "category": "price",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Cuánto cuesta ir a la Montaña de 7 Colores?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "montana-7-colores"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 0,
+          "rrf_score": 0.032787
+        },
+        {
+          "rank": 2,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.03125
+        },
+        {
+          "rank": 3,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 5,
+          "rrf_score": 0.030303
+        },
+        {
+          "rank": 4,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 0,
+          "rrf_score": 0.029631
+        },
+        {
+          "rank": 5,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 2,
+          "rrf_score": 0.016129
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q05",
+      "category": "price",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Cuánto cuesta el paquete de 7 días en Cusco?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "paquete-completo-7d"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.032787
+        },
+        {
+          "rank": 2,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 6,
+          "rrf_score": 0.03101
+        },
+        {
+          "rank": 3,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 0,
+          "rrf_score": 0.03055
+        },
+        {
+          "rank": 4,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 5,
+          "rrf_score": 0.029644
+        },
+        {
+          "rank": 5,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 2,
+          "rrf_score": 0.016129
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q06",
+      "category": "price",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Cuánto cuesta el trekking del Salkantay?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "salkantay-trek"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 0,
+          "rrf_score": 0.031545
+        },
+        {
+          "rank": 2,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1,
+          "rrf_score": 0.031054
+        },
+        {
+          "rank": 3,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 6,
+          "rrf_score": 0.030415
+        },
+        {
+          "rank": 4,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 0,
+          "rrf_score": 0.030366
+        },
+        {
+          "rank": 5,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 1,
+          "rrf_score": 0.029631
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q07",
+      "category": "price",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Cuánto cuesta el Valle Sagrado de los Incas?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "valle-sagrado"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 0,
+          "rrf_score": 0.032787
+        },
+        {
+          "rank": 2,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.032002
+        },
+        {
+          "rank": 3,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 3,
+          "rrf_score": 0.030536
+        },
+        {
+          "rank": 4,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 1,
+          "rrf_score": 0.029911
+        },
+        {
+          "rank": 5,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 0,
+          "rrf_score": 0.029851
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q08",
+      "category": "price",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Cuál es el tours más económico que tienen?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "city-tour-cusco"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "policies",
+          "chunk_index": 0,
+          "rrf_score": 0.030622
+        },
+        {
+          "rank": 2,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 0,
+          "rrf_score": 0.030536
+        },
+        {
+          "rank": 3,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 0,
+          "rrf_score": 0.030366
+        },
+        {
+          "rank": 4,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 1,
+          "rrf_score": 0.016393
+        },
+        {
+          "rank": 5,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.016393
+        }
+      ],
+      "hit_at_5": 0,
+      "reciprocal_rank": 0.0,
+      "recall_at_5": 0.0
+    },
+    {
+      "id": "Q09",
+      "category": "includes",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Qué incluye el tour al Valle Sagrado?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "valle-sagrado"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 0,
+          "rrf_score": 0.032787
+        },
+        {
+          "rank": 2,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.031754
+        },
+        {
+          "rank": 3,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 3,
+          "rrf_score": 0.031258
+        },
+        {
+          "rank": 4,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 0,
+          "rrf_score": 0.031054
+        },
+        {
+          "rank": 5,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 2,
+          "rrf_score": 0.030536
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q10",
+      "category": "includes",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿El tour a Machu Picchu incluye el almuerzo?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "machu-picchu-clasico"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1,
+          "rrf_score": 0.030622
+        },
+        {
+          "rank": 2,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 1,
+          "rrf_score": 0.030303
+        },
+        {
+          "rank": 3,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 1,
+          "rrf_score": 0.029418
+        },
+        {
+          "rank": 4,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 1,
+          "rrf_score": 0.016393
+        },
+        {
+          "rank": 5,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 0,
+          "rrf_score": 0.016393
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.3333333333333333,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q11",
+      "category": "includes",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Qué no incluye el Salkantay?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "salkantay-trek"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 2,
+          "rrf_score": 0.032266
+        },
+        {
+          "rank": 2,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 1,
+          "rrf_score": 0.031498
+        },
+        {
+          "rank": 3,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 1,
+          "rrf_score": 0.030769
+        },
+        {
+          "rank": 4,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 1,
+          "rrf_score": 0.028992
+        },
+        {
+          "rank": 5,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 2,
+          "rrf_score": 0.015625
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q12",
+      "category": "includes",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿El City Tour incluye entradas a los monumentos?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "city-tour-cusco"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 2,
+          "rrf_score": 0.032522
+        },
+        {
+          "rank": 2,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 0,
+          "rrf_score": 0.032522
+        },
+        {
+          "rank": 3,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.031498
+        },
+        {
+          "rank": 4,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 1,
+          "rrf_score": 0.030077
+        },
+        {
+          "rank": 5,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1,
+          "rrf_score": 0.029911
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q13",
+      "category": "includes",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿La Montaña de 7 Colores incluye oxígeno de emergencia?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "montana-7-colores"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 0,
+          "rrf_score": 0.032522
+        },
+        {
+          "rank": 2,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 2,
+          "rrf_score": 0.03101
+        },
+        {
+          "rank": 3,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 1,
+          "rrf_score": 0.03101
+        },
+        {
+          "rank": 4,
+          "tour_id": "policies",
+          "chunk_index": 1,
+          "rrf_score": 0.029857
+        },
+        {
+          "rank": 5,
+          "tour_id": "policies",
+          "chunk_index": 0,
+          "rrf_score": 0.016393
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q14",
+      "category": "includes",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Qué incluye el paquete completo de 7 días?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "paquete-completo-7d"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 2,
+          "rrf_score": 0.032522
+        },
+        {
+          "rank": 2,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 2,
+          "rrf_score": 0.030777
+        },
+        {
+          "rank": 3,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 6,
+          "rrf_score": 0.030769
+        },
+        {
+          "rank": 4,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 1,
+          "rrf_score": 0.029211
+        },
+        {
+          "rank": 5,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 2,
+          "rrf_score": 0.016129
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q15",
+      "category": "itinerary",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿A qué hora salen para el tour del Valle Sagrado?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "valle-sagrado"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 1,
+          "rrf_score": 0.03055
+        },
+        {
+          "rank": 2,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 0,
+          "rrf_score": 0.030415
+        },
+        {
+          "rank": 3,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 2,
+          "rrf_score": 0.030159
+        },
+        {
+          "rank": 4,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 1,
+          "rrf_score": 0.029877
+        },
+        {
+          "rank": 5,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1,
+          "rrf_score": 0.029857
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.5,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q16",
+      "category": "itinerary",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Cuánto dura el City Tour de Cusco?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "city-tour-cusco"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.032522
+        },
+        {
+          "rank": 2,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 0,
+          "rrf_score": 0.032002
+        },
+        {
+          "rank": 3,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 2,
+          "rrf_score": 0.031778
+        },
+        {
+          "rank": 4,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 6,
+          "rrf_score": 0.031498
+        },
+        {
+          "rank": 5,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1,
+          "rrf_score": 0.03055
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.5,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q17",
+      "category": "itinerary",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Cuántos días dura el trekking del Salkantay?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "salkantay-trek"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 6,
+          "rrf_score": 0.032522
+        },
+        {
+          "rank": 2,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 2,
+          "rrf_score": 0.032002
+        },
+        {
+          "rank": 3,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 2,
+          "rrf_score": 0.031498
+        },
+        {
+          "rank": 4,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 2,
+          "rrf_score": 0.029631
+        },
+        {
+          "rank": 5,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 2,
+          "rrf_score": 0.015385
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q18",
+      "category": "itinerary",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Qué visitan el día 3 del Salkantay?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "salkantay-trek"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 2,
+          "rrf_score": 0.032258
+        },
+        {
+          "rank": 2,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 0,
+          "rrf_score": 0.031319
+        },
+        {
+          "rank": 3,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 1,
+          "rrf_score": 0.030769
+        },
+        {
+          "rank": 4,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 1,
+          "rrf_score": 0.015873
+        },
+        {
+          "rank": 5,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.015152
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q19",
+      "category": "itinerary",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿A qué altitud está la Laguna Humantay?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "laguna-humantay"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 0,
+          "rrf_score": 0.032522
+        },
+        {
+          "rank": 2,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 1,
+          "rrf_score": 0.032002
+        },
+        {
+          "rank": 3,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 1,
+          "rrf_score": 0.030777
+        },
+        {
+          "rank": 4,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 2,
+          "rrf_score": 0.016393
+        },
+        {
+          "rank": 5,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 2,
+          "rrf_score": 0.015873
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q20",
+      "category": "recommendation",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Qué tour me recomiendan para hacer trekking en Cusco?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "salkantay-trek",
+        "montana-7-colores",
+        "laguna-humantay"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.032787
+        },
+        {
+          "rank": 2,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 6,
+          "rrf_score": 0.031746
+        },
+        {
+          "rank": 3,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 0,
+          "rrf_score": 0.031514
+        },
+        {
+          "rank": 4,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1,
+          "rrf_score": 0.031054
+        },
+        {
+          "rank": 5,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 1,
+          "rrf_score": 0.029644
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.5,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q21",
+      "category": "recommendation",
+      "language": "es",
+      "query_style": "standard",
+      "query": "Soy principiante, ¿qué tour es más fácil físicamente?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "city-tour-cusco",
+        "valle-sagrado"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 0,
+          "rrf_score": 0.031319
+        },
+        {
+          "rank": 2,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 0,
+          "rrf_score": 0.031025
+        },
+        {
+          "rank": 3,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.03009
+        },
+        {
+          "rank": 4,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1,
+          "rrf_score": 0.02967
+        },
+        {
+          "rank": 5,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 6,
+          "rrf_score": 0.016393
+        }
+      ],
+      "hit_at_5": 0,
+      "reciprocal_rank": 0.0,
+      "recall_at_5": 0.0
+    },
+    {
+      "id": "Q22",
+      "category": "recommendation",
+      "language": "es",
+      "query_style": "standard",
+      "query": "Quiero ver Machu Picchu pero no quiero hacer trekking. ¿Qué opciones hay?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "machu-picchu-clasico",
+        "paquete-completo-7d"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 0,
+          "rrf_score": 0.032002
+        },
+        {
+          "rank": 2,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 1,
+          "rrf_score": 0.030077
+        },
+        {
+          "rank": 3,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1,
+          "rrf_score": 0.02967
+        },
+        {
+          "rank": 4,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 5,
+          "rrf_score": 0.029199
+        },
+        {
+          "rank": 5,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 0,
+          "rrf_score": 0.016393
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.2,
+      "recall_at_5": 0.5
+    },
+    {
+      "id": "Q23",
+      "category": "recommendation",
+      "language": "es",
+      "query_style": "standard",
+      "query": "Voy a Cusco por 2 días, ¿qué tour puedo hacer?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "city-tour-cusco",
+        "valle-sagrado",
+        "machu-picchu-clasico"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.032522
+        },
+        {
+          "rank": 2,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 6,
+          "rrf_score": 0.031754
+        },
+        {
+          "rank": 3,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 0,
+          "rrf_score": 0.030798
+        },
+        {
+          "rank": 4,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 2,
+          "rrf_score": 0.029857
+        },
+        {
+          "rank": 5,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1,
+          "rrf_score": 0.029211
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.3333333333333333,
+      "recall_at_5": 0.3333333333333333
+    },
+    {
+      "id": "Q24",
+      "category": "recommendation",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Cuál es el tour más completo que ofrece la agencia?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "paquete-completo-7d"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "policies",
+          "chunk_index": 0,
+          "rrf_score": 0.032266
+        },
+        {
+          "rank": 2,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.031778
+        },
+        {
+          "rank": 3,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 0,
+          "rrf_score": 0.031514
+        },
+        {
+          "rank": 4,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 0,
+          "rrf_score": 0.03055
+        },
+        {
+          "rank": 5,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 0,
+          "rrf_score": 0.029857
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.5,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q25",
+      "category": "policy",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Cuáles son las formas de pago que aceptan?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "policies"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "policies",
+          "chunk_index": 0,
+          "rrf_score": 0.032787
+        },
+        {
+          "rank": 2,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 0,
+          "rrf_score": 0.030777
+        },
+        {
+          "rank": 3,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 1,
+          "rrf_score": 0.030118
+        },
+        {
+          "rank": 4,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 2,
+          "rrf_score": 0.016129
+        },
+        {
+          "rank": 5,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 5,
+          "rrf_score": 0.016129
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q26",
+      "category": "policy",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Cuánto es el anticipo para reservar un tour?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "policies"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1,
+          "rrf_score": 0.032522
+        },
+        {
+          "rank": 2,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.032002
+        },
+        {
+          "rank": 3,
+          "tour_id": "policies",
+          "chunk_index": 0,
+          "rrf_score": 0.031099
+        },
+        {
+          "rank": 4,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 2,
+          "rrf_score": 0.030331
+        },
+        {
+          "rank": 5,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 1,
+          "rrf_score": 0.030159
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.3333333333333333,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q27",
+      "category": "policy",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Qué pasa si cancelo el tour a Machu Picchu 10 días antes?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "machu-picchu-clasico"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 2,
+          "rrf_score": 0.032787
+        },
+        {
+          "rank": 2,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 2,
+          "rrf_score": 0.032002
+        },
+        {
+          "rank": 3,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 0,
+          "rrf_score": 0.029911
+        },
+        {
+          "rank": 4,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 1,
+          "rrf_score": 0.029877
+        },
+        {
+          "rank": 5,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1,
+          "rrf_score": 0.028992
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.5,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q28",
+      "category": "policy",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Hay descuento para niños?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "policies"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "policies",
+          "chunk_index": 0,
+          "rrf_score": 0.032787
+        },
+        {
+          "rank": 2,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 5,
+          "rrf_score": 0.031281
+        },
+        {
+          "rank": 3,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1,
+          "rrf_score": 0.031258
+        },
+        {
+          "rank": 4,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 1,
+          "rrf_score": 0.030798
+        },
+        {
+          "rank": 5,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 4,
+          "rrf_score": 0.028778
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q29",
+      "category": "general",
+      "language": "es",
+      "query_style": "ambiguous",
+      "query": "¿Qué puedo hacer en Cusco?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "city-tour-cusco",
+        "valle-sagrado",
+        "machu-picchu-clasico",
+        "laguna-humantay",
+        "montana-7-colores"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.032787
+        },
+        {
+          "rank": 2,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 0,
+          "rrf_score": 0.032258
+        },
+        {
+          "rank": 3,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 6,
+          "rrf_score": 0.031498
+        },
+        {
+          "rank": 4,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 4,
+          "rrf_score": 0.030798
+        },
+        {
+          "rank": 5,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 1,
+          "rrf_score": 0.029211
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.5,
+      "recall_at_5": 0.4
+    },
+    {
+      "id": "Q30",
+      "category": "recommendation",
+      "language": "es",
+      "query_style": "ambiguous",
+      "query": "Quiero ir a Cusco el próximo mes. ¿Qué me recomiendan?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "city-tour-cusco",
+        "valle-sagrado",
+        "machu-picchu-clasico"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.032787
+        },
+        {
+          "rank": 2,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 0,
+          "rrf_score": 0.032258
+        },
+        {
+          "rank": 3,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 6,
+          "rrf_score": 0.031746
+        },
+        {
+          "rank": 4,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 4,
+          "rrf_score": 0.029851
+        },
+        {
+          "rank": 5,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 1,
+          "rrf_score": 0.028778
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.5,
+      "recall_at_5": 0.6666666666666666
+    },
+    {
+      "id": "Q31",
+      "category": "general",
+      "language": "es",
+      "query_style": "ambiguous",
+      "query": "¿Qué tours tienen disponibles?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "city-tour-cusco",
+        "valle-sagrado",
+        "machu-picchu-clasico",
+        "laguna-humantay",
+        "montana-7-colores",
+        "salkantay-trek",
+        "paquete-completo-7d"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 2,
+          "rrf_score": 0.031281
+        },
+        {
+          "rank": 2,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 1,
+          "rrf_score": 0.030886
+        },
+        {
+          "rank": 3,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 0,
+          "rrf_score": 0.030777
+        },
+        {
+          "rank": 4,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 0,
+          "rrf_score": 0.029851
+        },
+        {
+          "rank": 5,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 0,
+          "rrf_score": 0.028571
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 0.5714285714285714
+    },
+    {
+      "id": "Q32",
+      "category": "general",
+      "language": "en",
+      "query_style": "standard",
+      "query": "What tours do you offer in Cusco?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "city-tour-cusco",
+        "valle-sagrado",
+        "machu-picchu-clasico",
+        "laguna-humantay",
+        "montana-7-colores",
+        "salkantay-trek",
+        "paquete-completo-7d"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.032266
+        },
+        {
+          "rank": 2,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 1,
+          "rrf_score": 0.032018
+        },
+        {
+          "rank": 3,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 0,
+          "rrf_score": 0.031754
+        },
+        {
+          "rank": 4,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 6,
+          "rrf_score": 0.030536
+        },
+        {
+          "rank": 5,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 4,
+          "rrf_score": 0.030366
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 0.42857142857142855
+    },
+    {
+      "id": "Q33",
+      "category": "price",
+      "language": "en",
+      "query_style": "standard",
+      "query": "How much is the Sacred Valley tour?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "valle-sagrado"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.032002
+        },
+        {
+          "rank": 2,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 0,
+          "rrf_score": 0.03125
+        },
+        {
+          "rank": 3,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 0,
+          "rrf_score": 0.031099
+        },
+        {
+          "rank": 4,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 2,
+          "rrf_score": 0.030622
+        },
+        {
+          "rank": 5,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 0,
+          "rrf_score": 0.030159
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.3333333333333333,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q34",
+      "category": "includes",
+      "language": "en",
+      "query_style": "standard",
+      "query": "Is lunch included in the Rainbow Mountain tour?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "montana-7-colores"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.030769
+        },
+        {
+          "rank": 2,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 0,
+          "rrf_score": 0.029644
+        },
+        {
+          "rank": 3,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1,
+          "rrf_score": 0.029211
+        },
+        {
+          "rank": 4,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 0,
+          "rrf_score": 0.028992
+        },
+        {
+          "rank": 5,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 2,
+          "rrf_score": 0.016393
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.2,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q35",
+      "category": "policy",
+      "language": "en",
+      "query_style": "standard",
+      "query": "What payment methods do you accept?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "policies"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 0,
+          "rrf_score": 0.030777
+        },
+        {
+          "rank": 2,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 2,
+          "rrf_score": 0.030366
+        },
+        {
+          "rank": 3,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 1,
+          "rrf_score": 0.02967
+        },
+        {
+          "rank": 4,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 0,
+          "rrf_score": 0.016393
+        },
+        {
+          "rank": 5,
+          "tour_id": "policies",
+          "chunk_index": 0,
+          "rrf_score": 0.016393
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.2,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q36",
+      "category": "general",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Tienen tour a Vinicunca?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "montana-7-colores"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 0,
+          "rrf_score": 0.031514
+        },
+        {
+          "rank": 2,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 0,
+          "rrf_score": 0.031099
+        },
+        {
+          "rank": 3,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 0,
+          "rrf_score": 0.030366
+        },
+        {
+          "rank": 4,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.030118
+        },
+        {
+          "rank": 5,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1,
+          "rrf_score": 0.028992
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q37",
+      "category": "out_of_catalog",
+      "language": "es",
+      "query_style": "standard",
+      "query": "¿Hacen tours a Puno y el Titicaca?",
+      "answerable": false,
+      "relevant_tour_ids": [],
+      "retrieval_metric_applicable": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 0,
+          "rrf_score": 0.031545
+        },
+        {
+          "rank": 2,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 0,
+          "rrf_score": 0.030118
+        },
+        {
+          "rank": 3,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 1,
+          "rrf_score": 0.030077
+        },
+        {
+          "rank": 4,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 1,
+          "rrf_score": 0.028571
+        },
+        {
+          "rank": 5,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 1,
+          "rrf_score": 0.016393
+        }
+      ],
+      "hit_at_5": null,
+      "reciprocal_rank": null,
+      "recall_at_5": null
+    },
+    {
+      "id": "Q38",
+      "category": "out_of_catalog",
+      "language": "en",
+      "query_style": "standard",
+      "query": "Do you have tours to the Amazon rainforest?",
+      "answerable": false,
+      "relevant_tour_ids": [],
+      "retrieval_metric_applicable": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 1,
+          "rrf_score": 0.030679
+        },
+        {
+          "rank": 2,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 0,
+          "rrf_score": 0.030366
+        },
+        {
+          "rank": 3,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 0,
+          "rrf_score": 0.030077
+        },
+        {
+          "rank": 4,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 0,
+          "rrf_score": 0.016393
+        },
+        {
+          "rank": 5,
+          "tour_id": "policies",
+          "chunk_index": 0,
+          "rrf_score": 0.016129
+        }
+      ],
+      "hit_at_5": null,
+      "reciprocal_rank": null,
+      "recall_at_5": null
+    },
+    {
+      "id": "Q39",
+      "category": "price",
+      "language": "es",
+      "query_style": "paraphrase",
+      "query": "¿Cuánto me costaría subir a la laguna que queda arriba de Mollepata?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "laguna-humantay"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 1,
+          "rrf_score": 0.032266
+        },
+        {
+          "rank": 2,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 1,
+          "rrf_score": 0.031319
+        },
+        {
+          "rank": 3,
+          "tour_id": "paquete-completo-7d",
+          "chunk_index": 0,
+          "rrf_score": 0.02967
+        },
+        {
+          "rank": 4,
+          "tour_id": "laguna-humantay",
+          "chunk_index": 0,
+          "rrf_score": 0.016129
+        },
+        {
+          "rank": 5,
+          "tour_id": "valle-sagrado",
+          "chunk_index": 0,
+          "rrf_score": 0.016129
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.5,
+      "recall_at_5": 1.0
+    },
+    {
+      "id": "Q40",
+      "category": "price",
+      "language": "es",
+      "query_style": "paraphrase",
+      "query": "¿Cuánto vale la caminata que va terminando en Machu Picchu pero por la montaña?",
+      "answerable": true,
+      "relevant_tour_ids": [
+        "salkantay-trek"
+      ],
+      "retrieval_metric_applicable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "tour_id": "montana-7-colores",
+          "chunk_index": 0,
+          "rrf_score": 0.031498
+        },
+        {
+          "rank": 2,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 0,
+          "rrf_score": 0.030622
+        },
+        {
+          "rank": 3,
+          "tour_id": "salkantay-trek",
+          "chunk_index": 5,
+          "rrf_score": 0.029851
+        },
+        {
+          "rank": 4,
+          "tour_id": "machu-picchu-clasico",
+          "chunk_index": 0,
+          "rrf_score": 0.016393
+        },
+        {
+          "rank": 5,
+          "tour_id": "city-tour-cusco",
+          "chunk_index": 1,
+          "rrf_score": 0.015873
+        }
+      ],
+      "hit_at_5": 1,
+      "reciprocal_rank": 0.5,
+      "recall_at_5": 1.0
+    }
+  ]
+}

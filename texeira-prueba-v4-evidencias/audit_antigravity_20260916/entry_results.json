@@ -1,0 +1,9 @@
+{
+  "health_on_error_status": 200,
+  "health_exposes_error_detail": true,
+  "not_ready_post_status": 202,
+  "empty_verify_token_status": 200,
+  "delegated_response_status": 200,
+  "background_finished_before_http_return": true,
+  "network_or_real_llm_calls": 0
+}

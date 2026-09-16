@@ -1,0 +1,49 @@
+[
+  {
+    "object": "whatsapp_business_account",
+    "callback_url": "https://institution-remote-unlike-jones.trycloudflare.com/webhook",
+    "active": true,
+    "fields": [
+      {
+        "name": "account_alerts",
+        "version": "v26.0"
+      },
+      {
+        "name": "account_review_update",
+        "version": "v26.0"
+      },
+      {
+        "name": "account_update",
+        "version": "v26.0"
+      },
+      {
+        "name": "calls",
+        "version": "v26.0"
+      },
+      {
+        "name": "message_template_quality_update",
+        "version": "v26.0"
+      },
+      {
+        "name": "message_template_status_update",
+        "version": "v26.0"
+      },
+      {
+        "name": "messages",
+        "version": "v26.0"
+      },
+      {
+        "name": "phone_number_name_update",
+        "version": "v26.0"
+      },
+      {
+        "name": "phone_number_quality_update",
+        "version": "v26.0"
+      },
+      {
+        "name": "security",
+        "version": "v26.0"
+      }
+    ]
+  }
+]

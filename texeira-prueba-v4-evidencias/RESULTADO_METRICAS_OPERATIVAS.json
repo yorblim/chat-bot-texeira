@@ -1,0 +1,1 @@
+{"passed": true, "external_messages": 0, "external_llm_calls": 0, "checks": ["webhook_accepted", "send_failure_not_success", "processing_failure_counted", "rate_limit_in_denominator", "send_latency_included", "unique_human_requests", "unmeasured_not_zero", "public_metrics_unavailable"]}

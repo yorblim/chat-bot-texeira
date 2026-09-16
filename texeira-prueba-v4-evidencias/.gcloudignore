@@ -1,0 +1,27 @@
+# Lista permitida: nunca subir bases del piloto, secretos, logs o respaldos.
+*
+!Dockerfile
+!.dockerignore
+!requirements.txt
+!app.py
+!runtime_settings.py
+!verified_routes.py
+!handoff_support.py
+!trial_support.py
+!database.py
+!chat_ui.py
+!admin_dashboard.py
+!operational_metrics.py
+!advisor_entry.py
+!whatsapp_entry.py
+!src/
+!src/**
+src/**/__pycache__/
+src/**/*.pyc
+!data/
+!data/tours_catalog.json
+!data/evidence_facts.json
+!data/conflicts.json
+!data/source_registry.json
+!chroma_f1_confirmado_20260915_db/
+!chroma_f1_confirmado_20260915_db/**

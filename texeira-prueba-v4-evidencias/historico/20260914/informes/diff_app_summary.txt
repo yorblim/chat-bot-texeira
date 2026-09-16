@@ -1,0 +1,3 @@
+Comparando app_backup.ps1 y app.py...
+Los archivos tienen tama±os diferentes.
+

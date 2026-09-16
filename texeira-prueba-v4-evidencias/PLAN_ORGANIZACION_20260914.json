@@ -1,0 +1,174 @@
+[
+  {
+    "from": "app_backup_.py",
+    "to": "historico/20260914/respaldos_codigo/app_backup_.py"
+  },
+  {
+    "from": "app_backup.ps1",
+    "to": "historico/20260914/respaldos_codigo/app_backup.ps1"
+  },
+  {
+    "from": "app_final.ps1",
+    "to": "historico/20260914/respaldos_codigo/app_final.ps1"
+  },
+  {
+    "from": "app_v2_final.py",
+    "to": "historico/20260914/respaldos_codigo/app_v2_final.py"
+  },
+  {
+    "from": "trial_support_backup_.py",
+    "to": "historico/20260914/respaldos_codigo/trial_support_backup_.py"
+  },
+  {
+    "from": "trial_support_backup.ps1",
+    "to": "historico/20260914/respaldos_codigo/trial_support_backup.ps1"
+  },
+  {
+    "from": "trial_support_final.ps1",
+    "to": "historico/20260914/respaldos_codigo/trial_support_final.ps1"
+  },
+  {
+    "from": "trial_support_v2_final.py",
+    "to": "historico/20260914/respaldos_codigo/trial_support_v2_final.py"
+  },
+  {
+    "from": "COMPARACION_CORRECCIONES.md",
+    "to": "historico/20260914/informes/COMPARACION_CORRECCIONES.md"
+  },
+  {
+    "from": "DIAGNOSTICO_LATENCIA.md",
+    "to": "historico/20260914/informes/DIAGNOSTICO_LATENCIA.md"
+  },
+  {
+    "from": "diff_app_summary.txt",
+    "to": "historico/20260914/informes/diff_app_summary.txt"
+  },
+  {
+    "from": "diff_app.txt",
+    "to": "historico/20260914/informes/diff_app.txt"
+  },
+  {
+    "from": "DIFF_CAMBIOS.md",
+    "to": "historico/20260914/informes/DIFF_CAMBIOS.md"
+  },
+  {
+    "from": "ESTADO_CIERRE.md",
+    "to": "historico/20260914/informes/ESTADO_CIERRE.md"
+  },
+  {
+    "from": "EVALUACION_10_CASOS.md",
+    "to": "historico/20260914/informes/EVALUACION_10_CASOS.md"
+  },
+  {
+    "from": "INFORME_ANTES_DESPUES.md",
+    "to": "historico/20260914/informes/INFORME_ANTES_DESPUES.md"
+  },
+  {
+    "from": "INFORME_ENTREGA.md",
+    "to": "historico/20260914/informes/INFORME_ENTREGA.md"
+  },
+  {
+    "from": "INFORME_VALIDACION_v2.md",
+    "to": "historico/20260914/informes/INFORME_VALIDACION_v2.md"
+  },
+  {
+    "from": "RESULTADOS_10_CASOS.md",
+    "to": "historico/20260914/informes/RESULTADOS_10_CASOS.md"
+  },
+  {
+    "from": "RESULTADOS_CINCO_PRUEBAS.md",
+    "to": "historico/20260914/informes/RESULTADOS_CINCO_PRUEBAS.md"
+  },
+  {
+    "from": "REVERSION.md",
+    "to": "historico/20260914/informes/REVERSION.md"
+  },
+  {
+    "from": "REVISION_OPENCODE.json",
+    "to": "historico/20260914/informes/REVISION_OPENCODE.json"
+  },
+  {
+    "from": "REVISION_OPENCODE.md",
+    "to": "historico/20260914/informes/REVISION_OPENCODE.md"
+  },
+  {
+    "from": "TRANSCRIPCION_FOLLETO_V3.md",
+    "to": "historico/20260914/informes/TRANSCRIPCION_FOLLETO_V3.md"
+  },
+  {
+    "from": "provisional_final.json",
+    "to": "historico/20260914/informes/provisional_final.json"
+  },
+  {
+    "from": "provisional_v2_final.json",
+    "to": "historico/20260914/informes/provisional_v2_final.json"
+  },
+  {
+    "from": "validacion_catalogo_v3.json",
+    "to": "historico/20260914/informes/validacion_catalogo_v3.json"
+  },
+  {
+    "from": "validacion_real_3casos.json",
+    "to": "historico/20260914/informes/validacion_real_3casos.json"
+  },
+  {
+    "from": "local_latency.json",
+    "to": "historico/20260914/informes/local_latency.json"
+  },
+  {
+    "from": "retrieval_eval_results.json",
+    "to": "historico/20260914/informes/retrieval_eval_results.json"
+  },
+  {
+    "from": "evaluation-ten-live-20260911-111304.json",
+    "to": "historico/20260914/informes/evaluation-ten-live-20260911-111304.json"
+  },
+  {
+    "from": "evaluation-ten-local-20260911-111211.json",
+    "to": "historico/20260914/informes/evaluation-ten-local-20260911-111211.json"
+  },
+  {
+    "from": "evaluation-ten-local-20260911-113228.json",
+    "to": "historico/20260914/informes/evaluation-ten-local-20260911-113228.json"
+  },
+  {
+    "from": "evaluation-ten-local-20260911-114137.json",
+    "to": "historico/20260914/informes/evaluation-ten-local-20260911-114137.json"
+  },
+  {
+    "from": "evaluation-ten-local-20260911-120340.json",
+    "to": "historico/20260914/informes/evaluation-ten-local-20260911-120340.json"
+  },
+  {
+    "from": "evaluation-ten-local-20260911-120631.json",
+    "to": "historico/20260914/informes/evaluation-ten-local-20260911-120631.json"
+  },
+  {
+    "from": "evaluation-ten-local-20260911-122418.json",
+    "to": "historico/20260914/informes/evaluation-ten-local-20260911-122418.json"
+  },
+  {
+    "from": "evaluation-ten-local-20260911-133651.json",
+    "to": "historico/20260914/informes/evaluation-ten-local-20260911-133651.json"
+  },
+  {
+    "from": "evaluation-ten-local-20260911-144654.json",
+    "to": "historico/20260914/informes/evaluation-ten-local-20260911-144654.json"
+  },
+  {
+    "from": "evaluation-ten-local-20260911-145609.json",
+    "to": "historico/20260914/informes/evaluation-ten-local-20260911-145609.json"
+  },
+  {
+    "from": "evaluation-ten-local-20260911-153941.json",
+    "to": "historico/20260914/informes/evaluation-ten-local-20260911-153941.json"
+  },
+  {
+    "from": "live-five-20260911-024456.json",
+    "to": "historico/20260914/informes/live-five-20260911-024456.json"
+  },
+  {
+    "from": "live-five-20260911-105504.json",
+    "to": "historico/20260914/informes/live-five-20260911-105504.json"
+  }
+]

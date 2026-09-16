@@ -1,0 +1,5 @@
+{
+  "callback_url": "https://discover-namespace-freeware-photos.trycloudflare.com/webhook",
+  "unauthenticated_get_status": 403,
+  "dashboard_status": 404
+}

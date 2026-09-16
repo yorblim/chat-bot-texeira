@@ -1,0 +1,11 @@
+{
+  "mode": "local_offline_no_llm",
+  "seconds": {
+    "import_support_seconds": 0.007506099995225668,
+    "initialize_seconds": 32.99942980000196,
+    "first_query_seconds": 0.5325899999952526,
+    "second_query_seconds": 0.049404899997171015,
+    "cached_access_seconds": 2.3000029614195228e-06
+  },
+  "documents_returned": 5
+}

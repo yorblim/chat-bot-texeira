@@ -1,0 +1,6 @@
+{
+  "index": "chroma_v4_evidencias_db",
+  "expected_documents": 20,
+  "actual_documents": 20,
+  "content_and_metadata_match": true
+}

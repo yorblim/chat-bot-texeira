@@ -1,0 +1,90 @@
+# ============================================================
+# .dockerignore — AGENTE CONVERSACIONAL TEXEIRA TRAVEL TOUR
+# ============================================================
+# Excluir credenciales, datos del piloto, logs, respaldos y audits.
+
+# Credenciales y entorno local
+.env
+*.env
+.env.*
+
+# Bases de datos SQLite (datos del piloto quedan en el PC)
+*.db
+*.db-shm
+*.db-wal
+human_requests.db
+trial_logs.db
+test_dedup.db
+
+# Logs locales
+logs/
+*.log
+*.out.log
+*.err.log
+tunnel_*.log
+review_*.log
+wa_*.log
+advisor*.log
+
+# Directorios de auditoría, respaldo e histórico
+audit_*/
+backup_*/
+historico/
+respaldos/
+
+# Índices Chroma OBSOLETOS (solo chroma_f1_confirmado_20260915_db va en la imagen)
+chroma_v4_evidencias_db/
+chroma_audit_20260912_db/
+chroma_audit_20260912_r2_db/
+chroma_db/
+chroma_hybrid_db/
+
+# Scripts de evaluación y prueba (no van a producción)
+evaluate_*.py
+test_*.py
+validar_*.py
+review_opencode.py
+run_five_live.py
+measure_local_latency.py
+rebuild_confirmed_index_20260915.py
+apply_source_audit.py
+prepare_brochure_catalog.py
+build_index.py
+retrieval_eval.py
+
+# Documentos de evaluación e informes
+BANCO_EVALUACION_ACADEMICA.json
+RESULTADOS_EVALUACION_ACADEMICA.json
+EVALUACION_REAL_EXPLORATORIA_20260915.json
+EVALUACION_IDIOMAS_LOCAL.json
+DIAGNOSTICO_EVALUADOR.json
+PLAN_EVALUACION_REAL.md
+RUBRICA_EVALUACION_ACADEMICA.md
+AUDITORIA_FINAL_20260912.md
+REVISION_*.md
+INFORME_EVALUACION_REAL_20260915.md
+FICHA_VALIDACION_AGENCIA.md
+METRICAS_OPERATIVAS.md
+GUIA_PRUEBAS.md
+PLAN_ORGANIZACION_20260914.json
+AUDIT_HTTP_RESULT.json
+AUDIT_RETRIEVAL_RESULTS.json
+AUDIT_TEST_RESULTS.json
+ESTADO_VERIFICADO_20260914.json
+VERIFICACION_*.json
+meta_subscription_before_20260914.json
+RESULTADO_*.json
+
+# Scripts de inicio locales (sólo sirven en Windows)
+*.ps1
+
+# Caché Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Tmp y git
+tmp/
+.git/
+.gitignore

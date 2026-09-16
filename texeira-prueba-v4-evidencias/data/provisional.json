@@ -1,0 +1,162 @@
+{
+  "version": "v3-folleto-2026-09-11",
+  "status": "brochure_confirmed_with_market_estimates",
+  "notice": "Informacion confirmada por folleto fisico de Texeira Travel. Precios son referenciales de mercado, no tarifas oficiales.",
+  "method": "Folleto fisico (B1, B2) + referencias de mercado (M1-M5). Precios separados de informacion oficial.",
+  "currency": "USD",
+  "unit": "adulto por persona, servicio compartido salvo indicacion",
+  "price_pen": null,
+  "exchange_rate": null,
+  "agency": {
+    "name": "TEXEIRA TRAVEL — TRAVEL AGENCY E.I.R.L.",
+    "facebook": "https://www.facebook.com/EugenioTejeiraMaldonado1000",
+    "identity_confirmed_by_user": true,
+    "published_phone": "+51 953 767 860",
+    "published_secondary_phone": "+51 984 679 715",
+    "published_address": "Calle Carmen Quicllu N.º 250, Cusco",
+    "emails": [
+      "texeiratraveltour@hotmail.com",
+      "eugeniotejeira@hotmail.com"
+    ],
+    "contact_status": "Teléfonos y correos impresos en folleto (B2); operatividad no comprobada.",
+    "contact_source": "B2 (folleto fisico)",
+    "address_source": "F1 (Facebook anterior; no figura en el folleto fisico)"
+  },
+  "policies": {
+    "payment_methods": null,
+    "deposit": null,
+    "cancellation": null,
+    "discounts": null,
+    "insurance": null,
+    "availability": "Consultar; sin conexión a inventario de reservas",
+    "note": "El folleto no detalla politicas de pago, cancelacion ni descuentos. Consultar directamente a la agencia."
+  },
+  "tours": [
+    {
+      "id": "city-tour-cusco",
+      "name": "City Tour Cusco",
+      "range_usd": [15, 25],
+      "simulation_price_usd": 20,
+      "duration_reference": "Dos turnos: 10:00-14:00 / 13:30-18:30 (horario ambiguo del folleto)",
+      "agency_published": ["Templo de Koricancha", "Sacsayhuamán", "Qenqo", "Puca pucara", "Tambomachay", "Bus turístico", "Guía profesional"],
+      "agency_source": "B2",
+      "agency_validity": "Folleto fisico confirmado",
+      "simulation_includes": ["transporte compartido", "guía"],
+      "simulation_excludes": ["entradas", "comidas", "seguro"],
+      "market_sources": ["M1"],
+      "estimate_basis": "M1 publica USD 15 sin entradas. USD 15-25 es margen de diseño.",
+      "schedule_note": "Horario textual del folleto: 'de 10am 14pm y de 13:30pm 18:30pm'. Notacion ambigua/inconsistente."
+    },
+    {
+      "id": "valle-sagrado",
+      "name": "Valle Sagrado",
+      "range_usd": [40, 60],
+      "simulation_price_usd": 50,
+      "duration_reference": "07:30-18:30 (folleto confirmado)",
+      "agency_published": ["Chinchero", "Moray", "Maras salineras", "Ollantaytambo", "Pisac", "Urubamba", "Almuerzo buffet en Urubamba", "Bus turístico", "Guía profesional"],
+      "agency_source": "B2",
+      "agency_validity": "Folleto fisico confirmado",
+      "simulation_includes": ["transporte compartido", "guía", "almuerzo buffet"],
+      "simulation_excludes": ["boleto turístico", "seguro"],
+      "market_sources": ["M2"],
+      "estimate_basis": "M2 publica USD 48 para ruta completa sin entradas."
+    },
+    {
+      "id": "machu-picchu-clasico",
+      "name": "Machu Picchu",
+      "range_usd": [300, 400],
+      "simulation_price_usd": 350,
+      "duration_reference": "Día completo; horario sujeto a tren y entrada",
+      "agency_published": ["Traslado Cusco-Ollanta-Cusco", "Tren ida y vuelta", "Bus de subida y bajada (CONFIRMADO)", "Ingresos a Machu Picchu", "Guía profesional"],
+      "agency_source": "B1",
+      "agency_validity": "Folleto fisico confirmado",
+      "simulation_includes": ["traslados Cusco-Ollantaytambo-Cusco", "tren ida y vuelta", "bus de subida y bajada", "entrada a Machu Picchu", "guía"],
+      "simulation_excludes": ["comidas", "seguro"],
+      "market_sources": ["M3"],
+      "estimate_basis": "M3 publica USD 320 compartido con tren y entrada. Rango de diseño.",
+      "correction": "EL FOLLETO CONFIRMA BUS DE SUBIDA Y BAJADA. Corregido respecto a versión provisional."
+    },
+    {
+      "id": "maras-moray",
+      "name": "Maras - Moray",
+      "range_usd": null,
+      "simulation_price_usd": null,
+      "duration_reference": "08:40-14:00 (folleto confirmado; notación inconsistente 14:00 pm)",
+      "agency_published": ["Awana de Chinchero", "Moray", "Salineras", "Bus turístico o cuatrimotos (modalidad por confirmar)", "Guía profesional"],
+      "agency_source": "B1",
+      "agency_validity": "Folleto fisico confirmado",
+      "simulation_includes": [],
+      "simulation_excludes": [],
+      "market_sources": [],
+      "estimate_basis": "Sin precio confirmado. Tour NUEVO agregado según folleto.",
+      "unknowns": "El folleto no detalla exclusiones, cupos, pagos ni cancelaciones. Un servicio no mencionado queda sin confirmar, no excluido."
+    },
+    {
+      "id": "valle-sur",
+      "name": "Valle Sur",
+      "range_usd": null,
+      "simulation_price_usd": null,
+      "duration_reference": "08:40-14:00 (folleto confirmado; notación inconsistente 14:00 pm)",
+      "agency_published": ["Tipon", "Pikillaqta", "Templo de Andahuaylillas", "Bus turístico", "Guía profesional"],
+      "agency_source": "B1",
+      "agency_validity": "Folleto fisico confirmado",
+      "simulation_includes": [],
+      "simulation_excludes": [],
+      "market_sources": [],
+      "estimate_basis": "Sin precio confirmado. Tour NUEVO agregado según folleto.",
+      "unknowns": "El folleto no detalla exclusiones, cupos, pagos ni cancelaciones. Un servicio no mencionado queda sin confirmar, no excluido."
+    },
+    {
+      "id": "laguna-humantay",
+      "name": "Laguna Humantay",
+      "range_usd": [35, 50],
+      "simulation_price_usd": 40,
+      "duration_reference": "04:30-17:00 (folleto confirmado)",
+      "agency_published": ["Transporte turístico", "Guía profesional", "Desayuno", "Almuerzo"],
+      "agency_source": "B1",
+      "agency_validity": "Folleto fisico confirmado",
+      "simulation_includes": ["transporte compartido", "guía", "desayuno y almuerzo"],
+      "simulation_excludes": ["caballo opcional", "seguro"],
+      "market_sources": ["M4"],
+      "estimate_basis": "M4 publica USD 39 con entrada y comidas."
+    },
+    {
+      "id": "montana-7-colores",
+      "name": "Montaña de 7 Colores",
+      "range_usd": [25, 45],
+      "simulation_price_usd": 35,
+      "duration_reference": "04:30-17:00 (folleto confirmado)",
+      "agency_published": ["Transporte turístico", "Guía profesional", "Desayuno", "Almuerzo"],
+      "agency_source": "B1",
+      "agency_validity": "Folleto fisico confirmado",
+      "simulation_includes": ["transporte compartido", "guía", "desayuno y almuerzo"],
+      "simulation_excludes": ["entradas a la montaña", "caballo o cuatrimoto", "seguro"],
+      "market_sources": ["M5"],
+      "estimate_basis": "M5 publica tarifa estándar USD 27."
+    }
+  ],
+  "unconfirmed_products": [
+    {
+      "id": "salkantay-trek",
+      "name": "Salkantay Trek",
+      "note": "NO confirmado en folleto fisico. No incluir como servicio oficial."
+    },
+    {
+      "id": "paquete-completo-7d",
+      "name": "Paquete Cusco 7D/6N",
+      "note": "NO confirmado en folleto fisico. No incluir como servicio oficial."
+    }
+  ],
+  "sources": {
+    "B1": "Folleto fisico - Pagina 1 (data/agency_sources/brochure_page_1.jpeg)",
+    "B2": "Folleto fisico - Pagina 2 (data/agency_sources/brochure_page_2.jpeg)",
+    "F1": "https://www.facebook.com/EugenioTejeiraMaldonado1000",
+    "M1": "https://www.mptc.com.pe/tour.php?id=3",
+    "M2": "https://www.mptc.com.pe/tour.php?id=34",
+    "M3": "https://www.mptc.com.pe/tour.php?id=12",
+    "M4": "https://www.mptc.com.pe/tour.php?id=2",
+    "M5": "https://www.machupicchureservations.org/tour/rainbow-mountain-tour"
+  },
+  "source_date": "2026-09-11",
+  "source_limitations": "Folleto fisico no contiene precios ni politicas. Precios son referencias de mercado separadas."
+}

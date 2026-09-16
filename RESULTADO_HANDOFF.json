@@ -1,0 +1,1 @@
+{"passed": true, "mode": "local_no_llm_no_messages", "checks": ["request_not_resolution", "history_final", "persistent_context", "deduplication", "transitions", "csrf", "concurrent_duplicates", "channel_isolation", "public_panel_unavailable"]}

@@ -1,0 +1,102 @@
+{
+  "version": "v4-evidencias-2026-09-11",
+  "description": "Conflictos detectados automaticamente entre fuentes. Cada conflicto identifica el entity_id, field, y fuentes en conflicto.",
+  "detection_method": "exclusive_scalar: mismo entity_id + field, values incompatibles. additive_set: mismo item con includes=true en una fuente y excludes=true en otra.",
+  "conflicts": [],
+  "complementary_information": [
+    {
+      "entity_id": "montana-7-colores",
+      "field": "includes",
+      "description": "F3 agrega entrada_montana y oxigeno que F1/F2 no mencionan. Informacion complementaria, no contradictoria.",
+      "sources": [
+        "F1",
+        "F2",
+        "F3"
+      ]
+    },
+    {
+      "entity_id": "valle-sagrado",
+      "field": "includes",
+      "description": "F3 especifica almuerzo_buffet y agrega bus_turistico. F2 confirma transporte y guia. Complementario.",
+      "sources": [
+        "F1",
+        "F2",
+        "F3"
+      ]
+    },
+    {
+      "entity_id": "machu-picchu-tren",
+      "field": "includes",
+      "description": "F3 agrega recojo_hotel y especifica tickets_tren. F1 confirma traslado, tren, bus, ingresos. Complementario.",
+      "sources": [
+        "F1",
+        "F3"
+      ]
+    },
+    {
+      "entity_id": "laguna-humantay",
+      "field": "includes",
+      "description": "F1 confirma desayuno. F2 no lo menciona pero tampoco lo excluye. Desayuno respaldado por F1. Almuerzo respaldado por F1+F2.",
+      "sources": [
+        "F1",
+        "F2"
+      ]
+    }
+  ],
+  "explicit_exclusions": [
+    {
+      "entity_id": "valle-sagrado",
+      "item": "boleto_turistico",
+      "source_id": "F3",
+      "source_page": 3,
+      "note": "F3 confirma explícitamente: NO INCLUYE Entrada / Boleto Turistico."
+    }
+  ],
+  "resolved_conflicts": [
+    {
+      "conflict_id": "conf-ct-schedule",
+      "entity_id": "city-tour-cusco",
+      "field": "schedule",
+      "policy": "exclusive_scalar",
+      "chosen_source": "F1",
+      "chosen_value": "10:00-14:00 / 13:30-18:30",
+      "discarded_source": {
+        "source_id": "F3",
+        "source_page": 2,
+        "value": "09:00-14:00 / 13:30-18:00"
+      },
+      "needs_confirmation": false,
+      "resolution_note": "Horario oficial confirmado por la agencia con folleto impreso F1 el 2026-09-15."
+    },
+    {
+      "conflict_id": "conf-vs-schedule",
+      "entity_id": "valle-sagrado",
+      "field": "schedule",
+      "policy": "exclusive_scalar",
+      "chosen_source": "F1",
+      "chosen_value": "07:30-18:30",
+      "discarded_source": {
+        "source_id": "F3",
+        "source_page": 3,
+        "value": "07:00-18:30"
+      },
+      "needs_confirmation": false,
+      "resolution_note": "Horario oficial confirmado por la agencia con folleto impreso F1 el 2026-09-15."
+    },
+    {
+      "conflict_id": "conf-m7c-schedule",
+      "entity_id": "montana-7-colores",
+      "field": "schedule",
+      "policy": "exclusive_scalar",
+      "chosen_source": "F1",
+      "chosen_value": "04:30-17:00",
+      "discarded_source": {
+        "source_id": "F3",
+        "source_page": 4,
+        "value": "05:00-16:30"
+      },
+      "needs_confirmation": false,
+      "resolution_note": "Horario oficial confirmado por la agencia con folleto impreso F1 el 2026-09-15."
+    }
+  ]
+}

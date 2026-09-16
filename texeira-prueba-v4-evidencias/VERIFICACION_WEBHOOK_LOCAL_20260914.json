@@ -1,0 +1,5 @@
+{
+  "local_verification": true,
+  "rejects_invalid_signature": true,
+  "dashboard_not_public": true
+}

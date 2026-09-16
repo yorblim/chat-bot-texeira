@@ -1,0 +1,479 @@
+{
+  "mode": "local_no_external_llm",
+  "cases": [
+    {
+      "question": "¿Qué tours tienen?",
+      "result": {
+        "status": "ok",
+        "response": "Tours documentados (cupos por confirmar):\n- City Tour Cusco\n- Valle Sagrado\n- Valle Sur\n- Montaña de 7 Colores\n- Laguna Humantay\n- Waqra Pukara\n- Machu Picchu by Car\n- Machu Picchu en Tren\n- Camino Inka\n- Salkantay Trek\n- Inka Jungle to Machu Picchu\n- Choquequirao Trek\n- Tour Místico\n- Islas del Lago Titicaca\n- Cañón del Colca / Baños Termales de Chacapi\n- Ruta del Sol Cusco-Puno\n- Maras - Moray\n- Tour Cuatrimoto / Maras-Moray\n- Puente de Q’eswachaca",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": false,
+        "route": "evidence_listing",
+        "response_route": "evidence_listing",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "documented",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": [
+          "F1",
+          "F2",
+          "F3"
+        ],
+        "latency_ms": 0.0
+      },
+      "passed": true
+    },
+    {
+      "question": "¿Qué horario tiene City Tour?",
+      "result": {
+        "status": "ok",
+        "response": "City Tour Cusco\nHorario publicado: 10:00-14:00 / 13:30-18:30",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": false,
+        "route": "evidence_schedule",
+        "response_route": "evidence_schedule",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "documented",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": [
+          "F1"
+        ],
+        "latency_ms": 0.0
+      },
+      "passed": true
+    },
+    {
+      "question": "¿Qué horario tiene Valle Sagrado?",
+      "result": {
+        "status": "ok",
+        "response": "Valle Sagrado\nHorario publicado: 07:30-18:30",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": false,
+        "route": "evidence_schedule",
+        "response_route": "evidence_schedule",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "documented",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": [
+          "F1"
+        ],
+        "latency_ms": 0.0
+      },
+      "passed": true
+    },
+    {
+      "question": "¿Qué horario tiene 7 colores?",
+      "result": {
+        "status": "ok",
+        "response": "Montaña de 7 Colores\nHorario publicado: 04:30-17:00",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": false,
+        "route": "evidence_schedule",
+        "response_route": "evidence_schedule",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "documented",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": [
+          "F1"
+        ],
+        "latency_ms": 0.0
+      },
+      "passed": true
+    },
+    {
+      "question": "¿Qué horario tiene Valle Sur?",
+      "result": {
+        "status": "ok",
+        "response": "Valle Sur\nHorario publicado: 08:40-14:00",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": false,
+        "route": "evidence_schedule",
+        "response_route": "evidence_schedule",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "documented",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": [
+          "F1"
+        ],
+        "latency_ms": 0.0
+      },
+      "passed": true
+    },
+    {
+      "question": "¿Qué incluye Machu Picchu en tren?",
+      "result": {
+        "status": "ok",
+        "response": "Machu Picchu en Tren\nIncluye: Traslado Cusco–Ollanta–Cusco\nIncluye: Tren de ida y vuelta\nIncluye: Bus de subida y bajada\nIncluye: Entrada a Machu Picchu\nIncluye: Guía profesional\nIncluye: Recojo del hotel",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": false,
+        "route": "evidence_includes",
+        "response_route": "evidence_includes",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "documented",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": [
+          "F1",
+          "F3"
+        ],
+        "latency_ms": 0.0
+      },
+      "passed": true
+    },
+    {
+      "question": "¿Y el horario?",
+      "result": {
+        "status": "ok",
+        "response": "Este dato requiere confirmacion con la agencia: detalle no documentado para Machu Picchu en Tren. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+        "resolved_autonomously": false,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": true,
+        "route": "evidence_unknown",
+        "response_route": "evidence_unknown",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "unknown",
+        "needs_confirmation": true,
+        "conflict_detected": false,
+        "sources_used": [],
+        "latency_ms": 388.26
+      },
+      "passed": true
+    },
+    {
+      "question": "What does Machu Picchu by car include?",
+      "result": {
+        "status": "ok",
+        "response": "This information requires confirmation with the agency: undocumented detail for Machu Picchu by Car. +51 953 767 860 / +51 984 679 715\nTo register a request for human assistance, type: speak to an agent.",
+        "resolved_autonomously": false,
+        "escalated_to_human": false,
+        "detected_language": "en",
+        "needs_agency_confirmation": true,
+        "route": "evidence_unknown",
+        "response_route": "evidence_unknown",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "unknown",
+        "needs_confirmation": true,
+        "conflict_detected": false,
+        "sources_used": [],
+        "latency_ms": 0.0
+      },
+      "passed": true
+    },
+    {
+      "question": "¿Qué incluye el tour cuatrimoto Maras-Moray?",
+      "result": {
+        "status": "ok",
+        "response": "Tour Cuatrimoto / Maras-Moray\nIncluye: cuatrimotos modernas\nIncluye: casco equipo proteccion\nIncluye: visita salineras\nIncluye: visita moray\nIncluye: transporte ida vuelta",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": false,
+        "route": "evidence_includes",
+        "response_route": "evidence_includes",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "documented",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": [
+          "F3"
+        ],
+        "latency_ms": 0.0
+      },
+      "passed": true
+    },
+    {
+      "question": "¿El boleto turístico está incluido en Valle Sagrado?",
+      "result": {
+        "status": "ok",
+        "response": "Valle Sagrado\nNo incluye: boleto turistico",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": false,
+        "route": "evidence_includes",
+        "response_route": "evidence_includes",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "documented",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": [
+          "F3"
+        ],
+        "latency_ms": 8.12
+      },
+      "passed": true
+    },
+    {
+      "question": "¿Qué no incluye Valle Sagrado?",
+      "result": {
+        "status": "ok",
+        "response": "Valle Sagrado\nNo incluye: boleto turistico",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": false,
+        "route": "evidence_excludes",
+        "response_route": "evidence_excludes",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "documented",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": [
+          "F3"
+        ],
+        "latency_ms": 0.0
+      },
+      "passed": true
+    },
+    {
+      "question": "¿La entrada está incluida en Humantay?",
+      "result": {
+        "status": "ok",
+        "response": "Este dato requiere confirmacion con la agencia: si el servicio solicitado esta incluido en Laguna Humantay. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+        "resolved_autonomously": false,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": true,
+        "route": "evidence_unknown",
+        "response_route": "evidence_unknown",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "unknown",
+        "needs_confirmation": true,
+        "conflict_detected": false,
+        "sources_used": [],
+        "latency_ms": 9.74
+      },
+      "passed": true
+    },
+    {
+      "question": "¿Qué incluye Salkantay?",
+      "result": {
+        "status": "ok",
+        "response": "Este dato requiere confirmacion con la agencia: detalle no documentado para Salkantay Trek. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+        "resolved_autonomously": false,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": true,
+        "route": "evidence_unknown",
+        "response_route": "evidence_unknown",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "unknown",
+        "needs_confirmation": true,
+        "conflict_detected": false,
+        "sources_used": [],
+        "latency_ms": 0.0
+      },
+      "passed": true
+    },
+    {
+      "question": "¿Cuánto dura Salkantay?",
+      "result": {
+        "status": "ok",
+        "response": "Salkantay Trek\nDuracion publicada: 4 días (itinerario publicado; confirmar variante y noches)",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": false,
+        "route": "evidence_duration",
+        "response_route": "evidence_duration",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "documented",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": [
+          "F2"
+        ],
+        "latency_ms": 0.0
+      },
+      "passed": true
+    },
+    {
+      "question": "¿Cuánto cuesta Machu Picchu?",
+      "result": {
+        "status": "ok",
+        "response": "Este dato requiere confirmacion con la agencia: precio oficial o conversion a soles de Machu Picchu en Tren. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+        "resolved_autonomously": false,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": true,
+        "route": "evidence_unknown",
+        "response_route": "evidence_unknown",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "unknown",
+        "needs_confirmation": true,
+        "conflict_detected": false,
+        "sources_used": [],
+        "latency_ms": 0.0
+      },
+      "passed": true
+    },
+    {
+      "question": "¿Tienen Valle Sagrado disponible mañana?",
+      "result": {
+        "status": "ok",
+        "response": "Este dato requiere confirmacion con la agencia: pagos, cancelaciones, reservas o disponibilidad para la fecha solicitada. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+        "resolved_autonomously": false,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": true,
+        "route": "evidence_unknown",
+        "response_route": "evidence_unknown",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "unknown",
+        "needs_confirmation": true,
+        "conflict_detected": false,
+        "sources_used": [],
+        "latency_ms": 0.0
+      },
+      "passed": true
+    },
+    {
+      "question": "Can I cancel my booking?",
+      "result": {
+        "status": "ok",
+        "response": "This information requires confirmation with the agency: payments, cancellations, bookings or availability for the requested date. +51 953 767 860 / +51 984 679 715\nTo register a request for human assistance, type: speak to an agent.",
+        "resolved_autonomously": false,
+        "escalated_to_human": false,
+        "detected_language": "en",
+        "needs_agency_confirmation": true,
+        "route": "evidence_unknown",
+        "response_route": "evidence_unknown",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "unknown",
+        "needs_confirmation": true,
+        "conflict_detected": false,
+        "sources_used": [],
+        "latency_ms": 0.0
+      },
+      "passed": true
+    },
+    {
+      "question": "Can I pay with PayPal?",
+      "result": {
+        "status": "ok",
+        "response": "This information requires confirmation with the agency: payments, cancellations, bookings or availability for the requested date. +51 953 767 860 / +51 984 679 715\nTo register a request for human assistance, type: speak to an agent.",
+        "resolved_autonomously": false,
+        "escalated_to_human": false,
+        "detected_language": "en",
+        "needs_agency_confirmation": true,
+        "route": "evidence_unknown",
+        "response_route": "evidence_unknown",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "unknown",
+        "needs_confirmation": true,
+        "conflict_detected": false,
+        "sources_used": [],
+        "latency_ms": 0.0
+      },
+      "passed": true
+    },
+    {
+      "question": "¿Cuál es el correo?",
+      "result": {
+        "status": "ok",
+        "response": "+51 953 767 860 / +51 984 679 715\ntexeiratraveltour@hotmail.com, eugeniotejeira@hotmail.com\nCarmen Quicllu #250 Cusco",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": false,
+        "route": "evidence_contact",
+        "response_route": "evidence_contact",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "documented",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": [
+          "F1",
+          "F2",
+          "F3"
+        ],
+        "latency_ms": 0.0
+      },
+      "passed": true
+    },
+    {
+      "question": "¿Tienen paquete de 7 días?",
+      "result": {
+        "status": "ok",
+        "response": "Este dato requiere confirmacion con la agencia: paquete de siete dias no documentado en las fuentes recibidas. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+        "resolved_autonomously": false,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": true,
+        "route": "evidence_unknown",
+        "response_route": "evidence_unknown",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "unknown",
+        "needs_confirmation": true,
+        "conflict_detected": false,
+        "sources_used": [],
+        "latency_ms": 12.04
+      },
+      "passed": true
+    },
+    {
+      "question": "Necesito orientación para mi viaje",
+      "result": {
+        "status": "ok",
+        "response": "Consulta con un asesor de la agencia.",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": false,
+        "route": "rag",
+        "response_route": "rag_llm",
+        "handoff_id": null,
+        "handoff_status": null,
+        "evidence_status": "rag_context",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": [],
+        "latency_ms": 11.98
+      },
+      "passed": true
+    }
+  ],
+  "additional_checks": [
+    "catalog-evidence consistency",
+    "includes-excludes conflict",
+    "history final",
+    "route metrics"
+  ]
+}

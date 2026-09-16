@@ -1,0 +1,28 @@
+# ============================================================
+# .gitignore — Texeira Travel Tour - Agente RAG
+# ============================================================
+# Excluye secretos, bases de datos, artefactos de build
+# y directorios de datos locales del control de versiones.
+
+# --- Secretos (nunca subir claves reales) ---
+.env
+
+# --- Bases de datos locales (métricas y vectores) ---
+*.db
+*.db-wal
+*.db-shm
+chroma_db/
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+
+# --- Entornos virtuales ---
+venv/
+.venv/
+env/
+
+# --- Otros ---
+.DS_Store
+*.log

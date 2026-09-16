@@ -1,0 +1,176 @@
+{
+  "mode": "local",
+  "rows": [
+    {
+      "id": "C01",
+      "conversation": "A",
+      "question": "¿Qué precio aproximado tiene el City Tour Cusco?",
+      "result": {
+        "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nCity Tour Cusco\nRango estimado: USD 15–25 por adulto, servicio compartido; no es una tarifa oficial.",
+        "context_used": true,
+        "is_predefined": true,
+        "is_fallback": false,
+        "resolved_autonomously": true,
+        "needs_agency_confirmation": false,
+        "route": "provisional_catalog"
+      },
+      "detected_language": "es",
+      "llm_simulated_calls": 0,
+      "seconds": 0.001
+    },
+    {
+      "id": "C02",
+      "conversation": "A",
+      "question": "¿Y cuánto dura ese recorrido?",
+      "result": {
+        "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nCity Tour Cusco\nDuración de referencia: medio día; aproximadamente 4-6 horas, estimación",
+        "context_used": true,
+        "is_predefined": true,
+        "is_fallback": false,
+        "resolved_autonomously": true,
+        "needs_agency_confirmation": false,
+        "route": "provisional_catalog"
+      },
+      "detected_language": "es",
+      "llm_simulated_calls": 0,
+      "seconds": 0.001
+    },
+    {
+      "id": "C03",
+      "conversation": "B",
+      "question": "What is the estimated price of the Rainbow Mountain tour?",
+      "result": {
+        "response": "PROTOTYPE: indicative prices per person; final quote from the agency. Simulated services are not commitments by Texeira.\n\nSIMULATED_RESPONSE_NOT_EVALUABLE",
+        "context_used": true,
+        "is_fallback": false,
+        "is_escalation": false,
+        "is_predefined": false,
+        "needs_agency_confirmation": false,
+        "resolved_autonomously": true
+      },
+      "detected_language": "en",
+      "llm_simulated_calls": 1,
+      "seconds": 31.556
+    },
+    {
+      "id": "C04",
+      "conversation": "B",
+      "question": "Does that include a horse or an ATV?",
+      "result": {
+        "response": "PROTOTYPE: indicative prices per person; final quote from the agency. Simulated services are not commitments by Texeira.\n\nSIMULATED_RESPONSE_NOT_EVALUABLE",
+        "context_used": true,
+        "is_fallback": false,
+        "is_escalation": false,
+        "is_predefined": false,
+        "needs_agency_confirmation": false,
+        "resolved_autonomously": true
+      },
+      "detected_language": "en",
+      "llm_simulated_calls": 1,
+      "seconds": 0.065
+    },
+    {
+      "id": "C05",
+      "conversation": "C",
+      "question": "¿El precio de Humantay incluye el caballo?",
+      "result": {
+        "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nLaguna Humantay\nRango estimado: USD 35–50 por adulto, servicio compartido; no es una tarifa oficial.\nESCENARIO SIMULADO, incluye: transporte compartido; guía; desayuno y almuerzo; entrada a Humantay.\nExcluye: caballo opcional; compras personales; seguro.",
+        "context_used": true,
+        "is_predefined": true,
+        "is_fallback": false,
+        "resolved_autonomously": true,
+        "needs_agency_confirmation": false,
+        "route": "provisional_catalog"
+      },
+      "detected_language": "es",
+      "llm_simulated_calls": 0,
+      "seconds": 0.001
+    },
+    {
+      "id": "C06",
+      "conversation": "D",
+      "question": "¿El paquete de 7 días que muestran es una oferta confirmada de Texeira?",
+      "result": {
+        "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nSIMULATED_RESPONSE_NOT_EVALUABLE",
+        "context_used": true,
+        "is_fallback": false,
+        "is_escalation": false,
+        "is_predefined": false,
+        "needs_agency_confirmation": false,
+        "resolved_autonomously": true
+      },
+      "detected_language": "es",
+      "llm_simulated_calls": 1,
+      "seconds": 0.079
+    },
+    {
+      "id": "C07",
+      "conversation": "E",
+      "question": "¿Puedo pagar con Yape y cuánto debo adelantar?",
+      "result": {
+        "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nSIMULATED_RESPONSE_NOT_EVALUABLE",
+        "context_used": true,
+        "is_fallback": false,
+        "is_escalation": false,
+        "is_predefined": false,
+        "needs_agency_confirmation": true,
+        "resolved_autonomously": false
+      },
+      "detected_language": "es",
+      "llm_simulated_calls": 1,
+      "seconds": 0.064
+    },
+    {
+      "id": "C08",
+      "conversation": "F",
+      "question": "¿Hay dos cupos para Machu Picchu mañana? Confírmame la reserva.",
+      "result": {
+        "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nSIMULATED_RESPONSE_NOT_EVALUABLE",
+        "context_used": true,
+        "is_fallback": false,
+        "is_escalation": false,
+        "is_predefined": false,
+        "needs_agency_confirmation": true,
+        "resolved_autonomously": false
+      },
+      "detected_language": "es",
+      "llm_simulated_calls": 1,
+      "seconds": 0.1
+    },
+    {
+      "id": "C09",
+      "conversation": "G",
+      "question": "¿Cuánto es exactamente en soles el tour Salkantay?",
+      "result": {
+        "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nSIMULATED_RESPONSE_NOT_EVALUABLE",
+        "context_used": true,
+        "is_fallback": false,
+        "is_escalation": false,
+        "is_predefined": false,
+        "needs_agency_confirmation": true,
+        "resolved_autonomously": false
+      },
+      "detected_language": "es",
+      "llm_simulated_calls": 1,
+      "seconds": 0.125
+    },
+    {
+      "id": "C10",
+      "conversation": "H",
+      "question": "Si cancelo Humantay, ¿me devuelven todo el dinero?",
+      "result": {
+        "response": "PROTOTIPO: no hay una política de cancelación o reembolso confirmada en los datos disponibles. No puedo confirmar que sea gratis. Consulta con la agencia: +51 953 767 860.",
+        "context_used": true,
+        "is_predefined": true,
+        "is_fallback": false,
+        "resolved_autonomously": false,
+        "is_escalation": false,
+        "needs_agency_confirmation": true,
+        "route": "unconfirmed_policy"
+      },
+      "detected_language": "es",
+      "llm_simulated_calls": 0,
+      "seconds": 0.846
+    }
+  ]
+}

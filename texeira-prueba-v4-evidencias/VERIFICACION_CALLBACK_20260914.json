@@ -1,0 +1,9 @@
+{
+  "update_http": 200,
+  "success": true,
+  "error_code": null,
+  "callback_url": "https://usb-objects-interview-poetry.trycloudflare.com/webhook",
+  "callback_persisted": true,
+  "active": true,
+  "messages_subscribed": true
+}

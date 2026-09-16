@@ -1,0 +1,70 @@
+{
+  "run_id": "live-five-20260911-024456",
+  "rows": [
+    {
+      "question": "¿Cuánto cuesta Valle Sagrado?",
+      "http_status": 200,
+      "elapsed_seconds": 0.109,
+      "result": {
+        "status": "ok",
+        "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nValle Sagrado completo\nRango estimado: USD 40–60 por adulto, servicio compartido. NO tarifa oficial.\nDuración de referencia: 07:00-18:30 publicado por Texeira; reconfirmar\nPublicado por la agencia: Písac, Ollantaytambo, Chinchero, Moray, Maras y Urubamba; Bus, guía bilingüe y almuerzo buffet; boleto turístico excluido\nESCENARIO SIMULADO, incluye: transporte compartido; guía; almuerzo buffet\nESCENARIO SIMULADO, excluye: boleto turístico y accesos adicionales; seguro\nVigencia de los datos de agencia: Fecha visible 9 de septiembre; año no confirmado\nPolíticas de reserva, cancelación, pagos, descuentos y seguro: consultar con la agencia; sin confirmar.\nFuentes de precios: https://www.mptc.com.pe/tour.php?id=34",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "latency_ms": 0.0
+      }
+    },
+    {
+      "question": "¿Y qué incluye?",
+      "http_status": 200,
+      "elapsed_seconds": 0.0,
+      "result": {
+        "status": "ok",
+        "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nValle Sagrado completo\nRango estimado: USD 40–60 por adulto, servicio compartido. NO tarifa oficial.\nDuración de referencia: 07:00-18:30 publicado por Texeira; reconfirmar\nPublicado por la agencia: Písac, Ollantaytambo, Chinchero, Moray, Maras y Urubamba; Bus, guía bilingüe y almuerzo buffet; boleto turístico excluido\nESCENARIO SIMULADO, incluye: transporte compartido; guía; almuerzo buffet\nESCENARIO SIMULADO, excluye: boleto turístico y accesos adicionales; seguro\nVigencia de los datos de agencia: Fecha visible 9 de septiembre; año no confirmado\nPolíticas de reserva, cancelación, pagos, descuentos y seguro: consultar con la agencia; sin confirmar.\nFuentes de precios: https://www.mptc.com.pe/tour.php?id=34",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "latency_ms": 0.0
+      }
+    },
+    {
+      "question": "¿Las entradas están incluidas?",
+      "http_status": 200,
+      "elapsed_seconds": 0.328,
+      "result": {
+        "status": "ok",
+        "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nValle Sagrado completo\nRango estimado: USD 40–60 por adulto, servicio compartido. NO tarifa oficial.\nDuración de referencia: 07:00-18:30 publicado por Texeira; reconfirmar\nPublicado por la agencia: Písac, Ollantaytambo, Chinchero, Moray, Maras y Urubamba; Bus, guía bilingüe y almuerzo buffet; boleto turístico excluido\nESCENARIO SIMULADO, incluye: transporte compartido; guía; almuerzo buffet\nESCENARIO SIMULADO, excluye: boleto turístico y accesos adicionales; seguro\nVigencia de los datos de agencia: Fecha visible 9 de septiembre; año no confirmado\nPolíticas de reserva, cancelación, pagos, descuentos y seguro: consultar con la agencia; sin confirmar.\nFuentes de precios: https://www.mptc.com.pe/tour.php?id=34",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "latency_ms": 330.83
+      }
+    },
+    {
+      "question": "¿Puedo cancelar gratis mañana?",
+      "http_status": 200,
+      "elapsed_seconds": 0.844,
+      "result": {
+        "status": "ok",
+        "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nNo puedo confirmar si puedes cancelar gratis mañana, ya que las **políticas de reserva, cancelación, pagos, descuentos y seguro no están confirmadas** en los datos disponibles.\n\nTe recomiendo consultar directamente con la agencia para obtener la información exacta sobre sus políticas de cancelación.",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "latency_ms": 837.62
+      }
+    },
+    {
+      "question": "What does the Machu Picchu tour include?",
+      "http_status": 200,
+      "elapsed_seconds": 0.0,
+      "result": {
+        "status": "ok",
+        "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nMachu Picchu en tren\nRango estimado: USD 300–400 por adulto, servicio compartido. NO tarifa oficial.\nDuración de referencia: día completo; horas sujetas a tren y entrada\nPublicado por la agencia: Servicio anunciado; condiciones particulares pendientes\nESCENARIO SIMULADO, incluye: traslados Cusco-Ollantaytambo-Cusco; tren ida y vuelta; entrada a Machu Picchu; guía\nESCENARIO SIMULADO, excluye: bus Aguas Calientes-Machu Picchu ida y vuelta; comidas; montañas opcionales; seguro\nVigencia de los datos de agencia: Condiciones pendientes de confirmar.\nPolíticas de reserva, cancelación, pagos, descuentos y seguro: consultar con la agencia; sin confirmar.\nFuentes de precios: https://www.mptc.com.pe/tour.php?id=12",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "latency_ms": 0.0
+      }
+    }
+  ]
+}

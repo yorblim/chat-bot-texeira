@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Servicio principal: Chat Web y API RAG
+  chatbot:
+    build: .
+    container_name: texeira-chatbot
+    restart: always
+    ports:
+      - "8021:8021"
+    environment:
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
+      - ANONYMIZED_TELEMETRY=False
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+    volumes:
+      - db-data:/app/data
+      - sqlite-requests:/app/human_requests.db
+      - logs-volume:/app/logs
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8021"]
+
+  # Servicio de Webhook WhatsApp (opcional en contenedor separado)
+  whatsapp:
+    build: .
+    container_name: texeira-whatsapp-webhook
+    restart: always
+    ports:
+      - "8022:8022"
+    environment:
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
+      - ANONYMIZED_TELEMETRY=False
+      - WHATSAPP_VERIFY_TOKEN=${WHATSAPP_VERIFY_TOKEN:-}
+      - WHATSAPP_API_TOKEN=${WHATSAPP_API_TOKEN:-}
+    volumes:
+      - db-data:/app/data
+      - sqlite-requests:/app/human_requests.db
+      - logs-volume:/app/logs
+    command: ["uvicorn", "whatsapp_entry:app", "--host", "0.0.0.0", "--port", "8022"]
+
+  # Servicio de Panel de Asesores Humanos y Dashboard de Métricas
+  advisors:
+    build: .
+    container_name: texeira-advisors-panel
+    restart: always
+    ports:
+      - "8023:8023"
+    environment:
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
+      - ANONYMIZED_TELEMETRY=False
+    volumes:
+      - db-data:/app/data
+      - sqlite-requests:/app/human_requests.db
+      - logs-volume:/app/logs
+    command: ["uvicorn", "advisor_entry:app", "--host", "0.0.0.0", "--port", "8023"]
+
+volumes:
+  db-data:
+  sqlite-requests:
+  logs-volume:

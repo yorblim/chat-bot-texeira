@@ -1,0 +1,229 @@
+{
+  "mode": "deterministic_local_no_llm",
+  "cases": [
+    {
+      "id": "es_bus",
+      "language": "es",
+      "question": "¿Qué incluye Machu Picchu en tren?",
+      "expected_route": "evidence_includes",
+      "expected_pending": false,
+      "basis": "F1/F3: inclusiones",
+      "answer": "Machu Picchu en Tren\nIncluye: Traslado Cusco–Ollanta–Cusco\nIncluye: Tren de ida y vuelta\nIncluye: Bus de subida y bajada\nIncluye: Entrada a Machu Picchu\nIncluye: Guía profesional\nIncluye: Recojo del hotel",
+      "actual_route": "evidence_includes",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "en_bus",
+      "language": "en",
+      "question": "What does Machu Picchu by train include?",
+      "expected_route": "evidence_includes",
+      "expected_pending": false,
+      "basis": "F1/F3: inclusiones",
+      "answer": "Machu Picchu by Train\nIncludes: Transfer Cusco–Ollanta–Cusco\nIncludes: Round-trip train\nIncludes: Bus up and down\nIncludes: Machu Picchu entrance ticket\nIncludes: Professional guide\nIncludes: Hotel pickup",
+      "actual_route": "evidence_includes",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "es_duration",
+      "language": "es",
+      "question": "¿Cuánto dura Salkantay?",
+      "expected_route": "evidence_duration",
+      "expected_pending": false,
+      "basis": "F2: mapa de cuatro días; no inferir noches",
+      "answer": "Salkantay Trek\nDuracion publicada: 4 días (itinerario publicado; confirmar variante y noches)",
+      "actual_route": "evidence_duration",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "en_duration",
+      "language": "en",
+      "question": "How long is Salkantay?",
+      "expected_route": "evidence_duration",
+      "expected_pending": false,
+      "basis": "F2: mapa de cuatro días; no inferir noches",
+      "answer": "Salkantay Trek\nPublished duration: 4 days (published itinerary; confirm variant and nights)",
+      "actual_route": "evidence_duration",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "es_conflict",
+      "language": "es",
+      "question": "¿Qué horario tiene Valle Sagrado?",
+      "expected_route": "evidence_conflict",
+      "expected_pending": true,
+      "basis": "F1/F3: horarios contradictorios",
+      "answer": "Las fuentes difieren; confirma el dato vigente con la agencia. Valle Sagrado. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+      "actual_route": "evidence_conflict",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "en_conflict",
+      "language": "en",
+      "question": "What time is the Sacred Valley tour?",
+      "expected_route": "evidence_conflict",
+      "expected_pending": true,
+      "basis": "F1/F3: horarios contradictorios",
+      "answer": "The sources disagree; please confirm the current information with the agency. Valle Sagrado. +51 953 767 860 / +51 984 679 715\nTo register a request for human assistance, type: speak to an agent.",
+      "actual_route": "evidence_conflict",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "es_price",
+      "language": "es",
+      "question": "¿Cuánto cuesta Machu Picchu?",
+      "expected_route": "evidence_unknown",
+      "expected_pending": true,
+      "basis": "Sin precio oficial en las fuentes",
+      "answer": "Este dato requiere confirmacion con la agencia: precio oficial o conversion a soles de Machu Picchu en Tren. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+      "actual_route": "evidence_unknown",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "en_price",
+      "language": "en",
+      "question": "How much does Machu Picchu cost?",
+      "expected_route": "evidence_unknown",
+      "expected_pending": true,
+      "basis": "Sin precio oficial en las fuentes",
+      "answer": "This information requires confirmation with the agency: official price or currency conversion for Machu Picchu en Tren. +51 953 767 860 / +51 984 679 715\nTo register a request for human assistance, type: speak to an agent.",
+      "actual_route": "evidence_unknown",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "es_availability",
+      "language": "es",
+      "question": "¿Tienen Valle Sagrado disponible mañana?",
+      "expected_route": "evidence_unknown",
+      "expected_pending": true,
+      "basis": "Sin inventario por fecha",
+      "answer": "Este dato requiere confirmacion con la agencia: pagos, cancelaciones, reservas o disponibilidad para la fecha solicitada. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+      "actual_route": "evidence_unknown",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "en_availability",
+      "language": "en",
+      "question": "Is Sacred Valley available tomorrow?",
+      "expected_route": "evidence_unknown",
+      "expected_pending": true,
+      "basis": "Sin inventario por fecha",
+      "answer": "This information requires confirmation with the agency: payments, cancellations, bookings or availability for the requested date. +51 953 767 860 / +51 984 679 715\nTo register a request for human assistance, type: speak to an agent.",
+      "actual_route": "evidence_unknown",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "es_cancel",
+      "language": "es",
+      "question": "¿Puedo cancelar mi reserva?",
+      "expected_route": "evidence_unknown",
+      "expected_pending": true,
+      "basis": "Política no documentada",
+      "answer": "Este dato requiere confirmacion con la agencia: pagos, cancelaciones, reservas o disponibilidad para la fecha solicitada. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+      "actual_route": "evidence_unknown",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "en_cancel",
+      "language": "en",
+      "question": "Can I cancel my booking?",
+      "expected_route": "evidence_unknown",
+      "expected_pending": true,
+      "basis": "Política no documentada",
+      "answer": "This information requires confirmation with the agency: payments, cancellations, bookings or availability for the requested date. +51 953 767 860 / +51 984 679 715\nTo register a request for human assistance, type: speak to an agent.",
+      "actual_route": "evidence_unknown",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    }
+  ],
+  "passed": 12,
+  "total": 12,
+  "limits": "Regresión de 12 casos conocidos; no precisión estadística, no evaluación de generación real ni validación humana.",
+  "code_sha256": {
+    "app.py": "ac5d81f6adbcfde22742a4f615a53557fc8d46a24cd3e09e5701342649a12e3a",
+    "verified_routes.py": "91983fdf413f4a7d70cdf848fd6876ee5f4d38512927343857876313f26bab81",
+    "handoff_support.py": "67891ea1d2d41b706ebfef7aba9211d78c0c557e37f5c5006654ee0e049fc531"
+  }
+}

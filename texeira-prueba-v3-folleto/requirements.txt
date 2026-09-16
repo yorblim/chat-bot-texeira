@@ -1,0 +1,40 @@
+# ============================================================
+# DEPENDENCIAS - AGENTE RAG TEXEIRA TRAVEL TOUR
+# ============================================================
+# Instalar con: pip install -r requirements.txt
+
+# --- Web framework ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.19
+
+# --- LangChain (orquestación RAG) ---
+langchain==0.3.14
+langchain-community==0.3.14
+langchain-openai==0.3.0
+langchain-anthropic==0.3.4
+
+# --- Base de vectores ---
+chromadb==0.6.3
+
+# --- Embeddings y splitting ---
+sentence-transformers==3.4.1
+
+# --- Procesamiento de documentos ---
+pypdf==5.1.0
+
+# --- Persistencia (SQLite) ---
+sqlalchemy==2.0.36
+
+# --- Variables de entorno ---
+python-dotenv==1.0.1
+
+# --- Detección de idioma (multilingüe: es, en, pt, fr) ---
+langdetect==1.0.9
+
+# --- Evaluación RAG (métricas de calidad) ---
+ragas==0.2.8
+datasets>=2.14.0
+
+# --- Búsqueda léxica BM25 (módulo híbrido) ---
+rank-bm25==0.2.2

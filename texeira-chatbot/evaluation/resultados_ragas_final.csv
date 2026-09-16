@@ -1,0 +1,38 @@
+﻿pregunta,idioma,scope,faithfulness_run1,faithfulness_run2,faithfulness_run3,faithfulness_promedio,faithfulness_desv_std,context_precision_run1,context_precision_run2,context_precision_run3,context_precision_promedio,context_precision_desv_std
+¿Cuánto cuesta el tour a Machu Picchu?,es,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿Qué incluye el tour al Valle Sagrado?,es,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿Cuál es el itinerario del tour Montaña de Colores?,es,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿Cuál es la política de cancelación?,es,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿Qué formas de pago aceptan?,es,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿Dónde está ubicada la agencia?,es,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿Cuánto cuesta agregar Moray y las Salinas de Maras al tour del Valle Sagrado?,es,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿Puedo hacer el tour Montaña de Colores si tengo problemas cardíacos?,es,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿Cuál es el horario de salida del tour a Machu Picchu?,es,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿En qué temporada se puede hacer el tour Montaña de Colores?,es,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿Qué servicios ofrece la agencia además de los tours?,es,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿Cuántas personas mínimo se necesitan para reservar un tour?,es,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿El tour Valle Sagrado incluye almuerzo?,es,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿Qué requisitos necesito para hacer el tour a Machu Picchu?,es,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿Tienen garantía de satisfacción?,es,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿Cuánto cuesta un tour al Lago Titicaca?,es,out_of_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿Tienen descuentos para estudiantes universitarios?,es,out_of_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿Puedo llevar a mi mascota al tour?,es,out_of_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+¿Cuál es el mejor hotel 5 estrellas de Cusco?,es,out_of_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+How much does the Sacred Valley tour cost?,en,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+What is your cancellation policy?,en,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+How much does the Machu Picchu tour cost?,en,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+What does the Sacred Valley tour include?,en,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+Where is the agency located?,en,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+What payment methods do you accept?,en,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+What time does the Machu Picchu tour depart?,en,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+What season is the Rainbow Mountain tour available?,en,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+Do you offer discounts for university students?,en,out_of_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+Qual é o preço do tour Montanha de Cores?,pt,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+Quanto custa o tour a Machu Picchu?,pt,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+O que inclui o tour ao Vale Sagrado?,pt,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+Qual é a política de cancelamento?,pt,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+Onde fica a agência?,pt,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+Quais formas de pagamento vocês aceitam?,pt,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+O tour Vale Sagrado inclui almoço?,pt,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+Posso fazer o tour Montanha de Cores se tenho problemas cardíacos?,pt,in_scope,—,—,—,—,0.0000,—,—,—,—,0.0000
+Posso levar meu animal de estimação no tour?,pt,out_of_scope,—,—,—,—,0.0000,—,—,—,—,0.0000

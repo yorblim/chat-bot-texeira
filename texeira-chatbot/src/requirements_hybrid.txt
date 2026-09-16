@@ -1,0 +1,19 @@
+# ============================================================
+# DEPENDENCIAS — MÓDULO RAG HÍBRIDO (BM25 + Vector + RRF)
+# ============================================================
+# Instalar con: pip install -r src/requirements_hybrid.txt
+#
+# NOTA: Este archivo es COMPLEMENTARIO al requirements.txt de la raíz.
+# Las dependencias principales (langchain, chromadb, etc.) ya están en
+# requirements.txt. Este archivo agrega solo las dependencias EXTRA
+# del módulo híbrido.
+
+# --- Búsqueda léxica BM25 ---
+rank-bm25==0.2.2
+
+# --- Evaluación RAGAS (ya está en requirements.txt raíz) ---
+# ragas==0.2.8
+# datasets>=2.14.0
+
+# --- scipy para test de Welch (ya está en requirements.txt raíz) ---
+# scipy>=1.11.0

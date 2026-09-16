@@ -1,0 +1,144 @@
+{
+  "config": {
+    "retriever": "HybridRetriever",
+    "vector_store": "./chroma_hybrid_db",
+    "final_k": 5,
+    "max_chunks_per_tour": 2,
+    "rrf_k": 60,
+    "llm_provider": "groq",
+    "llm_model": "qwen/qwen3.8-27b",
+    "temperature": 0.1,
+    "max_tokens": 900
+  },
+  "timestamp": "2026-09-09 18:48:58",
+  "partial_evaluation": true,
+  "summary": {
+    "total_queries": 40,
+    "completed_queries": 0,
+    "pending_queries": 1,
+    "provider_errors": 1
+  },
+  "expected_tour_in_context": {
+    "true": 0,
+    "false": 0,
+    "rate": null
+  },
+  "keyword_coverage": {
+    "queries_with_keywords": 0,
+    "mean_coverage": null
+  },
+  "language_match": {
+    "total_match": 0,
+    "total_mismatch": 0,
+    "rate": null
+  },
+  "latency": {
+    "mean_retrieval_s": null,
+    "mean_generation_s": null,
+    "mean_total_s": null
+  },
+  "out_of_catalog": {
+    "count": 0,
+    "fallback_detected": 0,
+    "contains_price": 0,
+    "contains_itinerary": 0,
+    "contains_duration": 0
+  },
+  "review_cases": {
+    "A_expected_tour_not_in_context": [],
+    "B_in_context_low_keyword_coverage": [],
+    "C_language_mismatch": [],
+    "D_non_answerable_with_specific_data": [],
+    "E_errors": []
+  },
+  "results": [
+    {
+      "id": "Q01",
+      "category": "price",
+      "language": "es",
+      "query_style": "standard",
+      "query": "Cuánto cuesta el City Tour de Cusco?",
+      "expected_tour_id": "city-tour-cusco",
+      "expected_answer": "El City Tour Cusco cuesta $35 USD / S/130 PEN por persona.",
+      "expected_keywords": [
+        "35",
+        "USD",
+        "130",
+        "PEN",
+        "City Tour"
+      ],
+      "answerable": true,
+      "relevant_tour_ids": [
+        "city-tour-cusco"
+      ],
+      "evaluation_status": "provider_rate_limit",
+      "retrieval": {
+        "top5": [
+          {
+            "rank": 1,
+            "tour_id": "paquete-completo-7d",
+            "chunk_index": 0,
+            "rrf_score": 0.032522
+          },
+          {
+            "rank": 2,
+            "tour_id": "city-tour-cusco",
+            "chunk_index": 0,
+            "rrf_score": 0.032002
+          },
+          {
+            "rank": 3,
+            "tour_id": "laguna-humantay",
+            "chunk_index": 1,
+            "rrf_score": 0.030798
+          },
+          {
+            "rank": 4,
+            "tour_id": "city-tour-cusco",
+            "chunk_index": 2,
+            "rrf_score": 0.030679
+          },
+          {
+            "rank": 5,
+            "tour_id": "salkantay-trek",
+            "chunk_index": 6,
+            "rrf_score": 0.030118
+          }
+        ],
+        "relevant_tour_found": [
+          "city-tour-cusco"
+        ],
+        "first_relevant_rank": 2
+      },
+      "context": {
+        "tour_ids": [
+          "paquete-completo-7d",
+          "city-tour-cusco",
+          "laguna-humantay",
+          "city-tour-cusco",
+          "salkantay-trek"
+        ],
+        "expected_tour_in_context": true
+      },
+      "generation": {
+        "final_answer": null,
+        "fallback_detected": null,
+        "response_language": null,
+        "language_match": null
+      },
+      "evaluation": {
+        "keyword_found": [],
+        "keyword_coverage": null,
+        "contains_price": null,
+        "contains_itinerary": null,
+        "contains_duration": null
+      },
+      "latency": {
+        "retrieval_latency_seconds": 0.1294,
+        "generation_latency_seconds": 219.309,
+        "total_latency_seconds": 219.4384
+      },
+      "error": "HTTP 429: quota exhausted after retry"
+    }
+  ]
+}

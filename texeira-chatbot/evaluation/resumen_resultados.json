@@ -1,0 +1,71 @@
+{
+  "fecha_evaluacion": "2026-09-03 21:17:55",
+  "num_corridas": 3,
+  "dataset_size": 37,
+  "por_idioma": {
+    "es": {
+      "n": 0,
+      "faithfulness_media": null,
+      "faithfulness_sd": 0.0,
+      "context_precision_media": null,
+      "context_precision_sd": 0.0
+    },
+    "en": {
+      "n": 0,
+      "faithfulness_media": null,
+      "faithfulness_sd": 0.0,
+      "context_precision_media": null,
+      "context_precision_sd": 0.0
+    },
+    "pt": {
+      "n": 0,
+      "faithfulness_media": null,
+      "faithfulness_sd": 0.0,
+      "context_precision_media": null,
+      "context_precision_sd": 0.0
+    }
+  },
+  "agregado_in_scope": {
+    "n": 0,
+    "faithfulness_media": null,
+    "faithfulness_sd": 0.0,
+    "context_precision_media": null,
+    "context_precision_sd": 0.0
+  },
+  "fallback_accuracy": {
+    "n": 6,
+    "accuracy_media": 0.5556,
+    "accuracy_sd": 0.5092
+  },
+  "significancia_estadistica": {
+    "metodo": "Welch t-test de dos colas (scipy.stats.ttest_ind, equal_var=False)",
+    "variable": "faithfulness por pregunta (promedio de las corridas)",
+    "comparaciones": {
+      "es-en": {
+        "par": "es-en",
+        "p_valor": null,
+        "significativo": null,
+        "conclusion": "Sin datos suficientes para comparar es y en."
+      },
+      "es-pt": {
+        "par": "es-pt",
+        "p_valor": null,
+        "significativo": null,
+        "conclusion": "Sin datos suficientes para comparar es y pt."
+      },
+      "en-pt": {
+        "par": "en-pt",
+        "p_valor": null,
+        "significativo": null,
+        "conclusion": "Sin datos suficientes para comparar en y pt."
+      }
+    }
+  },
+  "costo": {
+    "llamadas_rag": 59,
+    "llamadas_juez": 87,
+    "tokens_entrada": 184341,
+    "tokens_salida": 14150,
+    "costo_usd_estimado": 0.0106
+  }
+}

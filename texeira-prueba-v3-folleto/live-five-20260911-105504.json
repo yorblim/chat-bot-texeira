@@ -1,0 +1,80 @@
+{
+  "run_id": "live-five-20260911-105504",
+  "rows": [
+    {
+      "question": "¿Cuánto cuesta Valle Sagrado?",
+      "http_status": 200,
+      "elapsed_seconds": 0.094,
+      "result": {
+        "status": "ok",
+        "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nValle Sagrado completo\nRango estimado: USD 40–60 por adulto, servicio compartido; no es una tarifa oficial.",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": false,
+        "route": "provisional_catalog",
+        "latency_ms": 2.4
+      }
+    },
+    {
+      "question": "¿Y qué incluye?",
+      "http_status": 200,
+      "elapsed_seconds": 0.0,
+      "result": {
+        "status": "ok",
+        "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nValle Sagrado completo\nESCENARIO SIMULADO, incluye: transporte compartido; guía; almuerzo buffet.\nExcluye: boleto turístico y accesos adicionales; seguro.",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": false,
+        "route": "provisional_catalog",
+        "latency_ms": 2.01
+      }
+    },
+    {
+      "question": "¿Las entradas están incluidas?",
+      "http_status": 200,
+      "elapsed_seconds": 0.015,
+      "result": {
+        "status": "ok",
+        "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nValle Sagrado completo\nESCENARIO SIMULADO, incluye: transporte compartido; guía; almuerzo buffet.\nExcluye: boleto turístico y accesos adicionales; seguro.",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": false,
+        "route": "provisional_catalog",
+        "latency_ms": 0.0
+      }
+    },
+    {
+      "question": "¿Puedo cancelar gratis mañana?",
+      "http_status": 200,
+      "elapsed_seconds": 0.0,
+      "result": {
+        "status": "ok",
+        "response": "No hay una política de cancelación o reembolso confirmada en los datos del prototipo. No puedo confirmar que sea gratis. Consulta con la agencia: +51 953 767 860.",
+        "resolved_autonomously": false,
+        "escalated_to_human": false,
+        "detected_language": "es",
+        "needs_agency_confirmation": true,
+        "route": "unconfirmed_policy",
+        "latency_ms": 2.51
+      }
+    },
+    {
+      "question": "What does the Machu Picchu tour include?",
+      "http_status": 200,
+      "elapsed_seconds": 38.204,
+      "result": {
+        "status": "ok",
+        "response": "PROTOTYPE: indicative prices per person; final quote from the agency. Simulated services are not commitments by Texeira.\n\nBased on the simulated data for the **Machu Picchu en tren** (Machu Picchu by Train) tour:\n\n**Included (Simulated Scenario):**\n*   Transfers: Cusco – Ollantaytambo – Cusco\n*   Round-trip train tickets\n*   Entrance to Machu Picchu\n*   Guide\n\n**Excluded (Simulated Scenario):**\n*   Round-trip bus from Aguas Calientes to Machu Picchu\n*   Meals\n*   Optional mountain hikes\n*   Insurance\n\n*Note: These are simulated conditions for a prototype. They are not official commitments from Texeira. Final pricing and specific inclusions/exclusions must be confirmed with the agency.*",
+        "resolved_autonomously": true,
+        "escalated_to_human": false,
+        "detected_language": "en",
+        "needs_agency_confirmation": false,
+        "route": "rag",
+        "latency_ms": 38204.15
+      }
+    }
+  ]
+}

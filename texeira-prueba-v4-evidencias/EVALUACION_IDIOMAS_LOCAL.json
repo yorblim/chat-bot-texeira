@@ -1,0 +1,301 @@
+{
+  "mode": "deterministic_local_no_llm",
+  "cases": [
+    {
+      "id": "es_bus",
+      "language": "es",
+      "question": "¿Qué incluye Machu Picchu en tren?",
+      "expected_route": "evidence_includes",
+      "expected_pending": false,
+      "basis": "F1/F3: inclusiones",
+      "answer": "Machu Picchu en Tren\nIncluye: Traslado Cusco–Ollanta–Cusco\nIncluye: Tren de ida y vuelta\nIncluye: Bus de subida y bajada\nIncluye: Entrada a Machu Picchu\nIncluye: Guía profesional\nIncluye: Recojo del hotel",
+      "actual_route": "evidence_includes",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "en_bus",
+      "language": "en",
+      "question": "What does Machu Picchu by train include?",
+      "expected_route": "evidence_includes",
+      "expected_pending": false,
+      "basis": "F1/F3: inclusiones",
+      "answer": "Machu Picchu by Train\nIncludes: Transfer Cusco–Ollanta–Cusco\nIncludes: Round-trip train\nIncludes: Bus up and down\nIncludes: Machu Picchu entrance ticket\nIncludes: Professional guide\nIncludes: Hotel pickup",
+      "actual_route": "evidence_includes",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "es_duration",
+      "language": "es",
+      "question": "¿Cuánto dura Salkantay?",
+      "expected_route": "evidence_duration",
+      "expected_pending": false,
+      "basis": "F2: mapa de cuatro días; no inferir noches",
+      "answer": "Salkantay Trek\nDuracion publicada: 4 días (itinerario publicado; confirmar variante y noches)",
+      "actual_route": "evidence_duration",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "en_duration",
+      "language": "en",
+      "question": "How long is Salkantay?",
+      "expected_route": "evidence_duration",
+      "expected_pending": false,
+      "basis": "F2: mapa de cuatro días; no inferir noches",
+      "answer": "Salkantay Trek\nPublished duration: 4 days (published itinerary; confirm variant and nights)",
+      "actual_route": "evidence_duration",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "es_schedule",
+      "language": "es",
+      "question": "¿Qué horario tiene Valle Sagrado?",
+      "expected_route": "evidence_schedule",
+      "expected_pending": false,
+      "basis": "F1: horario oficial confirmado",
+      "answer": "Valle Sagrado\nHorario publicado: 07:30-18:30",
+      "actual_route": "evidence_schedule",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "en_schedule",
+      "language": "en",
+      "question": "What time is the Sacred Valley tour?",
+      "expected_route": "evidence_schedule",
+      "expected_pending": false,
+      "basis": "F1: official confirmed schedule",
+      "answer": "Valle Sagrado\nPublished schedule: 07:30-18:30",
+      "actual_route": "evidence_schedule",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "es_price",
+      "language": "es",
+      "question": "¿Cuánto cuesta Machu Picchu?",
+      "expected_route": "evidence_unknown",
+      "expected_pending": true,
+      "basis": "Sin precio oficial en las fuentes",
+      "answer": "Este dato requiere confirmacion con la agencia: precio oficial o conversion a soles de Machu Picchu en Tren. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+      "actual_route": "evidence_unknown",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "en_price",
+      "language": "en",
+      "question": "How much does Machu Picchu cost?",
+      "expected_route": "evidence_unknown",
+      "expected_pending": true,
+      "basis": "Sin precio oficial en las fuentes",
+      "answer": "This information requires confirmation with the agency: official price or currency conversion for Machu Picchu en Tren. +51 953 767 860 / +51 984 679 715\nTo register a request for human assistance, type: speak to an agent.",
+      "actual_route": "evidence_unknown",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "es_availability",
+      "language": "es",
+      "question": "¿Tienen Valle Sagrado disponible mañana?",
+      "expected_route": "evidence_unknown",
+      "expected_pending": true,
+      "basis": "Sin inventario por fecha",
+      "answer": "Este dato requiere confirmacion con la agencia: pagos, cancelaciones, reservas o disponibilidad para la fecha solicitada. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+      "actual_route": "evidence_unknown",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "en_availability",
+      "language": "en",
+      "question": "Is Sacred Valley available tomorrow?",
+      "expected_route": "evidence_unknown",
+      "expected_pending": true,
+      "basis": "Sin inventario por fecha",
+      "answer": "This information requires confirmation with the agency: payments, cancellations, bookings or availability for the requested date. +51 953 767 860 / +51 984 679 715\nTo register a request for human assistance, type: speak to an agent.",
+      "actual_route": "evidence_unknown",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "es_cancel",
+      "language": "es",
+      "question": "¿Puedo cancelar mi reserva?",
+      "expected_route": "evidence_unknown",
+      "expected_pending": true,
+      "basis": "Política no documentada",
+      "answer": "Este dato requiere confirmacion con la agencia: pagos, cancelaciones, reservas o disponibilidad para la fecha solicitada. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+      "actual_route": "evidence_unknown",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "en_cancel",
+      "language": "en",
+      "question": "Can I cancel my booking?",
+      "expected_route": "evidence_unknown",
+      "expected_pending": true,
+      "basis": "Política no documentada",
+      "answer": "This information requires confirmation with the agency: payments, cancellations, bookings or availability for the requested date. +51 953 767 860 / +51 984 679 715\nTo register a request for human assistance, type: speak to an agent.",
+      "actual_route": "evidence_unknown",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "en_humantay",
+      "language": "en",
+      "question": "What does Humantay include?",
+      "expected_route": "evidence_includes",
+      "expected_pending": false,
+      "basis": "F1: desayuno documentado",
+      "answer": "Laguna Humantay\nIncludes: Transport\nIncludes: Professional guide\nIncludes: Breakfast\nIncludes: Lunch\nIncludes: Round-trip transport\nIncludes: Professional bilingual guide",
+      "actual_route": "evidence_includes",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "en_atv",
+      "language": "en",
+      "question": "What does the ATV tour include?",
+      "expected_route": "evidence_includes",
+      "expected_pending": false,
+      "basis": "Catálogo/evidencia: equipo de protección",
+      "answer": "Tour Cuatrimoto / Maras-Moray\nIncludes: Modern ATVs\nIncludes: Helmet and protective equipment\nIncludes: Visit to the salt mines\nIncludes: Visit to Moray\nIncludes: Round-trip transport",
+      "actual_route": "evidence_includes",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "en_ticket",
+      "language": "en",
+      "question": "Is the tourist ticket included in Sacred Valley?",
+      "expected_route": "evidence_includes",
+      "expected_pending": false,
+      "basis": "F3: boleto excluido",
+      "answer": "Valle Sagrado\nDoes not include: Tourist ticket",
+      "actual_route": "evidence_includes",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    },
+    {
+      "id": "en_missing",
+      "language": "en",
+      "question": "Is insurance included in Humantay?",
+      "expected_route": "evidence_unknown",
+      "expected_pending": true,
+      "basis": "Seguro no documentado",
+      "answer": "This information requires confirmation with the agency: whether the requested service is included in Laguna Humantay. +51 953 767 860 / +51 984 679 715\nTo register a request for human assistance, type: speak to an agent.",
+      "actual_route": "evidence_unknown",
+      "checks": {
+        "route": true,
+        "pending": true,
+        "resolution_flag": true,
+        "expected_content": true,
+        "english_without_spanish_templates": true
+      },
+      "passed": true
+    }
+  ],
+  "passed": 16,
+  "total": 16,
+  "limits": "Regresión de casos conocidos; no precisión estadística, no evaluación de generación real ni validación humana.",
+  "code_sha256": {
+    "app.py": "d35f997552df3de2e21be975b796971808b0cf6fcd30f2bbdcf7e8347e68c136",
+    "verified_routes.py": "33fef9736e20bffadc7f9b10e3f5e3eb9af89cfb6c0fe55a08d326880865bc3d",
+    "handoff_support.py": "c4a3de49caa25a89b19b6a10da1873b693d0c3d77ff373480368994b4fc830b7"
+  }
+}

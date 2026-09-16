@@ -1,0 +1,254 @@
+{
+  "version": "brochure-v3-2026-09-11",
+  "status": "agency_brochure_user_confirmed",
+  "publication_date": null,
+  "supplied_date": "2026-09-11",
+  "agency": {
+    "name": "TEXEIRA TRAVEL — TRAVEL AGENCY E.I.R.L.",
+    "facebook": "https://www.facebook.com/EugenioTejeiraMaldonado1000",
+    "identity_confirmed_by_user": true,
+    "published_phone": "+51 953 767 860",
+    "published_secondary_phone": "+51 984 679 715",
+    "published_address": "Calle Carmen Quicllu N.º 250, Cusco",
+    "email": "texeiratraveltour@hotmail.com",
+    "contact_status": "Teléfonos y correos impresos; operatividad no comprobada.",
+    "emails": [
+      "texeiratraveltour@hotmail.com",
+      "eugeniotejeira@hotmail.com"
+    ],
+    "contact_source": "B2",
+    "address_source": "F1 (Facebook anterior; no figura en estas imágenes)"
+  },
+  "policies": {
+    "payment_methods": null,
+    "deposit": null,
+    "cancellation": null,
+    "discounts": null,
+    "insurance": null,
+    "availability": "Consultar; sin conexión a inventario de reservas",
+    "note": "No convertir políticas ajenas en condiciones de Texeira. No prometer seguro, descuentos, devolución o reserva confirmada."
+  },
+  "sources": {
+    "F1": "https://www.facebook.com/EugenioTejeiraMaldonado1000",
+    "F2": "https://www.facebook.com/EugenioTejeiraMaldonado1000/posts/pfbid0jiB2rUYUiKTVHPiB6r7bLkortUEjUHuDfCdhpmY8eTxVJqo87jdV1vU2J1DTnS5Fl",
+    "F3": "https://www.facebook.com/photo/?fbid=1659203952577716&set=a.604371368060985",
+    "M1": "https://www.mptc.com.pe/tour.php?id=3",
+    "M2": "https://www.mptc.com.pe/tour.php?id=34",
+    "M3": "https://www.mptc.com.pe/tour.php?id=12",
+    "M4": "https://www.mptc.com.pe/tour.php?id=2",
+    "M5": "https://www.machupicchureservations.org/tour/rainbow-mountain-tour",
+    "M6": "https://machupicchu.center/en/USD/salkantay-trek-4-days",
+    "M7": "https://salkantay.org/tours/salkantay-trek-4-days/",
+    "M8": "https://www.tayratourscusco.com/tour/enchanting-peru-7-days-6-nights/",
+    "M9": "https://viajesperu.travel/complete-andean-adventure-machu-picchu-the-magical-andes-7d-6n/",
+    "B1": "data/agency_sources/brochure_page_1.jpeg",
+    "B2": "data/agency_sources/brochure_page_2.jpeg"
+  },
+  "tours": [
+    {
+      "id": "city-tour-cusco",
+      "name": "City Tour Cusco",
+      "aliases": [
+        "city tour",
+        "city-tour"
+      ],
+      "schedule_raw": "de 10am 14pm y de 13:30pm 18:30pm",
+      "duration_reference": "Dos turnos impresos con notación ambigua: «10am 14pm» y «13:30pm 18:30pm». Confirmar horas exactas; no normalizadas.",
+      "route": [
+        "Templo de Koricancha",
+        "Sacsayhuamán",
+        "Qenqo",
+        "Puca pucara",
+        "Tambomachay"
+      ],
+      "agency_includes": [
+        "Bus turístico",
+        "Guía profesional"
+      ],
+      "agency_source": "B2",
+      "exclusions": null,
+      "range_usd": [
+        15,
+        25
+      ],
+      "market_sources": [
+        "M1"
+      ],
+      "price_note": "Referencia histórica de mercado del prototipo, no cotización del servicio del folleto; modalidades pueden diferir.",
+      "unknowns": "El folleto no detalla exclusiones, cupos, pagos ni cancelaciones. Un servicio no mencionado queda sin confirmar, no excluido."
+    },
+    {
+      "id": "valle-sagrado",
+      "name": "Valle Sagrado",
+      "aliases": [
+        "valle sagrado",
+        "sacred valley"
+      ],
+      "schedule_raw": "de 7:30 am a 18:30 pm",
+      "duration_reference": "07:30–18:30 según folleto; confirmar para la fecha solicitada.",
+      "route": [
+        "Chinchero",
+        "Moray",
+        "Maras salineras",
+        "Ollantaytambo",
+        "Pisac",
+        "Urubamba"
+      ],
+      "agency_includes": [
+        "Almuerzo buffet en Urubamba",
+        "Bus turístico",
+        "Guía profesional"
+      ],
+      "agency_source": "B2",
+      "exclusions": null,
+      "range_usd": [
+        40,
+        60
+      ],
+      "market_sources": [
+        "M2"
+      ],
+      "price_note": "Referencia histórica de mercado del prototipo, no cotización del servicio del folleto; modalidades pueden diferir.",
+      "unknowns": "El folleto no detalla exclusiones, cupos, pagos ni cancelaciones. Un servicio no mencionado queda sin confirmar, no excluido."
+    },
+    {
+      "id": "machu-picchu-clasico",
+      "name": "Machu Picchu",
+      "aliases": [
+        "machu picchu",
+        "machupicchu"
+      ],
+      "schedule_raw": null,
+      "duration_reference": "Horario y duración no indicados en el folleto.",
+      "route": [],
+      "agency_includes": [
+        "Traslado Cusco–Ollanta–Cusco",
+        "Tren ida y vuelta",
+        "Bus de subida y bajada",
+        "Ingresos a Machu Picchu",
+        "Guía profesional"
+      ],
+      "agency_source": "B1",
+      "exclusions": null,
+      "range_usd": null,
+      "market_sources": [],
+      "price_note": "Sin precio confirmado ni referencia comparable incorporada.",
+      "unknowns": "El folleto no detalla exclusiones, cupos, pagos ni cancelaciones. Un servicio no mencionado queda sin confirmar, no excluido."
+    },
+    {
+      "id": "maras-moray",
+      "name": "Maras–Moray",
+      "aliases": [
+        "maras",
+        "moray"
+      ],
+      "schedule_raw": "de 8:40 am a 14:00 pm",
+      "duration_reference": "08:40–14:00 según folleto; confirmar para la fecha solicitada.",
+      "route": [
+        "Awana de Chinchero",
+        "Moray",
+        "Salineras"
+      ],
+      "agency_includes": [
+        "Bus turístico o cuatrimotos (alternativas; modalidad por confirmar)",
+        "Guía profesional"
+      ],
+      "agency_source": "B1",
+      "exclusions": null,
+      "range_usd": null,
+      "market_sources": [],
+      "price_note": "Sin precio confirmado ni referencia comparable incorporada.",
+      "unknowns": "El folleto no detalla exclusiones, cupos, pagos ni cancelaciones. Un servicio no mencionado queda sin confirmar, no excluido."
+    },
+    {
+      "id": "valle-sur",
+      "name": "Valle Sur",
+      "aliases": [
+        "valle sur",
+        "south valley"
+      ],
+      "schedule_raw": "de 8:40 am a 14:00 pm",
+      "duration_reference": "08:40–14:00 según folleto; confirmar para la fecha solicitada.",
+      "route": [
+        "Tipon",
+        "Pikillaqta",
+        "Templo de Andahuaylillas"
+      ],
+      "agency_includes": [
+        "Bus turístico",
+        "Guía profesional"
+      ],
+      "agency_source": "B1",
+      "exclusions": null,
+      "range_usd": null,
+      "market_sources": [],
+      "price_note": "Sin precio confirmado ni referencia comparable incorporada.",
+      "unknowns": "El folleto no detalla exclusiones, cupos, pagos ni cancelaciones. Un servicio no mencionado queda sin confirmar, no excluido."
+    },
+    {
+      "id": "montana-7-colores",
+      "name": "Montaña de 7 Colores",
+      "aliases": [
+        "7 colores",
+        "colores",
+        "rainbow",
+        "vinicunca"
+      ],
+      "schedule_raw": "de 4:30 am a 5:00 pm",
+      "duration_reference": "04:30–17:00 según folleto; confirmar para la fecha solicitada.",
+      "route": [],
+      "agency_includes": [
+        "Transporte turístico",
+        "Guía profesional",
+        "Desayuno",
+        "Almuerzo"
+      ],
+      "agency_source": "B1",
+      "exclusions": null,
+      "range_usd": [
+        25,
+        45
+      ],
+      "market_sources": [
+        "M5"
+      ],
+      "price_note": "Referencia histórica de mercado del prototipo, no cotización del servicio del folleto; modalidades pueden diferir.",
+      "unknowns": "El folleto no detalla exclusiones, cupos, pagos ni cancelaciones. Un servicio no mencionado queda sin confirmar, no excluido."
+    },
+    {
+      "id": "laguna-humantay",
+      "name": "Laguna Humantay",
+      "aliases": [
+        "humantay"
+      ],
+      "schedule_raw": "de 4:30 am a 5:00 pm",
+      "duration_reference": "04:30–17:00 según folleto; confirmar para la fecha solicitada.",
+      "route": [],
+      "agency_includes": [
+        "Transporte turístico",
+        "Guía profesional",
+        "Desayuno",
+        "Almuerzo"
+      ],
+      "agency_source": "B1",
+      "exclusions": null,
+      "range_usd": [
+        35,
+        50
+      ],
+      "market_sources": [
+        "M4"
+      ],
+      "price_note": "Referencia histórica de mercado del prototipo, no cotización del servicio del folleto; modalidades pueden diferir.",
+      "unknowns": "El folleto no detalla exclusiones, cupos, pagos ni cancelaciones. Un servicio no mencionado queda sin confirmar, no excluido."
+    }
+  ],
+  "currency": "USD",
+  "price_pen": null,
+  "exchange_rate": null,
+  "unconfirmed_in_brochure": [
+    "Salkantay",
+    "Paquete Cusco 7D/6N"
+  ],
+  "note": "El usuario confirma que la agencia trabaja con este folleto. No contiene tarifas ni fecha de vigencia. Rangos heredados no son precios oficiales."
+}

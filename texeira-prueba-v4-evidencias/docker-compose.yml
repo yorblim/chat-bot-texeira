@@ -1,0 +1,60 @@
+version: '3.8'
+
+# ============================================================
+# DOCKER COMPOSE — WEBHOOK WHATSAPP (Northflank / producción)
+# Servicio único: whatsapp_entry en puerto 8022.
+# Messenger aplazado. Paneles y chat NO se exponen públicamente.
+# Variables de credenciales se inyectan desde Secret Group (Northflank)
+# o desde el archivo .env LOCAL (nunca incluir en Git).
+# ============================================================
+
+services:
+  whatsapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: texeira-whatsapp-webhook
+    restart: unless-stopped
+    ports:
+      - "8022:8022"
+    environment:
+      - PORT=8022
+      # --- Habilitación del canal WhatsApp ---
+      - TEXEIRA_ENABLE_WHATSAPP=true
+      - TEXEIRA_ENABLE_MESSENGER=false
+      - TEXEIRA_ENABLE_ADVISOR_NOTIFICATIONS=false
+      # --- Credenciales Meta (inyectar desde Secret Group, NO hardcodear) ---
+      - META_VERIFY_TOKEN=${META_VERIFY_TOKEN}
+      - META_ACCESS_TOKEN=${META_ACCESS_TOKEN}
+      - META_PHONE_NUMBER_ID=${META_PHONE_NUMBER_ID}
+      - META_APP_SECRET=${META_APP_SECRET}
+      # --- Modo prueba WhatsApp ---
+      - WHATSAPP_TEST_MODE=${WHATSAPP_TEST_MODE:-false}
+      - WHATSAPP_TEST_BSUID_MAP=${WHATSAPP_TEST_BSUID_MAP:-}
+      # --- LLM (Groq gratuito) ---
+      - LLM_PROVIDER=${LLM_PROVIDER:-groq}
+      - LLM_MODEL=${LLM_MODEL:-qwen/qwen3.8-27b}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      # --- Persistencia ---
+      - TEXEIRA_STATE_DIR=/app/state
+      # --- Embeddings offline (modelo descargado en imagen) ---
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
+      - ANONYMIZED_TELEMETRY=False
+    volumes:
+      # Persistencia de SQLite: trial_logs.db y human_requests.db
+      # NOTA: En Northflank Sandbox gratuito no hay volumen persistente nativo.
+      # Este volumen funciona en Docker local/VPS. En Northflank Sandbox
+      # el disco es efímero (se reinicia al re-deploy). Limitación documentada.
+      - state-data:/app/state
+      - logs-volume:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8022/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  state-data:
+  logs-volume:

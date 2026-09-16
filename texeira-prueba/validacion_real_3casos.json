@@ -1,0 +1,41 @@
+[
+  {
+    "uid": "valid-1",
+    "lang": "ES",
+    "desc": "Disponibilidad navidena",
+    "msg": "¿Qué tours tienen para hacer el 25 de diciembre?",
+    "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nHola. Como este es un **prototipo** de Texeira, no tengo acceso a un calendario de disponibilidad en tiempo real ni a las políticas específicas de la agencia para fechas festivas como el 25 de diciembre.\n\nSin embargo, puedo mostrarte los **tours disponibles en el catálogo simulado** que podrías considerar para esa fecha, junto con sus características generales:\n\n1.  **City Tour Cusco**\n    *   **Duración:** Medio día (4-6 horas aprox.).\n    *   **Incluye (escenario simulado):** Transporte compartido y guía.\n    *   **Destinos:** Sacsayhuamán, Qenqo, Puka Pukara, Tambomachay (Koricancha opcional).\n    *   **Excluye:** Boleto turístico, comidas y seguro.\n    *   **Precio referencial:** USD 15–25 por adulto (no es tarifa oficial).\n\n2.  **Montaña de 7 Colores**\n    *   **Duración:** 12-14 horas aprox.\n    *   **Incluye (escenario simulado):** Transporte compartido, guía, desayuno y almuerzo.\n    *   **Excluye:** Entradas a la montaña y Valle Rojo, caballo/cuatrimoto y seguro.\n    *   **Precio referencial:** USD 25–45 por adulto (no es tarifa oficial).\n    *   *Nota:* Las condiciones están pendientes de confirmar.\n\n3.  **Valle Sagrado completo**\n    *   **Duración:** 07:00 a 18:30 (aprox. 11.5 horas).\n    *   **Incluye (escenario simulado):** Transporte compartido, guía bilingüe y almuerzo buffet.\n    *   **Destinos:** Písac, Ollantaytambo, Chinchero, Moray, Maras y Urubamba.\n    *   **Excluye:** Boleto turístico, accesos adicionales y seguro.\n    *   **Precio referencial:** USD 40–60 por adulto (no es tarifa oficial).\n\n4.  **Salkantay 4D/3N**\n    *   **Duración:** 4 días / 3 noches.\n    *   *Nota:* No se detallan inclusiones específicas en el contexto proporcionado, solo que es un trekking.\n\n5.  **Paquete Cusco 7D/6N (Hipotético)**\n    *   **Duración:** 7 días / 6 noches.\n    *   **Incluye (escenario simulado):** 6 noches en hotel 3 estrellas (habitación doble compartida), traslados locales, excursiones en Cusco y alrededores, y visita a Machu Picchu en tren.\n    *   **Excluye:** Vuelos, habitación individual, seguro y servicios no detallados.\n    *   **Precio referencial:** USD 900–1300 por adulto (no es tarifa oficial).\n    *   *Importante:* Este es un producto **hipotético** y su oferta no está confirmada.\n\n**Importante:**\n*   Los precios son **rangos estimados de mercado** y no tarifas oficiales.\n*   Las inclusiones y exclusiones descritas son parte de un **escenario simulado** y no constituyen un compromiso de la agencia.\n*   **No puedo confirmar disponibilidad** para el 25 de diciembre ni políticas de cancelación/pago específicas para esa fecha.\n\nPara confirmar si estos tours operan el 25 de diciembre, obtener la cotización final y verificar las condiciones reales, debes contactar directamente a la agencia. Lamentablemente, el contexto proporcionado no incluye los teléfonos o la dirección física de la agencia para remitirte. Te sugiero buscar el contacto oficial de Texeira en su sitio web principal o redes sociales verificadas.\n\nPara contactar a la agencia:\n- Teléfonos: +51 953 767 860 / +51 984 679 715\n- Dirección: Calle Carmen Quicllu N.º 250, Cusco",
+    "resolved": true,
+    "escalated": false,
+    "needs_agency": false,
+    "route": "rag",
+    "latency_ms": 41476.96,
+    "is_rate_limit": false
+  },
+  {
+    "uid": "valid-2",
+    "lang": "EN",
+    "desc": "Cancelacion ingles",
+    "msg": "Can I cancel my booking for Valle Sagrado?",
+    "response": "PROTOTYPE: indicative prices per person; final quote from the agency. Simulated services are not commitments by Texeira.\n\nI cannot confirm the cancellation policy for the **Valle Sagrado completo** tour, as this information is not available in the current data.\n\nThe specific policies regarding reservations, cancellations, payments, and refunds are **not confirmed** and must be verified directly with the agency.\n\nFor accurate information, please contact the agency using the published contact details.\n\nPara contactar a la agencia:\n- Teléfonos: +51 953 767 860 / +51 984 679 715\n- Dirección: Calle Carmen Quicllu N.º 250, Cusco",
+    "resolved": false,
+    "escalated": false,
+    "needs_agency": true,
+    "route": "rag",
+    "latency_ms": 41436.42,
+    "is_rate_limit": false
+  },
+  {
+    "uid": "valid-3",
+    "lang": "ES",
+    "desc": "Pago PayPal + total",
+    "msg": "¿Puedo pagar con PayPal y cuánto es el total?",
+    "response": "PROTOTIPO: precios referenciales por persona; cotización final con la agencia. Las condiciones simuladas no son compromisos de Texeira.\n\nNo cuento con información confirmada sobre las formas de pago aceptadas (como PayPal) ni sobre el precio exacto total en soles o dólares para ningún tour específico, ya que los datos disponibles son **estimaciones de mercado** y no tarifas oficiales.\n\nAdemás, no hay un tipo de cambio ni cotización confirmada para realizar conversiones.\n\nPara conocer las políticas de pago, métodos de transferencia aceptados y la cotización final, te recomiendo contactar directamente a la agencia utilizando los datos de contacto publicados en su sitio web o folleto oficial.\n\nPara contactar a la agencia:\n- Teléfonos: +51 953 767 860 / +51 984 679 715\n- Dirección: Calle Carmen Quicllu N.º 250, Cusco",
+    "resolved": false,
+    "escalated": false,
+    "needs_agency": true,
+    "route": "rag",
+    "latency_ms": 873.08,
+    "is_rate_limit": false
+  }
+]

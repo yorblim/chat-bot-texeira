@@ -1,0 +1,18 @@
+{
+  "status": "ok",
+  "response": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\n\nMachu Picchu en Tren\nIncluye: traslado cusco ollanta cusco [F1, folleto]\nIncluye: tren ida vuelta [F1, folleto]\nIncluye: bus subida bajada [F1, folleto]\nIncluye: ingresos machu picchu [F1, folleto]\nIncluye: guia profesional [F1, folleto]\nIncluye: recojo hotel [F3, 8]\nIncluye: tickets tren [F3, 8]\nIncluye: entradas ciudadela [F3, 8]\nIncluye: guia profesional [F3, 8]",
+  "resolved_autonomously": true,
+  "escalated_to_human": false,
+  "detected_language": "es",
+  "needs_agency_confirmation": false,
+  "route": "evidence_includes",
+  "response_route": "evidence_includes",
+  "evidence_status": "documented",
+  "needs_confirmation": false,
+  "conflict_detected": false,
+  "sources_used": [
+    "F1",
+    "F3"
+  ],
+  "latency_ms": 2.17
+}

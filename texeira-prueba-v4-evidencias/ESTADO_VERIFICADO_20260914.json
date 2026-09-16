@@ -1,0 +1,33 @@
+{
+  "checked_at": "2026-09-14T11:11:54.983209-05:00",
+  "index": "chroma_v4_evidencias_db",
+  "regression_cases": 21,
+  "retrieval_cases": 4,
+  "stored_documents_match": true,
+  "external_llm_calls": 0,
+  "whatsapp_messages_sent": 0,
+  "meta_http_status": 401,
+  "meta_error_code": 190,
+  "meta_error_subcode": 463,
+  "files_sha256": {
+    "app.py": "16f0375bdd44adf30daa07ad99c7504cff1a031a3f4d3017c08cfee936c9a8ff",
+    "trial_support.py": "c50c85bef2895a676ae7c2b34eeaf632d7bbd8ca7a24b692aa0af869bc28e8eb",
+    "verified_routes.py": "0a1babc6b5a00569878d9cf93c127dd84f89c5fe0d11959084b854910888db84",
+    "database.py": "2ba6402adc0a34ba03a8d8e05c01ef031d025fdc770d3fae4097f51354804131",
+    "src/evidence.py": "e567efd70390110349db8d5611cfb4fa7cc29a386abb86aae0823a5b547a5573",
+    "src/retriever.py": "ae55d253423efd50d186e69dafa9a3be6ecbfb08e25a0208f1966cf60f4aa1fe",
+    "whatsapp_entry.py": "dd2ca90c8c4ac918160e5952d209ca6013932d5fd1d577efb044f2bc62d07dfa",
+    "INICIAR_WHATSAPP.ps1": "b3f5362e42fd82013b00a928877c39f4049a24d278f924977ac54fe86b5c7d73",
+    "data/tours_catalog.json": "7d2f415515a6086ce6d12271ce7039201ccf372755febdf50cfaa73f187ba1db",
+    "data/evidence_facts.json": "99db4becece8858f1ffffadf9dd0c61d3708c4791d0d38a97088b3b292605001",
+    "data/conflicts.json": "fa9d2c3f9c0dba5ba5f8bf3ab5b349daa4db9f91a54f79a0f80597428ae50915",
+    "data/source_registry.json": "6e37658978f486b42b637598848a216dd6f388278d0266848e4593b86c630054",
+    "chroma_v4_evidencias_db/READY.json": "871b345d52644085d5809fcf44d29e68be33faee1bb32de3ca302a2ab7adfb9c",
+    "test_audit_20260912.py": "17551ede226605ada34403e9f5b90375119c7e092bcd1b2a36f8af0f10bdd150",
+    "test_audit_retrieval.py": "168ba06bfcb1a1ce0e59021e5cdba4162db924f81308550f1c140cee5b81034a",
+    "AUDIT_TEST_RESULTS.json": "2e756b3014024b18f7565cdb926aa75e92fd57b2a7c2366ae094018efd7d6dad",
+    "AUDIT_RETRIEVAL_RESULTS.json": "1414ff43a493cbf16604ef7362ff9ff63f85dbd2bacb82bd1997b2f95f8604d4",
+    "VERIFICACION_INDICE_20260914.json": "6e1ae45d0f751859532c07be0e88e9aa46f5e0219c336c2bac40cd514d026379",
+    "VERIFICACION_META_20260914.json": "9eb6f8497d87b2ee927e7423fa644bdc465b107f8109a8ab79e028b483321c9d"
+  }
+}

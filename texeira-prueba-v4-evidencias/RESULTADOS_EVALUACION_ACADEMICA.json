@@ -1,0 +1,809 @@
+{
+  "mode": "local_simulation_not_academic_validation",
+  "total_cases": 30,
+  "real_llm_calls": 0,
+  "approved_cases": null,
+  "metrics_thesis": null,
+  "limitations": [
+    "No mide precisión, entrega, resolución validada ni latencia real de LLM.",
+    "Criterios y respuestas requieren revisión humana; banco ya usado para ajustes, no conjunto independiente."
+  ],
+  "cases": [
+    {
+      "id": "ACAD-ES-01",
+      "question": "¿Qué servicios y visitas están confirmados para el tour de Waqra Pukara?",
+      "language": "es",
+      "criteria_for_human_review": {
+        "required_inclusions": [
+          "transporte turístico",
+          "guía profesional"
+        ],
+        "sources": [
+          "F2",
+          "F3"
+        ],
+        "must_not_invent": [
+          "precio exacto",
+          "almuerzo buffet",
+          "entradas no documentadas"
+        ],
+        "notes": "F2 confirma producto; F3 confirma transporte turístico y guía profesional."
+      },
+      "response": null,
+      "actual_route": null,
+      "elapsed_local_simulated_ms": 46.26,
+      "reported_resolved": null,
+      "handoff_registered": null,
+      "needs_agency_confirmation": null,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-ES-02",
+      "question": "¿Cuáles son los lugares arqueológicos que se visitan durante el City Tour Cusco?",
+      "language": "es",
+      "criteria_for_human_review": {
+        "required_stops": [
+          "Koricancha",
+          "Sacsayhuamán",
+          "Q'enqo",
+          "Puka Pukara",
+          "Tambomachay"
+        ],
+        "sources": [
+          "F1",
+          "F2"
+        ],
+        "must_not_invent": [
+          "Ollantaytambo",
+          "Pisac",
+          "entradas incluidas"
+        ],
+        "notes": "Paradas arqueológicas confirmadas por F1 y F2."
+      },
+      "response": "Este dato requiere confirmacion con la agencia: detalle no documentado para City Tour Cusco. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+      "actual_route": "evidence_unknown",
+      "elapsed_local_simulated_ms": 2.07,
+      "reported_resolved": false,
+      "handoff_registered": false,
+      "needs_agency_confirmation": true,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-ES-03",
+      "question": "¿Qué equipo de protección o seguridad incluye el tour en cuatrimoto a Maras y Moray?",
+      "language": "es",
+      "criteria_for_human_review": {
+        "required_inclusions": [
+          "casco y equipo de protección",
+          "cuatrimotos modernas"
+        ],
+        "sources": [
+          "F3"
+        ],
+        "must_not_invent": [
+          "seguro contra todo riesgo",
+          "ropa impermeable"
+        ],
+        "notes": "F3 confirma cuatrimotos modernas, casco, equipo de protección, transporte ida y vuelta y visitas a salineras y Moray."
+      },
+      "response": "Tour Cuatrimoto / Maras-Moray\nIncluye: cuatrimotos modernas\nIncluye: casco equipo proteccion\nIncluye: visita salineras\nIncluye: visita moray\nIncluye: transporte ida vuelta",
+      "actual_route": "evidence_includes",
+      "elapsed_local_simulated_ms": 2.07,
+      "reported_resolved": true,
+      "handoff_registered": false,
+      "needs_agency_confirmation": false,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-ES-04",
+      "question": "¿Texeira Travel ofrece el tour al Cañón del Colca y qué baños termales menciona el catálogo?",
+      "language": "es",
+      "criteria_for_human_review": {
+        "required_facts": [
+          "Baños Termales de Chacapi",
+          "Cañón del Colca"
+        ],
+        "sources": [
+          "F2"
+        ],
+        "must_not_invent": [
+          "tarifa en soles",
+          "hotel 5 estrellas",
+          "alimentación no documentada"
+        ],
+        "notes": "F2 documenta Cañón del Colca / Baños Termales de Chacapi como producto confirmado."
+      },
+      "response": null,
+      "actual_route": null,
+      "elapsed_local_simulated_ms": 4.93,
+      "reported_resolved": null,
+      "handoff_registered": null,
+      "needs_agency_confirmation": null,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-ES-05",
+      "question": "¿Qué paradas incluye el recorrido de Valle Sur según la información de la agencia?",
+      "language": "es",
+      "criteria_for_human_review": {
+        "required_stops": [
+          "Tipón",
+          "Pikillacta",
+          "Andahuaylillas"
+        ],
+        "sources": [
+          "F1"
+        ],
+        "must_not_invent": [
+          "Moray",
+          "Chinchero"
+        ],
+        "notes": "F1 confirma paradas de Valle Sur: Tipón, Pikillacta, Andahuaylillas."
+      },
+      "response": "Valle Sur\nIncluye: transporte ida vuelta\nIncluye: guia profesional bilingue",
+      "actual_route": "evidence_includes",
+      "elapsed_local_simulated_ms": 1.59,
+      "reported_resolved": true,
+      "handoff_registered": false,
+      "needs_agency_confirmation": false,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-EN-01",
+      "question": "Does the Humantay Lagoon excursion provide meals according to the agency brochure?",
+      "language": "en",
+      "criteria_for_human_review": {
+        "required_facts": [
+          "breakfast",
+          "lunch"
+        ],
+        "sources": [
+          "F1",
+          "F2"
+        ],
+        "must_not_invent": [
+          "dinner",
+          "alcoholic beverages",
+          "unlimited snacks"
+        ],
+        "notes": "English. F1 confirms breakfast and lunch; F2 confirms lunch."
+      },
+      "response": null,
+      "actual_route": null,
+      "elapsed_local_simulated_ms": 6.02,
+      "reported_resolved": null,
+      "handoff_registered": null,
+      "needs_agency_confirmation": null,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-EN-02",
+      "question": "Is the general tourist ticket included or excluded in the Sacred Valley tour?",
+      "language": "en",
+      "criteria_for_human_review": {
+        "required_facts": [
+          "tourist ticket is not included",
+          "excluded"
+        ],
+        "sources": [
+          "F3"
+        ],
+        "must_not_invent": [
+          "free entrance to all ruins",
+          "partial ticket included"
+        ],
+        "notes": "English. F3 page 3 explicitly lists tourist ticket as excluded."
+      },
+      "response": "Valle Sagrado\nDoes not include: Tourist ticket",
+      "actual_route": "evidence_excludes",
+      "elapsed_local_simulated_ms": 2.29,
+      "reported_resolved": true,
+      "handoff_registered": false,
+      "needs_agency_confirmation": false,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-EN-03",
+      "question": "How many days are published in the itinerary for the Inka Jungle trek to Machu Picchu?",
+      "language": "en",
+      "criteria_for_human_review": {
+        "required_facts": [
+          "4 days"
+        ],
+        "sources": [
+          "F2"
+        ],
+        "must_not_invent": [
+          "guaranteed hotel nights",
+          "flight included"
+        ],
+        "notes": "English. F2 page 17 displays a 4-day itinerary map. Do not infer lodging nights."
+      },
+      "response": "This information requires confirmation with the agency: undocumented detail for Machu Picchu en Tren. +51 953 767 860 / +51 984 679 715\nTo register a request for human assistance, type: speak to an agent.",
+      "actual_route": "evidence_unknown",
+      "elapsed_local_simulated_ms": 1.94,
+      "reported_resolved": false,
+      "handoff_registered": false,
+      "needs_agency_confirmation": true,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-EN-04",
+      "question": "Is Choquequirao Trek documented in the agency materials as one of their tour offerings?",
+      "language": "en",
+      "criteria_for_human_review": {
+        "required_facts": [
+          "confirmed product",
+          "documented by Texeira"
+        ],
+        "sources": [
+          "F2"
+        ],
+        "must_not_invent": [
+          "exact price",
+          "daily departures guarantee"
+        ],
+        "notes": "English. F2 confirms Choquequirao Trek as a documented product."
+      },
+      "response": null,
+      "actual_route": null,
+      "elapsed_local_simulated_ms": 4.96,
+      "reported_resolved": null,
+      "handoff_registered": null,
+      "needs_agency_confirmation": null,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-EN-05",
+      "question": "Which destination cities are connected by the Route of the Sun tour in the catalog?",
+      "language": "en",
+      "criteria_for_human_review": {
+        "required_facts": [
+          "Cusco",
+          "Puno"
+        ],
+        "sources": [
+          "F2"
+        ],
+        "must_not_invent": [
+          "Arequipa",
+          "Lima",
+          "train tickets"
+        ],
+        "notes": "English. F2 documents Ruta del Sol Cusco-Puno."
+      },
+      "response": null,
+      "actual_route": null,
+      "elapsed_local_simulated_ms": 4.76,
+      "reported_resolved": null,
+      "handoff_registered": null,
+      "needs_agency_confirmation": null,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-ES-06",
+      "question": "¿En qué se diferencia la modalidad Machu Picchu by Car respecto a Machu Picchu en Tren?",
+      "language": "es",
+      "criteria_for_human_review": {
+        "required_distinction": [
+          "Machu Picchu by Car es ruta por carretera/terrestre",
+          "Machu Picchu en Tren incluye traslado Cusco-Ollanta, tren ida y vuelta y bus"
+        ],
+        "sources": [
+          "F1",
+          "F2",
+          "F3"
+        ],
+        "must_not_invent": [
+          "mismo precio",
+          "mismos tiempos de viaje",
+          "alojamiento incluido"
+        ],
+        "notes": "Diferenciación entre producto terrestre y variante férrea según catálogo."
+      },
+      "response": null,
+      "actual_route": null,
+      "elapsed_local_simulated_ms": 5.57,
+      "reported_resolved": null,
+      "handoff_registered": null,
+      "needs_agency_confirmation": null,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-ES-07",
+      "question": "¿Cuál es la diferencia entre el tour tradicional de Maras-Moray y la opción en cuatrimoto?",
+      "language": "es",
+      "criteria_for_human_review": {
+        "required_distinction": [
+          "Tradicional es transporte en bus turístico",
+          "Cuatrimoto incluye cuatrimotos modernas y equipo de protección"
+        ],
+        "sources": [
+          "F1",
+          "F3"
+        ],
+        "must_not_invent": [
+          "ambos son en cuatrimoto",
+          "tarifa única"
+        ],
+        "notes": "F1 documenta Maras-Moray en bus; F3 documenta variante cuatrimoto."
+      },
+      "response": null,
+      "actual_route": null,
+      "elapsed_local_simulated_ms": 4.98,
+      "reported_resolved": null,
+      "handoff_registered": null,
+      "needs_agency_confirmation": null,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-ES-08",
+      "question": "¿Cómo se comparan en duración el Salkantay Trek y el Inka Jungle según los mapas del catálogo?",
+      "language": "es",
+      "criteria_for_human_review": {
+        "required_distinction": [
+          "Ambos presentan itinerario publicado de 4 días"
+        ],
+        "sources": [
+          "F2"
+        ],
+        "must_not_invent": [
+          "noches de hotel garantizadas",
+          "días adicionales sin sustento"
+        ],
+        "notes": "F2 páginas 16 y 17 documentan mapas de 4 días para ambas rutas."
+      },
+      "response": "Inka Jungle to Machu Picchu\nDuracion publicada: 4 días (itinerario publicado; confirmar variante y noches)",
+      "actual_route": "evidence_duration",
+      "elapsed_local_simulated_ms": 413.23,
+      "reported_resolved": true,
+      "handoff_registered": false,
+      "needs_agency_confirmation": false,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-EN-06",
+      "question": "What is the main difference between Sacred Valley and South Valley tours in terms of visited sites?",
+      "language": "en",
+      "criteria_for_human_review": {
+        "required_distinction": [
+          "Sacred Valley visits Pisac, Ollantaytambo, Chinchero",
+          "South Valley visits Tipon, Pikillacta, Andahuaylillas"
+        ],
+        "sources": [
+          "F1"
+        ],
+        "must_not_invent": [
+          "Machu Picchu in South Valley",
+          "same archaeological sites"
+        ],
+        "notes": "English. Distinguish routes based on F1 confirmed stops."
+      },
+      "response": null,
+      "actual_route": null,
+      "elapsed_local_simulated_ms": 5.71,
+      "reported_resolved": null,
+      "handoff_registered": null,
+      "needs_agency_confirmation": null,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-EN-07",
+      "question": "How does the Classic Inca Trail compare to Salkantay Trek in the agency documentation?",
+      "language": "en",
+      "criteria_for_human_review": {
+        "required_distinction": [
+          "Both are trek products documented in F2",
+          "neither has official prices confirmed in brochure"
+        ],
+        "sources": [
+          "F2"
+        ],
+        "must_not_invent": [
+          "same permits policy",
+          "identical route"
+        ],
+        "notes": "English. Both are documented products in F2; no official pricing published."
+      },
+      "response": null,
+      "actual_route": null,
+      "elapsed_local_simulated_ms": 4.93,
+      "reported_resolved": null,
+      "handoff_registered": null,
+      "needs_agency_confirmation": null,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-EN-08",
+      "question": "Compare the services included in City Tour Cusco with the Sacred Valley tour according to brochure F1.",
+      "language": "en",
+      "criteria_for_human_review": {
+        "required_distinction": [
+          "City Tour includes tourist bus and professional guide",
+          "Sacred Valley includes tourist transport, professional guide and buffet lunch"
+        ],
+        "sources": [
+          "F1"
+        ],
+        "must_not_invent": [
+          "lunch in City Tour",
+          "train tickets in Sacred Valley"
+        ],
+        "notes": "English. F1 confirms buffet lunch for Sacred Valley, but not for City Tour."
+      },
+      "response": "Valle Sagrado\nIncludes: Round-trip transport\nIncludes: Professional bilingual guide\nIncludes: Lunch\nIncludes: Buffet lunch\nIncludes: Tourist bus",
+      "actual_route": "evidence_includes",
+      "elapsed_local_simulated_ms": 1.54,
+      "reported_resolved": true,
+      "handoff_registered": false,
+      "needs_agency_confirmation": false,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-ES-09",
+      "question": "¿A qué hora inicia y termina exactamente el City Tour Cusco?",
+      "language": "es",
+      "criteria_for_human_review": {
+        "handling": "Informar el horario oficial confirmado del folleto físico F1: turno mañana 10:00-14:00 y turno tarde 13:30-18:30.",
+        "sources": [
+          "F1",
+          "tours_catalog.json"
+        ],
+        "must_not_invent": [
+          "horarios no documentados",
+          "garantía de puntualidad sin confirmación"
+        ],
+        "notes": "F1 confirmado como horario oficial vigente (10:00-14:00 / 13:30-18:30)."
+      },
+      "response": "City Tour Cusco\nHorario publicado: 10:00-14:00 / 13:30-18:30",
+      "actual_route": "evidence_schedule",
+      "elapsed_local_simulated_ms": 1.29,
+      "reported_resolved": true,
+      "handoff_registered": false,
+      "needs_agency_confirmation": false,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-ES-10",
+      "question": "¿Cuál es el horario oficial de salida y retorno para el tour de la Montaña de 7 Colores?",
+      "language": "es",
+      "criteria_for_human_review": {
+        "handling": "Informar el horario oficial confirmado del folleto físico F1: salida 04:30 y retorno 17:00 (5:00 pm).",
+        "sources": [
+          "F1",
+          "tours_catalog.json"
+        ],
+        "must_not_invent": [
+          "horario arbitrario",
+          "salida garantizada a las 04:00"
+        ],
+        "notes": "F1 confirmado como horario oficial vigente (04:30 a 17:00)."
+      },
+      "response": "Montaña de 7 Colores\nHorario publicado: 04:30-17:00",
+      "actual_route": "evidence_schedule",
+      "elapsed_local_simulated_ms": 1.65,
+      "reported_resolved": true,
+      "handoff_registered": false,
+      "needs_agency_confirmation": false,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-EN-09",
+      "question": "What is the exact departure and return schedule for the Sacred Valley excursion?",
+      "language": "en",
+      "criteria_for_human_review": {
+        "handling": "English. Report the official confirmed schedule from brochure F1: departure 07:30 and return 18:30.",
+        "sources": [
+          "F1",
+          "tours_catalog.json"
+        ],
+        "must_not_invent": [
+          "arbitrary departure",
+          "exact departure time as guaranteed"
+        ],
+        "notes": "English. F1 confirmed as official schedule (07:30 to 18:30)."
+      },
+      "response": "Valle Sagrado\nPublished schedule: 07:30-18:30",
+      "actual_route": "evidence_schedule",
+      "elapsed_local_simulated_ms": 1.73,
+      "reported_resolved": true,
+      "handoff_registered": false,
+      "needs_agency_confirmation": false,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-EN-10",
+      "question": "Can you provide the definitive timetable for the Rainbow Mountain tour?",
+      "language": "en",
+      "criteria_for_human_review": {
+        "handling": "English. Report the official confirmed timetable from brochure F1: departure 04:30 and return 17:00.",
+        "sources": [
+          "F1",
+          "tours_catalog.json"
+        ],
+        "must_not_invent": [
+          "arbitrary timetable",
+          "guaranteed pickup time"
+        ],
+        "notes": "English. F1 confirmed as official schedule (04:30 to 17:00)."
+      },
+      "response": "Montaña de 7 Colores\nPublished schedule: 04:30-17:00",
+      "actual_route": "evidence_schedule",
+      "elapsed_local_simulated_ms": 1.3,
+      "reported_resolved": true,
+      "handoff_registered": false,
+      "needs_agency_confirmation": false,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-ES-11",
+      "question": "¿Puedo pagar los tours con tarjeta de crédito o transferencia bancaria y cuál es el recargo?",
+      "language": "es",
+      "criteria_for_human_review": {
+        "handling": "Declarar que los métodos de pago y posibles recargos no están documentados en las fuentes; orientar al contacto de la agencia.",
+        "sources": [
+          "tours_catalog.json (policies.payment_methods)"
+        ],
+        "must_not_invent": [
+          "recargo del 5%",
+          "aceptación de Visa/Mastercard sin confirmación",
+          "números de cuenta"
+        ],
+        "notes": "Política de pagos no documentada."
+      },
+      "response": "Este dato requiere confirmacion con la agencia: pagos, cancelaciones, reservas o disponibilidad para la fecha solicitada. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+      "actual_route": "evidence_unknown",
+      "elapsed_local_simulated_ms": 1.46,
+      "reported_resolved": false,
+      "handoff_registered": false,
+      "needs_agency_confirmation": true,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-ES-12",
+      "question": "¿Cuánto dinero debo abonar como adelanto o depósito para confirmar mi reserva?",
+      "language": "es",
+      "criteria_for_human_review": {
+        "handling": "Indicar que el porcentaje o monto de depósito requerido no está documentado en las fuentes; remitir al contacto de la agencia.",
+        "sources": [
+          "tours_catalog.json (policies.deposit)"
+        ],
+        "must_not_invent": [
+          "50% de adelanto",
+          "adelanto no reembolsable",
+          "pago total"
+        ],
+        "notes": "Política de depósito desconocida."
+      },
+      "response": "Este dato requiere confirmacion con la agencia: pagos, cancelaciones, reservas o disponibilidad para la fecha solicitada. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+      "actual_route": "evidence_unknown",
+      "elapsed_local_simulated_ms": 1.22,
+      "reported_resolved": false,
+      "handoff_registered": false,
+      "needs_agency_confirmation": true,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-ES-13",
+      "question": "¿Cuál es la política de cancelación y reembolso si no puedo realizar el tour por motivos de salud?",
+      "language": "es",
+      "criteria_for_human_review": {
+        "handling": "Aclarar que las políticas de cancelación y reembolso no están documentadas en el catálogo; no prometer devolución; remitir a la agencia.",
+        "sources": [
+          "tours_catalog.json (policies.cancellation)"
+        ],
+        "must_not_invent": [
+          "devolución del 100%",
+          "penalidad de 24 horas",
+          "seguro médico"
+        ],
+        "notes": "Política de cancelación desconocida."
+      },
+      "response": "Este dato requiere confirmacion con la agencia: pagos, cancelaciones, reservas o disponibilidad para la fecha solicitada. +51 953 767 860 / +51 984 679 715\nPara registrar una solicitud de atención humana, escribe: asesor.",
+      "actual_route": "evidence_unknown",
+      "elapsed_local_simulated_ms": 1.63,
+      "reported_resolved": false,
+      "handoff_registered": false,
+      "needs_agency_confirmation": true,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-EN-11",
+      "question": "How much is the required down payment or advance deposit to secure my tour date?",
+      "language": "en",
+      "criteria_for_human_review": {
+        "handling": "English. State that advance deposit or down payment policy is not documented; refer to official agency contacts; do not invent figures.",
+        "sources": [
+          "tours_catalog.json (policies.deposit)"
+        ],
+        "must_not_invent": [
+          "30% deposit",
+          "deposit is non-refundable",
+          "bank transfer fee"
+        ],
+        "notes": "English. Unknown commercial condition."
+      },
+      "response": "This information requires confirmation with the agency: payments, cancellations, bookings or availability for the requested date. +51 953 767 860 / +51 984 679 715\nTo register a request for human assistance, type: speak to an agent.",
+      "actual_route": "evidence_unknown",
+      "elapsed_local_simulated_ms": 1.66,
+      "reported_resolved": false,
+      "handoff_registered": false,
+      "needs_agency_confirmation": true,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-EN-12",
+      "question": "What is the exact refund percentage if I cancel my reservation 48 hours in advance?",
+      "language": "en",
+      "criteria_for_human_review": {
+        "handling": "English. State that cancellation and refund policies are not documented in the brochure; do not promise any refund percentage; remit to agency.",
+        "sources": [
+          "tours_catalog.json (policies.cancellation)"
+        ],
+        "must_not_invent": [
+          "full refund",
+          "80% refund",
+          "cancellation penalty"
+        ],
+        "notes": "English. Unknown commercial condition."
+      },
+      "response": "This information requires confirmation with the agency: payments, cancellations, bookings or availability for the requested date. +51 953 767 860 / +51 984 679 715\nTo register a request for human assistance, type: speak to an agent.",
+      "actual_route": "evidence_unknown",
+      "elapsed_local_simulated_ms": 1.23,
+      "reported_resolved": false,
+      "handoff_registered": false,
+      "needs_agency_confirmation": true,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-EN-13",
+      "question": "Does Texeira Travel offer student discounts or special child rates for the tours?",
+      "language": "en",
+      "criteria_for_human_review": {
+        "handling": "English. Explain that student and child discounts are not documented in the available materials; require direct confirmation with the agency.",
+        "sources": [
+          "tours_catalog.json (policies.discounts)"
+        ],
+        "must_not_invent": [
+          "ISIC card discount",
+          "children under 5 free",
+          "10% off"
+        ],
+        "notes": "English. Discounts policy unknown."
+      },
+      "response": "This information requires confirmation with the agency: payments, cancellations, bookings or availability for the requested date. +51 953 767 860 / +51 984 679 715\nTo register a request for human assistance, type: speak to an agent.",
+      "actual_route": "evidence_unknown",
+      "elapsed_local_simulated_ms": 1.13,
+      "reported_resolved": false,
+      "handoff_registered": false,
+      "needs_agency_confirmation": true,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-ES-14",
+      "question": "Quiero hablar con un asesor",
+      "language": "es",
+      "criteria_for_human_review": {
+        "handling": "Reconocer la solicitud de atención humana, registrar el ticket en SQLite (handoff_requests) y confirmar al usuario en español indicando que la solicitud está pendiente de atención.",
+        "sources": [
+          "agency contact",
+          "handoff_support.py"
+        ],
+        "must_not_invent": [
+          "promesa de llamada telefónica inmediata",
+          "números falsos"
+        ],
+        "notes": "Escalamiento humano directo en español."
+      },
+      "response": null,
+      "actual_route": null,
+      "elapsed_local_simulated_ms": 5.85,
+      "reported_resolved": null,
+      "handoff_registered": null,
+      "needs_agency_confirmation": null,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-ES-15",
+      "question": "Solicitar asesor",
+      "language": "es",
+      "criteria_for_human_review": {
+        "handling": "Detectar el comando formal de atención humana, registrar la solicitud persistente y responder con el ID de ticket generado.",
+        "sources": [
+          "agency contact",
+          "handoff_support.py"
+        ],
+        "must_not_invent": [
+          "transferencia telefónica en vivo",
+          "horario inventado"
+        ],
+        "notes": "Comando sugerido en pie de mensaje."
+      },
+      "response": null,
+      "actual_route": null,
+      "elapsed_local_simulated_ms": 36.52,
+      "reported_resolved": null,
+      "handoff_registered": null,
+      "needs_agency_confirmation": null,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-EN-14",
+      "question": "I want to speak to an agent",
+      "language": "en",
+      "criteria_for_human_review": {
+        "handling": "English. Recognize human agent request, record support ticket, confirm in English without Spanish template leaks.",
+        "sources": [
+          "agency contact",
+          "handoff_support.py"
+        ],
+        "must_not_invent": [
+          "promise of immediate callback",
+          "invented contact names"
+        ],
+        "notes": "English direct human handoff request."
+      },
+      "response": null,
+      "actual_route": null,
+      "elapsed_local_simulated_ms": 6.52,
+      "reported_resolved": null,
+      "handoff_registered": null,
+      "needs_agency_confirmation": null,
+      "human_review_status": "pending",
+      "passed": null
+    },
+    {
+      "id": "ACAD-EN-15",
+      "question": "Speak to an agent",
+      "language": "en",
+      "criteria_for_human_review": {
+        "handling": "English. Detect representative transfer command, confirm ticket registration in English, and supply agency contact details.",
+        "sources": [
+          "agency contact",
+          "handoff_support.py"
+        ],
+        "must_not_invent": [
+          "live phone bridging",
+          "unverified agent name"
+        ],
+        "notes": "English formal command recommended by footer."
+      },
+      "response": null,
+      "actual_route": null,
+      "elapsed_local_simulated_ms": 7.48,
+      "reported_resolved": null,
+      "handoff_registered": null,
+      "needs_agency_confirmation": null,
+      "human_review_status": "pending",
+      "passed": null
+    }
+  ]
+}
