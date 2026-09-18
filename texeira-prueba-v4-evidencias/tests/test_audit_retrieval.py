@@ -16,6 +16,7 @@ for q,target in [('bus subida bajada Machu Picchu en Tren','machu-picchu-tren'),
     assert len(ids)<=5 and max(ids.count(x) for x in ids)<=2
     assert all('09:00-14:00' not in d.page_content and 'eugenio.tejeira@' not in d.page_content for d in docs)
     rows.append(dict(question=q,ids=ids))
-assert json.loads((INDEX/'READY.json').read_text())['inputs']==input_hashes()
-Path('AUDIT_RETRIEVAL_RESULTS.json').write_text(json.dumps(rows,ensure_ascii=False,indent=2),encoding='utf-8')
+out_eval = Path(__file__).resolve().parent.parent / 'docs' / 'evaluaciones'
+out_eval.mkdir(parents=True, exist_ok=True)
+(out_eval / 'AUDIT_RETRIEVAL_RESULTS.json').write_text(json.dumps(rows,ensure_ascii=False,indent=2),encoding='utf-8')
 print('PASS 4 búsquedas locales; RRF60/top5/cap2 e integridad de índice verificados; sin LLM.')

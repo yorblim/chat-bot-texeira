@@ -80,10 +80,18 @@ yarn-debug.log*
 .ipynb_checkpoints/
 *.ipynb
 
-# ---- Base de datos local ----
+# ---- Base de datos local y estado en ejecucion ----
 *.db
 *.sqlite
 *.sqlite3
+state/
+**/state/
+
+# ---- Cache de Pruebas y Cobertura ----
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
 
 # ---- Versiones archivadas no rastreadas ----
 versiones_anteriores/privacy-stage/

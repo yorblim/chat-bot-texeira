@@ -42,18 +42,21 @@ Abrir en el navegador: **http://127.0.0.1:8023/handoffs**
 Para verificar el correcto funcionamiento sin consumir tokens ni realizar llamadas externas:
 
 ```bash
+# Auditoría de recuperación híbrida sin LLM (RRF60 / top 5 / cap 2):
+python tests/test_audit_retrieval.py
+
 # Benchmark Académico Formal de la Tesis (30 casos independientes ES/EN):
-python evaluate_academic_benchmark.py
+python tests/evaluate_academic_benchmark.py
 
 # Aceptación de idiomas y consistencia ES/EN (16 casos):
-python evaluate_language_local.py
+python tests/evaluate_language_local.py
 
 # Regresión de integridad, conflictos y métricas (21 casos):
-python test_audit_20260912.py
+python tests/test_audit_20260912.py
 
 # Pruebas de traducción de duración y cola persistente de asesores:
-python test_duration_translation.py
-python test_handoff.py
+python tests/test_duration_translation.py
+python tests/test_handoff.py
 ```
 
 ---
@@ -63,8 +66,8 @@ python test_handoff.py
 - **Catálogo Canónico:** `data/tours_catalog.json` (19 tours y productos conciliados con el folleto F1, catálogo PDF F2 e itinerarios F3).
 - **Hechos y Conflictos:** `data/evidence_facts.json` y `data/conflicts.json`.
 - **Registro de Fuentes:** `data/source_registry.json`.
-- **Índice Vectorial Activo:** `chroma_v4_evidencias_db/` (HuggingFace embeddings locales, RRF=60, top 5).
-- **Persistencia de Solicitudes:** `human_requests.db` (SQLite con transacciones inmediatas).
+- **Índice Vectorial Activo:** `chroma_f1_confirmado_20260915_db/` (HuggingFace embeddings locales, RRF=60, top 5).
+- **Persistencia y Estado:** `state/` (`human_requests.db`, `trial_logs.db` con SQLite y PRAGMA WAL).
 
 ---
 
