@@ -1,3 +1,5 @@
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 """Transcripción explícita de las imágenes aportadas; no consulta servicios externos."""
 import json
 from pathlib import Path

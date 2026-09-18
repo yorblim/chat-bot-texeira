@@ -14,6 +14,7 @@
 !operational_metrics.py
 !advisor_entry.py
 !whatsapp_entry.py
+!auth_middleware.py
 !src/
 !src/**
 src/**/__pycache__/
@@ -23,5 +24,9 @@ src/**/*.pyc
 !data/evidence_facts.json
 !data/conflicts.json
 !data/source_registry.json
+!data/agency_brochure_v3.json
+!data/provisional.json
+!data/images/
+!data/images/**
 !chroma_f1_confirmado_20260915_db/
 !chroma_f1_confirmado_20260915_db/**

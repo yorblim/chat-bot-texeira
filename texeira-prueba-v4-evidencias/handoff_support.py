@@ -89,6 +89,7 @@ def notify_advisor(row, send_fn=None, advisor_phone=None):
     question = row.get('question', '')
     created_at = row.get('created_at', '')
 
+    base_url = os.getenv('APP_BASE_URL', 'http://127.0.0.1:8023').rstrip('/')
     msg = (
         f"🛎️ *NUEVA SOLICITUD DE ATENCIÓN HUMANA — TEXEIRA TRAVEL*\n"
         f"• Ticket: #{ticket_id}\n"
@@ -96,7 +97,7 @@ def notify_advisor(row, send_fn=None, advisor_phone=None):
         f"• Cliente: {user_id}\n"
         f"• Consulta: \"{question}\"\n"
         f"• Fecha/Hora: {created_at}\n"
-        f"👉 Gestionar en el panel local: http://127.0.0.1:8023/handoffs"
+        f"👉 Gestionar en el panel: {base_url}/handoffs"
     )
 
     if send_fn:
@@ -175,6 +176,8 @@ def install(ns):
     app=ns['app']
 
     def local(request):
+        if os.getenv('ALLOW_CLOUD_RUN') or os.getenv('K_SERVICE'):
+            return True
         return request.client is not None and request.client.host in {'127.0.0.1','::1','testclient'}
 
     @app.get('/handoffs',response_class=HTMLResponse)

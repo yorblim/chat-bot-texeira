@@ -1,3 +1,5 @@
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 """Reproduce incertidumbre de la muestra real con respuestas guardadas, sin Groq."""
 import json
 from pathlib import Path

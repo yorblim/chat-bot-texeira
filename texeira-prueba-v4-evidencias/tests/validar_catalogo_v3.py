@@ -1,3 +1,5 @@
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 """Validación del catálogo v3-folleto: 7 tours del folleto + respuestas deterministas.
 Prueba directa del catálogo y respuestas, sin LLM.
 """

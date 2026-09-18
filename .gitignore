@@ -84,3 +84,14 @@ yarn-debug.log*
 *.db
 *.sqlite
 *.sqlite3
+
+# ---- Versiones archivadas no rastreadas ----
+versiones_anteriores/privacy-stage/
+versiones_anteriores/texeira-privacidad/
+
+# ---- Resultados temporales de pruebas locales ----
+AUDIT_*.json
+RESULTADO_*.json
+EVALUATION_*.json
+
+

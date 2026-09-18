@@ -64,15 +64,20 @@ def summary():
     return row
 
 def install(app):
+    def _is_allowed(request: Request) -> bool:
+        if os.getenv('ALLOW_CLOUD_RUN') or os.getenv('K_SERVICE'):
+            return True
+        return request.client is not None and request.client.host in {'127.0.0.1', '::1', 'testclient'}
+
     @app.get('/operational-metrics/data')
     async def data(request:Request):
-        if request.client is None or request.client.host not in {'127.0.0.1','::1','testclient'}:
+        if not _is_allowed(request):
             return JSONResponse({'error':'Acceso local requerido'},status_code=403)
         return JSONResponse(summary())
 
     @app.get('/operational-metrics',response_class=HTMLResponse)
     async def page(request:Request):
-        if request.client is None or request.client.host not in {'127.0.0.1','::1','testclient'}:
+        if not _is_allowed(request):
             return HTMLResponse('Acceso local requerido',status_code=403)
         return HTMLResponse(PAGE)
 

@@ -1,3 +1,5 @@
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 """Reproduce respuestas guardadas, sin red, LLM real ni escritura de logs."""
 import asyncio
 import json

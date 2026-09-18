@@ -1,3 +1,5 @@
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 """Banco de aceptación ES/EN. No usa LLM ni mide precisión poblacional."""
 import asyncio,json,sys,hashlib
 from pathlib import Path

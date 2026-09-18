@@ -17,6 +17,7 @@ import hashlib
 import hmac
 import time
 import uuid
+import asyncio
 from collections import defaultdict
 from typing import Optional, Dict, List
 
@@ -131,349 +132,12 @@ def _load_tour_images():
 _load_tour_images()
 
 
-def send_whatsapp_message(
-    text: str,
-    to_phone: Optional[str] = None,
-    recipient_bsuid: Optional[str] = None,
-    phone_number_id: Optional[str] = None,
-    to_number: Optional[str] = None,
-) -> bool:
-    """
-    Envía un mensaje de texto de salida a la Graph API de Meta (WhatsApp Cloud API).
-
-    Soporta dos modos de envío:
-      1. Por teléfono: usar to_phone (o to_number para retrocompatibilidad).
-         Genera payload con "to": "<phone>".
-      2. Por BSUID: usar recipient_bsuid.
-         Genera payload con "recipient": "<BSUID>".
-
-    En WHATSAPP_TEST_MODE, los BSUIDs mapeados se resuelven a teléfono.
-    """
-    destination = to_phone or to_number
-
-    # Test mode: resolve BSUID to mapped phone number
-    if not destination and recipient_bsuid and WHATSAPP_TEST_MODE:
-        mapped_phone = WHATSAPP_TEST_BSUID_MAP.get(recipient_bsuid)
-        if mapped_phone:
-            print(f"[WA TEST MAP] bsuid={recipient_bsuid} mapped_phone={mapped_phone}")
-            destination = mapped_phone
-            recipient_bsuid = None  # use phone path
-        else:
-            print(f"[WA TEST MAP] bsuid={recipient_bsuid} NOT in BSUID_MAP, falling back to recipient")
-
-    if not META_ACCESS_TOKEN or META_ACCESS_TOKEN.startswith("tu-token"):
-        mode = "phone" if destination else "bsuid"
-        dest = destination or recipient_bsuid or "unknown"
-        print('[WA] Envío no realizado: credenciales ausentes.')
-        return False
-
-    target_phone_id = phone_number_id or META_PHONE_NUMBER_ID
-    if not target_phone_id:
-        print(f"[WA WARNING] No se configuro phone_number_id")
-        return False
-
-    url = f"https://graph.facebook.com/v26.0/{target_phone_id}/messages"
-    headers = {
-        "Authorization": f"Bearer {META_ACCESS_TOKEN}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "messaging_product": "whatsapp",
-        "recipient_type": "individual",
-        "type": "text",
-        "text": {"preview_url": False, "body": text},
-    }
-
-    if destination:
-        payload["to"] = destination
-        mode = "phone"
-    elif recipient_bsuid:
-        payload["recipient"] = recipient_bsuid
-        mode = "bsuid"
-    else:
-        print("[WA ERROR] No destination provided (neither phone nor BSUID)")
-        return False
-
-    dest = destination or recipient_bsuid
-    print(f"[WA OUTBOUND] mode={mode} destination={dest} phone_number_id={target_phone_id}")
-    try:
-        import httpx
-        with httpx.Client(timeout=10.0) as client:
-            resp = client.post(url, json=payload, headers=headers)
-            resp_body = resp.text[:300]
-            print(f"[WA SEND RESPONSE] status_code={resp.status_code} body={resp_body}")
-            if resp.status_code in (200, 201):
-                try:
-                    resp_json = resp.json()
-                    wamid = resp_json.get("messages", [{}])[0].get("id", "")
-                    if wamid:
-                        print(f"[WA MSG ID] wamid={wamid}")
-                except Exception:
-                    pass
-                print(f"[WA] Mensaje enviado exitosamente a {dest} (mode={mode})")
-                return True
-            else:
-                print(f"[WA ERROR] HTTP {resp.status_code}: {resp_body}")
-                return False
-    except Exception as e:
-        print(f"[WA ERROR] Excepcion al enviar mensaje: {e}")
-        return False
-
-
-def send_whatsapp_image(
-    image_url: str,
-    caption: str = "",
-    to_phone: str = None,
-    recipient_bsuid: str = None,
-    phone_number_id: str = None,
-    to_number: str = None,
-) -> bool:
-    """Envía un mensaje con imagen de alta calidad a WhatsApp Cloud API."""
-    destination = to_phone or to_number
-    if not destination and recipient_bsuid and WHATSAPP_TEST_MODE:
-        mapped_phone = WHATSAPP_TEST_BSUID_MAP.get(recipient_bsuid)
-        if mapped_phone:
-            destination = mapped_phone
-            recipient_bsuid = None
-
-    if not META_ACCESS_TOKEN or META_ACCESS_TOKEN.startswith("tu-token"):
-        return False
-
-    target_phone_id = phone_number_id or META_PHONE_NUMBER_ID
-    if not target_phone_id:
-        return False
-
-    url = f"https://graph.facebook.com/v26.0/{target_phone_id}/messages"
-    headers = {
-        "Authorization": f"Bearer {META_ACCESS_TOKEN}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "messaging_product": "whatsapp",
-        "recipient_type": "individual",
-        "type": "image",
-        "image": {
-            "link": image_url,
-        }
-    }
-    if caption:
-        payload["image"]["caption"] = caption[:1024]
-
-    if destination:
-        payload["to"] = destination
-    elif recipient_bsuid:
-        payload["recipient"] = recipient_bsuid
-    else:
-        return False
-
-    try:
-        import httpx
-        with httpx.Client(timeout=15.0) as client:
-            resp = client.post(url, json=payload, headers=headers)
-            print(f"[WA IMAGE OUTBOUND] status={resp.status_code} url={image_url[:60]}")
-            return resp.status_code in (200, 201)
-    except Exception as e:
-        print(f"[WA IMAGE ERROR] {e}")
-        return False
-
-
-def get_tour_image_data(text: str):
-    """Detecta tours o intención en la conversación y retorna (url_imagen, caption_elegante)."""
-    t = text.lower()
-    images = {
-        'machu_picchu': (
-            'https://images.unsplash.com/photo-1526392060635-9d6019884377?w=800&q=80',
-            '🏔️ *Machu Picchu Mágico* — ¡La Maravilla del Mundo te espera con Texeira Travel Tour! ✨'
-        ),
-        'montana_7_colores': (
-            'https://images.unsplash.com/photo-1589802829985-817e51171b92?w=800&q=80',
-            '🌈 *Montaña de 7 Colores (Vinicunca)* — Paisajes andinos únicos a más de 5,000 m.s.n.m.'
-        ),
-        'laguna_humantay': (
-            'https://images.unsplash.com/photo-1580619305218-8423a7ef79b4?w=800&q=80',
-            '💎 *Laguna Humantay* — Espejo de aguas turquesas y nevados sagrados de Cusco.'
-        ),
-        'valle_sagrado': (
-            'https://images.unsplash.com/photo-1509299349698-dd22323b5963?w=800&q=80',
-            '🌾 *Valle Sagrado de los Incas* — Tradición viva, fortalezas y paisajes imponentes.'
-        ),
-        'maras_moray': (
-            'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?w=800&q=80',
-            '🧂 *Maras y Moray* — Salineras milenarias y laboratorio agrícola inca.'
-        ),
-        'city_tour': (
-            'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800&q=80',
-            '🏛️ *City Tour Cusco* — Plaza de Armas, templos sagrados y centros arqueológicos.'
-        ),
-        'cusco_general': (
-            'https://images.unsplash.com/photo-1568402102990-bc541580b59f?w=800&q=80',
-            '✨ *Texeira Travel Tour* — Tu mejor experiencia de viaje en el corazón de los Andes. 🇵🇪'
-        ),
-    }
-
-    if any(k in t for k in ['machu picchu', 'aguas calientes', 'tren a machu', 'ciudadela']):
-        return images['machu_picchu']
-    elif any(k in t for k in ['7 colores', 'montaña de 7', 'vinicunca', 'rainbow']):
-        return images['montana_7_colores']
-    elif any(k in t for k in ['humantay', 'laguna']):
-        return images['laguna_humantay']
-    elif any(k in t for k in ['valle sagrado', 'pisac', 'ollantaytambo', 'urubamba']):
-        return images['valle_sagrado']
-    elif any(k in t for k in ['maras', 'moray', 'salineras']):
-        return images['maras_moray']
-    elif any(k in t for k in ['city tour', 'koricancha', 'sacsayhuam', 'tambomachay', 'qenqo']):
-        return images['city_tour']
-    elif any(k in t for k in ['tour', 'tours', 'paquete', 'paquetes', 'cusco', 'viaje', 'precio', 'opcion', 'visitar']):
-        return images['cusco_general']
-    return None
-
-
-def format_whatsapp_text(text: str) -> str:
-    """Mejora la estética visual de los mensajes para WhatsApp."""
-    if not text:
-        return text
-
-    # 1. Eliminar etiquetas de markdown image ![...](...) para que no se vean como texto roto
-    text = re.sub(r'!\[.*?\]\(.*?\)', '', text)
-
-    # 2. Corregir asteriscos anidados comunes producidos por LLMs
-    emoji_replacements = [
-        (r'(?i)\*\s*\*(?:horario|horarios):\*', '🕒 *Horarios:*'),
-        (r'(?i)\*\s*\*(?:itinerario|recorrido|visitas):\*', '📍 *Recorrido:*'),
-        (r'(?i)\*\s*\*(?:incluye|servicios incluidos):\*', '🎒 *Incluye:*'),
-        (r'(?i)\*\s*\*(?:no incluye|exclusiones|excluye):\*', '❌ *No incluye:*'),
-        (r'(?i)\*\s*\*(?:precio|precios|tarifa|costo):\*', '🏷️ *Tarifa:*'),
-        (r'(?i)\*\s*\*(?:recomendaci[oó]n|recomendaciones):\*', '💡 *Recomendación:*'),
-        (r'(?i)\*\s*\*(?:importante|nota):\*', '⚠️ *Nota:*'),
-        (r'(?i)\*\s*\*(?:duraci[oó]n):\*', '⏱️ *Duración:*'),
-    ]
-    for pattern, repl in emoji_replacements:
-        text = re.sub(pattern, repl, text)
-
-    # 3. Limpiar viñetas restantes '* *Texto*' -> '• *Texto*'
-    text = re.sub(r'^\s*\*\s+\*(.*?)\*', r'• *\1*', text, flags=re.MULTILINE)
-    text = re.sub(r'^\s*\*\s+(?!\*)', r'• ', text, flags=re.MULTILINE)
-
-    # 4. Asignar emojis elegantes a listas numeradas
-    tour_number_emojis = {
-        '1': '🏛️', '2': '🚆', '3': '🌈', '4': '💎', '5': '🌾', '6': '🧂', '7': '🥾', '8': '☀️'
-    }
-    def _add_num_emoji(match):
-        num = match.group(1)
-        rest = match.group(2)
-        em = tour_number_emojis.get(num, '📍')
-        return f"\n{em} *{num}. {rest.strip()}*"
-
-    text = re.sub(r'(?m)^\s*(\d+)\.\s*\*+(.*?)\*+', _add_num_emoji, text)
-
-    # 5. Embellecer listado general de tours del evidence layer
-    if 'Tours documentados (cupos por confirmar):' in text:
-        text = text.replace(
-            'Tours documentados (cupos por confirmar):',
-            '✨ *Tours y Paquetes Disponibles — Texeira Travel Tour* 🇵🇪\n_(Cupos y fechas sujetos a confirmación de la agencia)_\n'
-        )
-        tour_emojis_map = {
-            'city tour': '🏛️', 'valle sagrado': '🌾', 'valle sur': '🏺',
-            '7 colores': '🌈', 'vinicunca': '🌈', 'humantay': '💎',
-            'waqra': '🏰', 'by car': '🚐', 'tren': '🚆',
-            'camino inka': '🥾', 'salkantay': '🥾', 'inka jungle': '🚴',
-            'choquequirao': '🏕️', 'místico': '🔮', 'mistico': '🔮',
-            'titicaca': '⛵', 'colca': '🦅', 'ruta del sol': '☀️',
-            'maras': '🧂', 'cuatrimoto': '🏍️', 'q’eswachaca': '🌉',
-            'qeswachaca': '🌉',
-        }
-        def _format_tour_bullet(match):
-            name = match.group(1).strip()
-            lower_name = name.lower()
-            icon = '📍'
-            for k, em in tour_emojis_map.items():
-                if k in lower_name:
-                    icon = em
-                    break
-            return f"• {icon} *{name}*"
-
-        text = re.sub(r'(?m)^[-•]\s+([^\n]+)$', _format_tour_bullet, text)
-        if '💬' not in text:
-            text = text.strip() + '\n\n💬 *¿Cuál de estos destinos te gustaría conocer o cotizar?* ✨\n_Indícanos el tour y con gusto te daremos todos los detalles._'
-
-    # 6. Embellecer bloque de contacto y dirección de la agencia
-    if '+51 953 767 860' in text and 'Carmen Quicllu' in text:
-        text = (
-            "📞 *Contacto Oficial — Texeira Travel Tour:*\n"
-            "• 📱 WhatsApp / Teléfono: +51 953 767 860 / +51 984 679 715\n"
-            "• 📧 Email: texeiratraveltour@hotmail.com\n"
-            "• 📍 Oficina: Calle Carmen Quicllu N° 250, Centro Histórico de Cusco, Perú 🇵🇪\n"
-            "• 🏢 Texeira Travel — Travel Agency E.I.R.L."
-        )
-    elif 'carmen quicllu' in text.lower() and len(text.strip()) < 50:
-        text = "📍 *Dirección de Oficina:*\nCalle Carmen Quicllu N° 250, Centro Histórico de Cusco, Perú 🇵🇪"
-
-    # 7. Embellecer mensajes de confirmación de agencia
-    if 'Este dato requiere confirmacion con la agencia:' in text:
-        text = text.replace(
-            'Este dato requiere confirmacion con la agencia:',
-            'ℹ️ *Información por Confirmar con la Agencia:*\nEste dato requiere confirmación directa con Texeira Travel:'
-        )
-        text = text.replace(
-            'Para registrar una solicitud de atención humana, escribe: asesor.',
-            '\n💬 _Para solicitar atención personalizada con un asesor humano, escribe: *asesor*._'
-        )
-
-    # 8. Reducir saltos de línea repetidos
-    text = re.sub(r'\n{3,}', '\n\n', text)
-    return text.strip()
-
-
-def send_messenger_message(text: str, psid: str) -> bool:
-    """
-    Envía un mensaje de texto a un usuario de Facebook Messenger vía Graph API.
-
-    Requiere FB_PAGE_ACCESS_TOKEN configurado. Si está vacío, registra el intento
-    y retorna False sin lanzar excepción (mismo patrón que send_whatsapp_message).
-
-    Args:
-        text: Texto a enviar.
-        psid: Page-Scoped User ID del destinatario (identificador de Messenger).
-
-    Returns:
-        True si la API devuelve 200/201, False en caso contrario.
-    """
-    if not FB_PAGE_ACCESS_TOKEN:
-        print(f"[FB] Envío no realizado: FB_PAGE_ACCESS_TOKEN ausente (psid={psid}).")
-        return False
-
-    url = "https://graph.facebook.com/v26.0/me/messages"
-    headers = {
-        "Authorization": f"Bearer {FB_PAGE_ACCESS_TOKEN}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "recipient": {"id": psid},
-        "message": {"text": text},
-    }
-    print(f"[FB OUTBOUND] psid={psid} chars={len(text)}")
-    try:
-        import httpx
-        with httpx.Client(timeout=10.0) as client:
-            resp = client.post(url, json=payload, headers=headers)
-            resp_body = resp.text[:300]
-            print(f"[FB SEND RESPONSE] status_code={resp.status_code} body={resp_body}")
-            if resp.status_code in (200, 201):
-                try:
-                    mid = resp.json().get("message_id", "")
-                    if mid:
-                        print(f"[FB MSG ID] message_id={mid}")
-                except Exception:
-                    pass
-                print(f"[FB] Mensaje enviado exitosamente a psid={psid}")
-                return True
-            else:
-                print(f"[FB ERROR] HTTP {resp.status_code}: {resp_body}")
-                return False
-    except Exception as e:
-        print(f"[FB ERROR] Excepcion al enviar mensaje: {e}")
-        return False
-
+# ============================================================
+# SERVICIOS DE MENSAJERÍA Y MOTOR VISUAL (MODULARIZADOS)
+# ============================================================
+from src.services.whatsapp import send_whatsapp_message, send_whatsapp_image
+from src.services.messenger import send_messenger_message
+from src.visual.visual_engine import format_whatsapp_text, get_tour_image_data
 
 
 # Mensaje de fallback estricto (handoff obligatorio)
@@ -706,6 +370,7 @@ def get_llm():
             model=LLM_MODEL or "qwen/qwen3.8-27b",
             temperature=0.1,
             max_tokens=900,
+            request_timeout=10,
             openai_api_key=os.getenv("GROQ_API_KEY"),
             openai_api_base=os.getenv("GROQ_API_BASE", "https://api.groq.com/openai/v1"),
         )
@@ -1928,6 +1593,17 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                             return JSONResponse(status_code=200, content={"status": "ok", "dedup": True})
                         print(f"[WA DEDUP] new message message_id={message_id}")
 
+                    # --- FILTRO DE MENSAJES VIEJOS / REINTENTOS TARDÍOS DE META ---
+                    if msg_timestamp:
+                        try:
+                            msg_age_sec = time.time() - float(msg_timestamp)
+                            if msg_age_sec > 120:
+                                elapsed = (time.time() - start_time) * 1000
+                                print(f"[WA STALE IGNORED] Mensaje antiguo ignorado (edad={msg_age_sec:.1f}s) message_id={message_id} elapsed={elapsed:.0f}ms")
+                                return JSONResponse(status_code=200, content={"status": "ok", "stale_ignored": True})
+                        except (ValueError, TypeError):
+                            pass
+
                     channel = "whatsapp"
                 else:
                     user_id = body.get("user_id", "test_user")
@@ -1995,18 +1671,21 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         recipient_bsuid=bsuid if bsuid else None,
                         phone_number_id=phone_number_id,
                     )
-                    # Enviar imagen temática relevante de alta calidad para embellecer visualmente el chat
+                    # Enviar imagen temática relevante SOLO cuando se presenta o describe un tour
                     try:
-                        tour_img_info = get_tour_image_data(user_message + " " + bot_response)
-                        if tour_img_info and accepted:
-                            img_url, img_caption = tour_img_info
-                            send_whatsapp_image(
-                                image_url=img_url,
-                                caption=img_caption,
-                                to_phone=phone_number if phone_number else None,
-                                recipient_bsuid=bsuid if bsuid else None,
-                                phone_number_id=phone_number_id,
-                            )
+                        route = rag_result.get('response_route') or rag_result.get('route') or ''
+                        no_image_routes = {'social', 'help', 'evidence_unknown', 'evidence_conflict', 'evidence_contact', 'evidence_listing'}
+                        if route not in no_image_routes:
+                            tour_img_info = get_tour_image_data(user_message + " " + bot_response, user_msg=user_message)
+                            if tour_img_info and accepted:
+                                img_url, img_caption = tour_img_info
+                                send_whatsapp_image(
+                                    image_url=img_url,
+                                    caption=img_caption,
+                                    to_phone=phone_number if phone_number else None,
+                                    recipient_bsuid=bsuid if bsuid else None,
+                                    phone_number_id=phone_number_id,
+                                )
                     except Exception as img_err:
                         print(f"[WA IMAGE SEND ATTEMPT] {img_err}")
 
@@ -2027,7 +1706,8 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                 channel_tag = "FB" if channel == "messenger" else "WA"
                 print(f"[{channel_tag} ERROR] user_id={user_id} error={e} latency={elapsed:.0f}ms")
 
-        background_tasks.add_task(_process_message)
+        # Procesar con CPU al 100% activa mientras la conexión con Meta está abierta
+        await asyncio.to_thread(_process_message)
 
         return JSONResponse(status_code=200, content={
             "status": "ok",

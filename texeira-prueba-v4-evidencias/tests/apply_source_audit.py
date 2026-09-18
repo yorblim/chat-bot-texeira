@@ -1,3 +1,5 @@
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 """Correcciones verificadas contra documentos del usuario, 2026-09-12."""
 import json, hashlib
 from pathlib import Path

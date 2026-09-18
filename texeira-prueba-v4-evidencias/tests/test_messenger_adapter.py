@@ -1,3 +1,5 @@
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 """Pruebas firmadas de Messenger, sin red ni escrituras del piloto."""
 import hashlib
 import hmac

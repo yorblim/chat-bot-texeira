@@ -1,3 +1,5 @@
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 """
 Pruebas unitarias para la notificación push de derivación al WhatsApp del asesor humano.
 Verifica que:

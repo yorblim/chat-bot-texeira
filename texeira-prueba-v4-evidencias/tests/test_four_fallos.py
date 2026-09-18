@@ -1,3 +1,5 @@
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 """Prueba específica para los cuatro fallos corregidos según REVISION_OPENCODE.md"""
 import os
 os.environ['HF_HUB_OFFLINE']='1'

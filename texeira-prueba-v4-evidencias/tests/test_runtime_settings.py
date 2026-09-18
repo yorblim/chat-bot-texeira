@@ -1,3 +1,5 @@
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 """Configuración cloud sin credenciales reales ni red."""
 import tempfile
 from pathlib import Path

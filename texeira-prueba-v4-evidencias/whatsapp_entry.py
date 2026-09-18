@@ -10,8 +10,11 @@ import os
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 
+from auth_middleware import install_auth
+
 logger=logging.getLogger(__name__)
 app=FastAPI(openapi_url=None,docs_url=None,redoc_url=None)
+install_auth(app)
 _state={'ready':False,'local_app':None,'error':None}
 
 def _load_app():
@@ -84,4 +87,16 @@ class ForwardResponse(Response):
 async def meta_webhook(request:Request):
     if not _state['ready'] or _state['local_app'] is None or _state['error']:
         return Response(status_code=503,headers={'Retry-After':'10'})
+    return ForwardResponse(_state['local_app'])
+
+@app.api_route('/', methods=['GET', 'POST', 'HEAD', 'OPTIONS'])
+async def forward_root(request: Request):
+    if not _state['ready'] or _state['local_app'] is None or _state['error']:
+        return Response(status_code=503, headers={'Retry-After': '10'})
+    return ForwardResponse(_state['local_app'])
+
+@app.api_route('/{path:path}', methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'])
+async def forward_all(request: Request, path: str):
+    if not _state['ready'] or _state['local_app'] is None or _state['error']:
+        return Response(status_code=503, headers={'Retry-After': '10'})
     return ForwardResponse(_state['local_app'])

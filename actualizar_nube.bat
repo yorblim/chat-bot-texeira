@@ -44,7 +44,8 @@ call gcloud run deploy texeira-whatsapp ^
     --cpu-boost ^
     --max-instances 2 ^
     --platform managed ^
-    --allow-unauthenticated
+    --allow-unauthenticated ^
+    --update-env-vars="ALLOW_CLOUD_RUN=1,ADMIN_USER=admin,ADMIN_PASSWORD=texeira2026,APP_BASE_URL=https://texeira-whatsapp-a5uzavilla-uc.a.run.app"
 
 if %ERRORLEVEL% EQU 0 (
     color 0a

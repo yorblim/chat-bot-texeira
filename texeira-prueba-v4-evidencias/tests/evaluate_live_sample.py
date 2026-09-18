@@ -1,3 +1,5 @@
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 """Muestra exploratoria con LLM real: máximo cuatro llamadas, sin registros del piloto."""
 import contextlib,io,json,os,time,hashlib
 from pathlib import Path

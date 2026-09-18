@@ -106,7 +106,7 @@ def install(ns, support, original):
                 sources_used=[],route='social',response_route='social')
 
         # --- AYUDA: respuesta corta, sin NOTICES, sin LLM ---
-        if q.strip(' ?¿!.') in {'ayuda','help','me ayudas','ayudame','puedes ayudarme','que puedes hacer','que haces'}:
+        if re.search(r'\b(ayuda|ayudame|me ayudas|puedes ayudarme|que puedes hacer|que haces|en que me puedes ayudar|en que puedes ayudar|para que sirves|como me puedes ayudar)\b', q) or q.strip(' ?¿!.') in {'ayuda','help'}:
             text = 'I can help with tours, itineraries, schedules and documented services. What would you like to know?' if en or q.strip(' ?¿!.') == 'help' else _HELP_RESPONSE
             ns['conversation_history'][user_id]=list(prior)
             ns['add_to_history'](user_id,'human',question)
@@ -127,7 +127,17 @@ def install(ns, support, original):
             if en:
                 return finish('This information requires confirmation with the agency: '+subject+'. '+phone,'evidence_unknown',True)
             return finish('Este dato requiere confirmacion con la agencia: '+subject+'. '+phone,'evidence_unknown',True)
-        # Primero operaciones comerciales
+
+        # Catálogo de tours solicitados (antes de evaluar fechas o disponibilidad comercial)
+        if (q.strip(' ?¿!.') in {'tour','tours','que tours tienen','que tours ofrecen','lista de tours','what tours do you offer','what tours do you have'} or
+            re.search(r'\b(tours?|viajes?|opciones?|paquetes?|cuales?|muestres?|muestrame|mostrar|ver|que|dime)\b.*?\bdisponibles?\b', q) or
+            re.search(r'\bdisponibles?\b.*?\b(tours?|viajes?|opciones?|paquetes?)\b', q) or
+            re.search(r'\b(muestres?|muestrame|mostrar|ver|dime)\s+(los\s+)?disponibles?\b', q) or
+            re.search(r'^\s*(tours?|viajes?)\s*$', q)):
+            title = 'Documented tours (availability to be confirmed):\n' if en else 'Tours documentados por Texeira Travel:\n'
+            return finish(title+'\n'.join('- '+t['name'] for t in tours.values() if is_product_confirmed(t['entity_id'])),'evidence_listing',sources=['F1','F2','F3'])
+
+        # Operaciones comerciales y disponibilidad para fechas puntuales
         if re.search(r'cancel|reembols|refund|yape|paypal|\bpagar\b|\bpago\b|adelant|deposit|\bpay\b|payment|descuento|discount|reserva|booking|\bbook\b|cupos?|spots?|availability|available|disponib|manana|tomorrow|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}',q):
             subj = 'payments, cancellations, bookings or availability for the requested date' if en else 'pagos, cancelaciones, reservas o disponibilidad para la fecha solicitada'
             return unknown(subj)
@@ -136,9 +146,6 @@ def install(ns, support, original):
             return unknown(subj)
         if re.search(r'contact|telefono|whatsapp|correo|email|direccion|ubicacion',q):
             a=catalog['agency'];return finish(phone+'\n'+', '.join(a['emails'])+'\n'+a['address'],'evidence_contact',sources=['F1','F2','F3'])
-        if q.strip(' ?¿!.') in {'tour','tours','que tours tienen','que tours ofrecen','lista de tours','what tours do you offer','what tours do you have'}:
-            title = 'Documented tours (availability to be confirmed):\n' if en else 'Tours documentados (cupos por confirmar):\n'
-            return finish(title+'\n'.join('- '+t['name'] for t in tours.values() if is_product_confirmed(t['entity_id'])),'evidence_listing',sources=['F1','F2','F3'])
         eid=entity(q); fld=field(q)
         if eid == 'machu-picchu-tren' and re.search(r'dormir|pernoct|alojamiento|overnight|sleep|accommodation', q):
             detail = ('overnight accommodation is not documented for this train tour; hotel pickup does not mean a hotel stay is included' if en else 'el alojamiento o pernocte no está documentado para este tour en tren; el recojo del hotel no significa que incluya hospedaje')
