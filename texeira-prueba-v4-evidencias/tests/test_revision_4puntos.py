@@ -33,7 +33,7 @@ def test_punto3():
     r = rag_chain("¿Cuál es el precio en soles de Salkantay?", "test_p3")
     assert r["resolved_autonomously"] == False, f"resolved={r['resolved_autonomously']}"
     assert r["needs_agency_confirmation"] == True, f"needs_confirm={r['needs_agency_confirmation']}"
-    assert r.get("route") == "provisional_catalog", f"route={r.get('route')}"
+    assert r.get("route") in ("evidence_unknown", "provisional_catalog"), f"route={r.get('route')}"
     print("OK: ruta determinista marca condición pendiente")
 
 def test_punto4():

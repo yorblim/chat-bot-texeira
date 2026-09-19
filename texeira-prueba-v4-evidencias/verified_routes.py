@@ -44,21 +44,21 @@ _SOCIAL_INTENTS = {
 }
 
 _SOCIAL_RESPONSES = {
-    'hola': 'Hola! Bienvenido a Texeira Travel. En que puedo ayudarte?',
-    'buenos dias': 'Buenos dias! Bienvenido a Texeira Travel. En que puedo ayudarte?',
-    'buenas tardes': 'Buenas tardes! Bienvenido a Texeira Travel. En que puedo ayudarte?',
-    'buenas noches': 'Buenas noches! Bienvenido a Texeira Travel. En que puedo ayudarte?',
+    'hola': '¡Hola! Bienvenido a Texeira Travel. ¿En qué puedo ayudarte?',
+    'buenos dias': '¡Buenos días! Bienvenido a Texeira Travel. ¿En qué puedo ayudarte?',
+    'buenas tardes': '¡Buenas tardes! Bienvenido a Texeira Travel. ¿En qué puedo ayudarte?',
+    'buenas noches': '¡Buenas noches! Bienvenido a Texeira Travel. ¿En qué puedo ayudarte?',
     'hello': 'Hello! Welcome to Texeira Travel. How can I help you?',
     'hi': 'Hi! Welcome to Texeira Travel. How can I help you?',
-    'buenas': 'Buenas! Bienvenido a Texeira Travel. En que puedo ayudarte?',
-    'gracias': 'De nada! Si tienes mas preguntas, escribeme.',
+    'buenas': '¡Buenas! Bienvenido a Texeira Travel. ¿En qué puedo ayudarte?',
+    'gracias': '¡De nada! Si tienes más preguntas, con gusto puedo ayudarte.',
     'thanks': "You're welcome! Feel free to ask anything else.",
-    'adios': 'Hasta luego! Que tengas un excelente viaje.',
-    'bye': 'Goodbye! Have a wonderful trip.',
-    'saludo': 'Hola! Bienvenido a Texeira Travel. En que puedo ayudarte?',
+    'adios': '¡Hasta luego! Que tengas un excelente viaje en Cusco.',
+    'bye': 'Goodbye! Have a wonderful trip in Cusco.',
+    'saludo': '¡Hola! Bienvenido a Texeira Travel. ¿En qué puedo ayudarte?',
 }
 
-_HELP_RESPONSE = 'Claro! Puedo ayudarte con tours, recorridos, horarios e informacion sobre nuestros servicios. Que necesitas?'
+_HELP_RESPONSE = '¡Claro! Puedo ayudarte con tours, recorridos, horarios e información sobre nuestros servicios documentados. ¿Qué necesitas saber?'
 
 def install(ns, support, original):
     catalog = support.CATALOG

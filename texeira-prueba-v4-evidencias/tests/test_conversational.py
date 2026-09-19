@@ -1,6 +1,6 @@
 """Tests conversacionales - sin Groq, verificando routing y presentacion."""
 import sys, os
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ['TEXEIRA_ENABLE_WHATSAPP'] = 'false'
 os.environ['HF_HUB_OFFLINE'] = '1'
 os.environ['TRANSFORMERS_OFFLINE'] = '1'
@@ -63,12 +63,12 @@ test("Yape: unknown route", 'unknown' in res.get('route', '') or 'unknown' in re
 test("Yape: no disclaimer", 'materiales de Texeira' not in res['response'])
 test("Yape: mentions agencia", 'agencia' in res['response'].lower())
 
-# --- EVIDENCE: CONFLICT ---
+# --- EVIDENCE: SCHEDULE CONFIRMADO ---
 print("\n--- Evidence: City Tour horario ---")
 res = r("Cuál es el horario del City Tour?", "test_ev_3")
-test("Horario: conflict route", 'conflict' in res.get('route', '') or 'conflict' in res.get('response_route', ''), f"route={res.get('route')}, response_route={res.get('response_route')}")
+test("Horario: schedule route", 'schedule' in res.get('route', '') or 'schedule' in res.get('response_route', ''), f"route={res.get('route')}, response_route={res.get('response_route')}")
 test("Horario: no disclaimer", 'materiales de Texeira' not in res['response'])
-test("Horario: mentions confirmar", 'confirma' in res['response'].lower() or 'confirmar' in res['response'].lower())
+test("Horario: has confirmed hours", '10:00-14:00' in res['response'] and '13:30-18:30' in res['response'])
 
 # --- EVIDENCE: PRICE UNKNOWN ---
 print("\n--- Evidence: Salkantay precio ---")

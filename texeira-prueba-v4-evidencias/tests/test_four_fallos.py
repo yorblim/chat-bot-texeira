@@ -49,10 +49,10 @@ print(f"Coinciden: {r4['response'] == last_ai}")
 assert r4['response'] == last_ai, "Fallo 4: historial debe coincidir con respuesta final"
 
 print("\n=== PRUEBAS ADICIONALES ===")
-# Precio referencial conocido en USD no debe marcar pendiente
+# Precio no documentado en fuentes oficiales requiere confirmación con la agencia
 r5 = app.rag_chain('¿Cuánto cuesta el City Tour?', 'test5')
-print(f"City Tour USD - needs_agency: {r5.get('needs_agency_confirmation', False)} (debe ser False)")
-assert not r5.get('needs_agency_confirmation', False), "Precio referencial USD no debe marcar pendiente"
+print(f"City Tour precio - needs_agency: {r5.get('needs_agency_confirmation', False)} (debe ser True)")
+assert r5.get('needs_agency_confirmation', False), "Precio de tour no documentado debe marcar pendiente"
 
 # Disponibilidad en inglés
 r6 = app.rag_chain('Is there availability for tomorrow?', 'test6')

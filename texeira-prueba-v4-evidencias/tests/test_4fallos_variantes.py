@@ -95,7 +95,7 @@ fal3_cases = [
     ("¿Cuál es el precio en PEN del Valle Sagrado?", "ES precio PEN tour"),
     ("What is the price in soles for Salkantay?", "EN precio PEN"),
     ("How much in PEN for the City Tour?", "EN precio PEN variante"),
-    ("¿Cuánto cuesta el City Tour?", "ES precio USD (debe resolved=True)"),
+    ("¿Cuánto cuesta el City Tour?", "ES precio City Tour no documentado"),
 ]
 
 fal3_ok = 0
@@ -111,12 +111,8 @@ for msg, label in fal3_cases:
     needs = r.get('needs_agency_confirmation', False)
     route = r.get('route', None)
     
-    if "USD" in label:
-        # Precio en USD no debe marcar pendiente
-        status = "OK" if (res and not needs) else "FALLO"
-    else:
-        # Precio en PEN debe marcar pendiente
-        status = "OK" if (not res and needs) else "FALLO"
+    # Precios no documentados deben marcar pendiente y requerir confirmación
+    status = "OK" if (not res and needs) else "FALLO"
     
     if status == "FALLO":
         fal3_fail += 1

@@ -4,31 +4,32 @@ Este archivo define el protocolo permanente y obligatorio para cualquier mejora,
 
 ---
 
-## 🔄 Flujo de Trabajo Obligatorio (4 Pasos)
+## 🔄 Flujo de Trabajo Obligatorio (4 Pasos - GitOps y Buenas Prácticas)
 
-Cada vez que se trabaje en una mejora o corrección, se debe seguir estrictamente este ciclo:
+Cada vez que se trabaje en una mejora o corrección, se debe seguir estrictamente este ciclo profesional:
 
 1. **Desarrollo y Prueba Local**:
    - Realizar modificaciones exclusivamente en la carpeta activa `texeira-prueba-v4-evidencias/`.
-   - Probar en local antes de tocar servidores o Git (ej: `python tests/test_audit_retrieval.py` o ejecutar `app.rag_chain`).
-   - *Regla*: Nunca desplegar ni pushear código no probado o con errores de sintaxis.
+   - Probar en local antes de tocar servidores o Git (ej: `python tests/test_conversational.py`, `python tests/test_audit_20260912.py`).
+   - *Regla*: Nunca desplegar ni pushear código no probado o con errores de sintaxis. 100% de tests deben pasar en local.
 
-2. **Despliegue al Servidor (Google Cloud Run)**:
-   - Ejecutar el script `actualizar_nube.bat`.
-   - Mantener siempre la configuración de **Costo $0.00** (`min-instances = 0`, escala a cero).
-
-3. **Verificación en Vivo (WhatsApp / API)**:
-   - Comprobar que el endpoint en la nube responda con estado `200 OK` y el comportamiento deseado.
-   - Validar que no se envíen fotos no solicitadas ni números de teléfono cuando el usuario solicita listas o ayuda.
-
-4. **Sello y Push en GitHub (`git push`)**:
-   - Solo cuando el cambio esté 100% probado y funcionando en la nube, sellar la versión en Git.
+2. **Flujo de Ramas y Registro en Git (Única Fuente de la Verdad)**:
+   - Trabajar mediante ramas de funcionalidad (`feature/...`), evitando push directo sin trazabilidad.
    - Usar la convención de commits profesionales:
      - `feat:` para nuevas funciones o datos de tours.
      - `fix:` para corrección de bugs o rutas.
      - `refactor:` para mejoras estructurales o de código.
      - `docs:` para documentación y rúbricas.
-   - Subir con `git push origin main`.
+   - Subir la rama a GitHub (`git push origin feature/...`) y fusionar limpiamente a `main` (Merge).
+   - *Regla*: Todo despliegue a producción debe provenir de código formalmente respaldado y versionado en Git (cero código fantasma).
+
+3. **Despliegue al Servidor (Google Cloud Run)**:
+   - Ejecutar el script `actualizar_nube.bat` desde la versión integrada y respaldada.
+   - Mantener siempre la configuración de **Costo $0.00** (`min-instances = 0`, escala a cero).
+
+4. **Verificación en Vivo (WhatsApp / API)**:
+   - Comprobar que el endpoint en la nube responda con estado `200 OK` y el comportamiento deseado.
+   - Validar que no se envíen fotos no solicitadas ni números de teléfono cuando el usuario solicita listas o ayuda.
 
 ---
 
