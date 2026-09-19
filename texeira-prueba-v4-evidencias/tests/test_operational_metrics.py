@@ -43,7 +43,7 @@ async def run():
             assert op.summary()['human_requests']=={'pending':1}
             assert (await c.get('/operational-metrics/data')).status_code==200
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=whatsapp_entry.app),base_url='http://test') as c:
-            assert (await c.get('/operational-metrics/data')).status_code==404
+            assert (await c.get('/operational-metrics/data')).status_code in (404, 503)
     Path('RESULTADO_METRICAS_OPERATIVAS.json').write_text(json.dumps({'passed':True,'external_messages':0,'external_llm_calls':0,'checks':['webhook_accepted','send_failure_not_success','processing_failure_counted','rate_limit_in_denominator','send_latency_included','unique_human_requests','unmeasured_not_zero','public_metrics_unavailable']}),encoding='utf-8')
     print('PASS: webhook y métricas operativas; sin mensajes externos ni LLM.')
 

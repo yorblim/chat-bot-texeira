@@ -1,12 +1,13 @@
 """Tests de deduplicacion de webhook WhatsApp - sin Groq."""
 import sys, os, hashlib, hmac, json, sqlite3, time
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.insert(0, os.path.dirname(__file__))
 
 from pathlib import Path
 from dotenv import dotenv_values
 
 vals = dotenv_values(Path(__file__).resolve().parent.parent / 'texeira-chatbot' / '.env')
-APP_SECRET = vals.get('META_APP_SECRET', '')
+APP_SECRET = vals.get('META_APP_SECRET', '') or 'test_dedup_secret'
 
 os.environ['TEXEIRA_ENABLE_WHATSAPP'] = 'false'
 os.environ['HF_HUB_OFFLINE'] = '1'

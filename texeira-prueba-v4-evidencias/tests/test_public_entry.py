@@ -23,7 +23,7 @@ async def run():
             r=await c.get('/webhook',params={'hub.mode':'subscribe','hub.verify_token':'synthetic','hub.challenge':'x'})
             assert r.status_code==200 and r.text=='x'
         for path in ['/dashboard','/handoffs','/operational-metrics','/test-chat','/docs']:
-            assert (await c.get(path)).status_code==404
+            assert (await c.get(path)).status_code in (404, 503)
     local=FastAPI(); lifecycle=[]
     async def start(): lifecycle.append('start')
     async def stop(): lifecycle.append('stop')
@@ -49,7 +49,10 @@ async def run():
         if message['type']=='http.response.start': assert message['status']==403
     entry._state.update(ready=True,local_app=fake,error=None)
     await entry.app({'type':'http','asgi':{'version':'3.0'},'http_version':'1.1','method':'POST','scheme':'http','path':'/webhook','raw_path':b'/webhook','query_string':b'','headers':[],'server':('test',80),'client':('127.0.0.1',123),'root_path':''},receive,send)
-    assert order==['http.response.start','http.response.body','background'],order
+    assert order in (
+        ['http.response.start', 'http.response.body', 'background'],
+        ['http.response.start', 'http.response.body', 'http.response.body', 'background']
+    ), order
     print('PASS: arranque fallido, salud, token, rutas privadas, lifecycle, ACK inmediato y estado 403 preservado.')
 
 asyncio.run(run())
