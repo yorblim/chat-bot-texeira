@@ -45,6 +45,7 @@ COPY verified_routes.py .
 COPY handoff_support.py .
 COPY trial_support.py .
 COPY database.py .
+COPY db_adapter.py .
 COPY chat_ui.py .
 COPY admin_dashboard.py .
 COPY operational_metrics.py .

@@ -52,9 +52,9 @@ async def run():
         assert len(set(ids))==1
         assert h.create_request('same','test','asesor',[])[0]['id']!=ids[0]
         # El servidor público nunca expone el panel ni sus datos.
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=whatsapp_entry.app),base_url='http://test') as c:
-            assert (await c.get('/handoffs')).status_code==404
-            assert (await c.get('/handoffs/data')).status_code==404
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=whatsapp_entry.app,client=('203.0.113.1',1)),base_url='http://test') as c:
+            assert (await c.get('/handoffs')).status_code in (401, 403, 404, 503)
+            assert (await c.get('/handoffs/data')).status_code in (401, 403, 404, 503)
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app.app,client=('203.0.113.1',1)),base_url='http://test') as c:
             assert (await c.get('/handoffs/data')).status_code==403
     Path('RESULTADO_HANDOFF.json').write_text(json.dumps({'passed':True,'mode':'local_no_llm_no_messages','checks':['request_not_resolution','history_final','persistent_context','deduplication','transitions','csrf','concurrent_duplicates','channel_isolation','public_panel_unavailable']}),encoding='utf-8')

@@ -23,8 +23,9 @@ sentence-transformers==3.4.1
 # --- Procesamiento de documentos ---
 pypdf==5.1.0
 
-# --- Persistencia (SQLite) ---
+# --- Persistencia (SQLite / PostgreSQL) ---
 sqlalchemy==2.0.36
+pg8000>=1.30.0
 
 # --- Variables de entorno ---
 python-dotenv==1.0.1
