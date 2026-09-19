@@ -68,6 +68,6 @@ async def main():
     app.get_llm=lambda:SimpleNamespace(invoke=lambda messages:SimpleNamespace(content='Consulta con un asesor de la agencia.'))
     await check('Necesito orientación para mi viaje',lambda r:not r['escalated_to_human'])
     assert all(r['interaction_type']=='predefined' for r in records[:-1])
-    Path('AUDIT_TEST_RESULTS.json').write_text(json.dumps({'mode':'local_no_external_llm','cases':rows,'additional_checks':['catalog-evidence consistency','includes-excludes conflict','history final','route metrics']},ensure_ascii=False,indent=2),encoding='utf-8')
+    (Path(__file__).resolve().parents[1] / 'docs' / 'AUDIT_TEST_RESULTS.json').write_text(json.dumps({'mode':'local_no_external_llm','cases':rows,'additional_checks':['catalog-evidence consistency','includes-excludes conflict','history final','route metrics']},ensure_ascii=False,indent=2),encoding='utf-8')
     print('PASS',len(rows),'casos endpoint + integridad, conflicto y métricas; sin API.')
 asyncio.run(main())

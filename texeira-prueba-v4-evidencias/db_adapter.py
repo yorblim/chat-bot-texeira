@@ -1,9 +1,8 @@
 """
 db_adapter.py — Capa de persistencia universal (PostgreSQL vía DATABASE_URL o SQLite local).
 
-Permite que el sistema opere con costo $0.00 en Cloud Run utilizando una base de datos
-PostgreSQL remota (Supabase, Neon, Cloud SQL) para no perder datos en scale-to-zero,
-manteniendo 100% de compatibilidad local con SQLite para pruebas y desarrollo.
+Selecciona PostgreSQL remoto cuando está configurado, o SQLite para uso local.
+La configuración del proveedor y la durabilidad del trabajo se validan por separado.
 """
 
 import os
@@ -17,6 +16,11 @@ logger = logging.getLogger(__name__)
 
 _ENGINE = None
 _PG_INITIALIZED = False
+
+WEBHOOK_RECEIPTS_SCHEMA = """CREATE TABLE IF NOT EXISTS webhook_receipts (
+    message_id TEXT PRIMARY KEY, user_id TEXT NOT NULL,
+    status TEXT NOT NULL, owner TEXT NOT NULL, lease_until DOUBLE PRECISION NOT NULL
+)"""
 
 
 def is_postgres() -> bool:
@@ -145,6 +149,15 @@ class CursorProxy:
         rows = self._result.fetchall()
         return [RowProxy(r) for r in rows]
 
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        row = self.fetchone()
+        if row is None:
+            raise StopIteration
+        return row
+
 
 def _adapt_sql_for_postgres(sql: str, params: Optional[Union[tuple, list, dict]] = None) -> Tuple[str, Dict[str, Any], bool]:
     """
@@ -167,7 +180,7 @@ def _adapt_sql_for_postgres(sql: str, params: Optional[Union[tuple, list, dict]]
             "INSERT INTO interactions"
         )
         if "ON CONFLICT" not in clean_sql.upper():
-            clean_sql += " ON CONFLICT (client_message_id) DO NOTHING"
+            clean_sql += " ON CONFLICT (client_message_id) WHERE client_message_id IS NOT NULL DO NOTHING"
 
     # En Postgres necesitamos RETURNING id para emular cursor.lastrowid
     is_interaction_insert = "INSERT INTO interactions" in clean_sql and "RETURNING" not in clean_sql.upper()
@@ -215,41 +228,35 @@ class PostgresConnectionWrapper:
         result = self._conn.execute(text(adapted_sql), bound_params)
         last_id = None
         if is_insert:
-            try:
-                row = result.fetchone()
-                if row:
-                    last_id = row[0]
-            except Exception:
-                pass
-        return CursorProxy(result, last_id=last_id)
+            row = result.fetchone()
+            if row is not None:
+                last_id = row[0]
+            cursor = CursorProxy(result, last_id=last_id)
+            # RETURNING es la evidencia de inserción, independientemente del driver.
+            cursor.rowcount = 1 if row is not None else 0
+            return cursor
+        return CursorProxy(result)
 
     def commit(self) -> None:
-        try:
-            self._conn.commit()
-        except Exception:
-            pass
+        self._conn.commit()
 
     def rollback(self) -> None:
-        try:
-            self._conn.rollback()
-        except Exception:
-            pass
+        self._conn.rollback()
 
     def close(self) -> None:
-        try:
-            self._conn.close()
-        except Exception:
-            pass
+        self._conn.close()
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if exc_type:
-            self.rollback()
-        else:
-            self.commit()
-        self.close()
+        try:
+            if exc_type:
+                self.rollback()
+            else:
+                self.commit()
+        finally:
+            self.close()
 
 
 def ensure_postgres_schema():
@@ -261,6 +268,7 @@ def ensure_postgres_schema():
     engine = get_engine()
     from sqlalchemy import text
     with engine.begin() as conn:
+        conn.execute(text(WEBHOOK_RECEIPTS_SCHEMA))
         # 1. Tabla de interacciones
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS interactions (

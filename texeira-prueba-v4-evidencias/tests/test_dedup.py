@@ -25,7 +25,6 @@ os.environ['META_APP_SECRET'] = APP_SECRET
 app.SQLITE_DB_PATH = str(TEST_DB)
 
 import database
-database._connection = None
 database.init_db(str(TEST_DB))
 
 from fastapi.testclient import TestClient
@@ -75,6 +74,7 @@ def tracking_rag(question, user_id='default'):
 
 def tracking_send(**kwargs):
     send_calls.append(kwargs)
+    return True
 
 app.rag_chain = tracking_rag
 app.send_whatsapp_message = tracking_send
@@ -191,3 +191,5 @@ app.send_whatsapp_message = original_send
 print(f"\n{'='*60}")
 print(f"RESULTADO: {PASSED} PASS / {FAILED} FAIL / {PASSED+FAILED} TOTAL")
 print(f"{'='*60}")
+
+sys.exit(1 if FAILED else 0)

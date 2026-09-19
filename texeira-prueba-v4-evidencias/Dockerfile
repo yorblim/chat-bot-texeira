@@ -31,9 +31,7 @@ RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTr
 # Ahora activar modo offline (el modelo ya está en caché de la imagen)
 ENV HF_HUB_OFFLINE=1 \
     TRANSFORMERS_OFFLINE=1 \
-    ALLOW_CLOUD_RUN=1 \
-    ADMIN_USER=admin \
-    ADMIN_PASSWORD=texeira2026
+    ALLOW_CLOUD_RUN=1
 
 # Copiar código fuente
 COPY src/ ./src/

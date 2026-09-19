@@ -1,8 +1,7 @@
 """Middleware de autenticación HTTP Basic para rutas administrativas.
 
-En la nube (Cloud Run), protege /dashboard, /handoffs y /operational-metrics
-con usuario y contraseña configurables via variables de entorno.
-En local, no bloquea nada a menos que ADMIN_USER y ADMIN_PASSWORD estén definidos.
+Las herramientas internas requieren credenciales. Sin credenciales solo se
+permite uso local por loopback, nunca cuando se configura un despliegue cloud.
 """
 import base64
 import hmac
@@ -16,6 +15,7 @@ PROTECTED_PREFIXES = (
     '/dashboard',
     '/handoffs',
     '/operational-metrics',
+    '/history', '/metrics', '/test-chat', '/chat', '/docs', '/redoc', '/openapi.json',
 )
 
 
@@ -29,9 +29,12 @@ def _check_credentials(request: Request) -> bool:
     admin_user = os.getenv('ADMIN_USER', '')
     admin_password = os.getenv('ADMIN_PASSWORD', '')
 
-    # Si no hay credenciales configuradas, permitir acceso libre
     if not admin_user or not admin_password:
-        return True
+        return (not admin_user and not admin_password
+                and not os.getenv('K_SERVICE')
+                and os.getenv('ALLOW_CLOUD_RUN', '').lower() not in {'1', 'true'}
+                and request.client is not None
+                and request.client.host in {'127.0.0.1', '::1', 'testclient'})
 
     auth_header = request.headers.get('Authorization', '')
     if not auth_header.startswith('Basic '):

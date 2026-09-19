@@ -56,8 +56,8 @@ async def run():
             assert (await c.get('/handoffs')).status_code in (401, 403, 404, 503)
             assert (await c.get('/handoffs/data')).status_code in (401, 403, 404, 503)
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app.app,client=('203.0.113.1',1)),base_url='http://test') as c:
-            assert (await c.get('/handoffs/data')).status_code==403
-    Path('RESULTADO_HANDOFF.json').write_text(json.dumps({'passed':True,'mode':'local_no_llm_no_messages','checks':['request_not_resolution','history_final','persistent_context','deduplication','transitions','csrf','concurrent_duplicates','channel_isolation','public_panel_unavailable']}),encoding='utf-8')
+            assert (await c.get('/handoffs/data')).status_code==401
+    (Path(__file__).resolve().parents[1] / 'docs' / 'RESULTADO_HANDOFF.json').write_text(json.dumps({'passed':True,'mode':'local_no_llm_no_messages','checks':['request_not_resolution','history_final','persistent_context','deduplication','transitions','csrf','concurrent_duplicates','channel_isolation','public_panel_unavailable']}),encoding='utf-8')
     print('PASS: solicitudes, persistencia, concurrencia, estados y protección; sin mensajes ni LLM.')
 
 asyncio.run(run())
