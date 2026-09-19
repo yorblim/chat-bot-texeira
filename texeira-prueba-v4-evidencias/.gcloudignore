@@ -9,6 +9,7 @@
 !handoff_support.py
 !trial_support.py
 !database.py
+!db_adapter.py
 !chat_ui.py
 !admin_dashboard.py
 !operational_metrics.py
