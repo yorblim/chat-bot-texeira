@@ -14,18 +14,29 @@ Estas métricas sustentan el pretest/postest de la tesis.
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
+
+from db_adapter import (
+    is_postgres,
+    ensure_postgres_schema,
+    get_engine,
+    PostgresConnectionWrapper,
+)
 
 # Variable global para la conexión SQLite
 _connection: Optional[sqlite3.Connection] = None
 
 
-def _get_connection(db_path: str = "texeira_logs.db") -> sqlite3.Connection:
+def _get_connection(db_path: str = "texeira_logs.db"):
     """
-    Retorna una conexión singleton a SQLite. Si no existe, la crea.
-    Esto evita abrir múltiples conexiones y mantiene el archivo de BD
-    como fuente única de verdad para las métricas.
+    Retorna la conexión a la base de datos:
+    - Si DATABASE_URL está configurada, utiliza PostgreSQL vía SQLAlchemy (pg8000).
+    - Si no, retorna una conexión singleton a SQLite local.
     """
+    if is_postgres():
+        ensure_postgres_schema()
+        return PostgresConnectionWrapper(get_engine().connect())
+
     global _connection
     if _connection is None:
         _connection = sqlite3.connect(db_path, check_same_thread=False)
@@ -36,14 +47,18 @@ def _get_connection(db_path: str = "texeira_logs.db") -> sqlite3.Connection:
 
 def init_db(db_path: str = "texeira_logs.db") -> None:
     """
-    Inicializa la tabla 'interactions' en SQLite.
+    Inicializa las tablas en PostgreSQL o SQLite.
 
-    Cada registro representa una interacción completa turista↔bot y contiene
+    Cada registro representa una interacción completa turista-bot y contiene
     los campos necesarios para calcular las métricas de la investigación:
       - resolved_autonomously: indicador clave de la hipótesis
       - latency_ms: indicador de rendimiento operativo
       - escalated_to_human: indicador de carga al personal
     """
+    if is_postgres():
+        ensure_postgres_schema()
+        print("[DB] Base de datos PostgreSQL inicializada exitosamente.")
+        return
     conn = _get_connection(db_path)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS interactions (
@@ -343,7 +358,7 @@ def get_metrics_summary(db_path: str = "texeira_logs.db") -> dict:
         after_hours_total = conn.execute(
             "SELECT COUNT(*) FROM interactions "
             "WHERE interaction_type != 'ui_navigation' AND is_rate_limit = 0 "
-            "AND (CAST(strftime('%H', timestamp) AS INTEGER) >= 18 OR CAST(strftime('%H', timestamp) AS INTEGER) < 8)"
+            "AND (CAST(SUBSTR(timestamp, 12, 2) AS INTEGER) >= 18 OR CAST(SUBSTR(timestamp, 12, 2) AS INTEGER) < 8)"
         ).fetchone()[0]
 
         resolution_rate = (resolved_total / conversational_total) * 100
@@ -406,6 +421,6 @@ def is_duplicate_webhook(message_id: str, user_id: str = "", db_path: str = "tex
         conn.commit()
         # changes() == 1 significa que se inserto una fila nueva
         return cursor.rowcount == 0
-    except sqlite3.IntegrityError:
+    except (sqlite3.IntegrityError, Exception):
         # Violacion de PRIMARY KEY = message_id ya existia
         return True

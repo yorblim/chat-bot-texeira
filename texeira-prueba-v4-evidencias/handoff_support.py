@@ -14,25 +14,30 @@ from fastapi.responses import HTMLResponse, JSONResponse
 
 ROOT = Path(__file__).resolve().parent
 from runtime_settings import state_file
+from db_adapter import is_postgres, get_db_session
 DB = state_file('human_requests.db')
 
 
 @contextmanager
 def connection():
-    conn = sqlite3.connect(str(DB), timeout=15)
-    conn.row_factory = sqlite3.Row
-    conn.execute('''CREATE TABLE IF NOT EXISTS requests (
-        id TEXT PRIMARY KEY, user_id TEXT NOT NULL, channel TEXT NOT NULL,
-        question TEXT NOT NULL, context TEXT NOT NULL, status TEXT NOT NULL,
-        created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
-        advisor TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '')''')
-    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS one_open_request ON requests(channel,user_id) WHERE status != 'closed'")
-    conn.commit()
-    try:
-        with conn:
+    if is_postgres():
+        with get_db_session() as conn:
             yield conn
-    finally:
-        conn.close()
+    else:
+        conn = sqlite3.connect(str(DB), timeout=15)
+        conn.row_factory = sqlite3.Row
+        conn.execute('''CREATE TABLE IF NOT EXISTS requests (
+            id TEXT PRIMARY KEY, user_id TEXT NOT NULL, channel TEXT NOT NULL,
+            question TEXT NOT NULL, context TEXT NOT NULL, status TEXT NOT NULL,
+            created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+            advisor TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '')''')
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS one_open_request ON requests(channel,user_id) WHERE status != 'closed'")
+        conn.commit()
+        try:
+            with conn:
+                yield conn
+        finally:
+            conn.close()
 
 
 def create_request(user_id, channel, question, context):
@@ -138,7 +143,7 @@ def apply_request(ns, result, user_id, channel, question):
         if row['status']=='in_progress':
             result['response']=f"Tu solicitud {row['id']} ya está en atención. Aún no está cerrada."
             if en: result['response']=f"Your request {row['id']} is being handled. It is not closed yet."
-    except sqlite3.Error:
+    except (sqlite3.Error, Exception):
         result['response']='No pude registrar la solicitud. Intenta nuevamente o usa los contactos de la agencia.'
         result.update(handoff_registered=False,handoff_status='registration_failed')
         if en: result['response']='I could not register the request. Please try again or use the agency contact details.'

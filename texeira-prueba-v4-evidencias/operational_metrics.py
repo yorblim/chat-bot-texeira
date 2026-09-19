@@ -9,21 +9,26 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from runtime_settings import state_file
+from db_adapter import is_postgres, get_db_session
 DB=Path(os.environ['SQLITE_DB_PATH']) if 'SQLITE_DB_PATH' in os.environ else state_file('trial_logs.db')
 
 @contextmanager
 def connection():
-    conn=sqlite3.connect(str(DB),timeout=15)
-    conn.row_factory=sqlite3.Row
-    conn.execute('''CREATE TABLE IF NOT EXISTS operational_events (
-        id TEXT PRIMARY KEY, received_at TEXT NOT NULL,
-        completed_at TEXT, status TEXT NOT NULL,
-        generation_ms REAL, response_attempt_ms REAL,
-        route TEXT, model_claims_resolved INTEGER NOT NULL DEFAULT 0,
-        provider_rate_limit INTEGER NOT NULL DEFAULT 0, handoff_id TEXT)''')
-    try:
-        with conn: yield conn
-    finally: conn.close()
+    if is_postgres():
+        with get_db_session() as conn:
+            yield conn
+    else:
+        conn=sqlite3.connect(str(DB),timeout=15)
+        conn.row_factory=sqlite3.Row
+        conn.execute('''CREATE TABLE IF NOT EXISTS operational_events (
+            id TEXT PRIMARY KEY, received_at TEXT NOT NULL,
+            completed_at TEXT, status TEXT NOT NULL,
+            generation_ms REAL, response_attempt_ms REAL,
+            route TEXT, model_claims_resolved INTEGER NOT NULL DEFAULT 0,
+            provider_rate_limit INTEGER NOT NULL DEFAULT 0, handoff_id TEXT)''')
+        try:
+            with conn: yield conn
+        finally: conn.close()
 
 def start():
     event_id=uuid.uuid4().hex
@@ -46,10 +51,10 @@ def finish(event_id, status, generation_ms, response_attempt_ms, result=None):
 def summary():
     with connection() as conn:
         row=dict(conn.execute('''SELECT COUNT(*) AS received,
-            COALESCE(SUM(status='api_accepted'),0) AS api_accepted,
-            COALESCE(SUM(status='send_failed'),0) AS send_failed,
-            COALESCE(SUM(status='processing_failed'),0) AS processing_failed,
-            COALESCE(SUM(status='processing'),0) AS processing,
+            COALESCE(SUM(CASE WHEN status='api_accepted' THEN 1 ELSE 0 END),0) AS api_accepted,
+            COALESCE(SUM(CASE WHEN status='send_failed' THEN 1 ELSE 0 END),0) AS send_failed,
+            COALESCE(SUM(CASE WHEN status='processing_failed' THEN 1 ELSE 0 END),0) AS processing_failed,
+            COALESCE(SUM(CASE WHEN status='processing' THEN 1 ELSE 0 END),0) AS processing,
             COALESCE(SUM(provider_rate_limit),0) AS provider_rate_limits,
             AVG(generation_ms) AS generation_ms,
             AVG(CASE WHEN status='api_accepted' THEN response_attempt_ms END) AS api_acceptance_ms,
