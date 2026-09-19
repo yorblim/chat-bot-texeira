@@ -88,3 +88,5 @@ test("Meta: has sources_used", 'sources_used' in res)
 print(f"\n{'='*60}")
 print(f"RESULTADO: {PASSED} PASS / {FAILED} FAIL / {PASSED+FAILED} TOTAL")
 print(f"{'='*60}")
+
+sys.exit(1 if FAILED else 0)

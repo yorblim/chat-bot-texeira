@@ -14,7 +14,8 @@ async def run():
         op.DB=Path(folder)/'events.db';h.DB=Path(folder)/'requests.db'
         app.META_APP_SECRET='test-secret'
         app.database.log_interaction=lambda **kw:1
-        app.database.is_duplicate_webhook=lambda *args:False
+        app.SQLITE_DB_PATH=str(Path(folder)/'webhooks.db')
+        app.database.init_db(app.SQLITE_DB_PATH)
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app.app),base_url='http://test') as c:
             for i in range(3):
                 def answer(*args,**kwargs):
@@ -27,7 +28,7 @@ async def run():
                 body=json.dumps({'entry':[{'changes':[{'value':{'metadata':{'phone_number_id':'test-id'},'messages':[{'id':f'test-{i}','from':'51900000000','type':'text','text':{'body':'test'}}]}}]}]}).encode()
                 sig='sha256='+hmac.new(b'test-secret',body,hashlib.sha256).hexdigest()
                 r=await c.post('/webhook',content=body,headers={'X-Hub-Signature-256':sig})
-                assert r.status_code==200,r.text
+                assert r.status_code==(200 if i==0 else 503),r.text
             s=op.summary()
             assert s['received']==3 and s['api_accepted']==1 and s['send_failed']==1 and s['processing_failed']==1,s
             assert s['api_acceptance_pct']==33.33 and s['provider_rate_limits']==1,s
@@ -44,7 +45,7 @@ async def run():
             assert (await c.get('/operational-metrics/data')).status_code==200
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=whatsapp_entry.app),base_url='http://test') as c:
             assert (await c.get('/operational-metrics/data')).status_code in (404, 503)
-    Path('RESULTADO_METRICAS_OPERATIVAS.json').write_text(json.dumps({'passed':True,'external_messages':0,'external_llm_calls':0,'checks':['webhook_accepted','send_failure_not_success','processing_failure_counted','rate_limit_in_denominator','send_latency_included','unique_human_requests','unmeasured_not_zero','public_metrics_unavailable']}),encoding='utf-8')
+    (Path(__file__).resolve().parents[1] / 'docs' / 'RESULTADO_METRICAS_OPERATIVAS.json').write_text(json.dumps({'passed':True,'external_messages':0,'external_llm_calls':0,'checks':['webhook_accepted','send_failure_not_success','processing_failure_counted','rate_limit_in_denominator','send_latency_included','unique_human_requests','unmeasured_not_zero','public_metrics_unavailable']}),encoding='utf-8')
     print('PASS: webhook y métricas operativas; sin mensajes externos ni LLM.')
 
 asyncio.run(run())

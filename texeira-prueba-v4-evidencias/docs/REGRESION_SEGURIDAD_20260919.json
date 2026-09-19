@@ -1,0 +1,10 @@
+{
+  "mode": "synthetic_no_network",
+  "observations": {
+    "GET /dashboard with_auth_configured": 401,
+    "GET /history/synthetic-user with_auth_configured": 401,
+    "DELETE /history/synthetic-user with_auth_configured": 401,
+    "GET /metrics with_auth_configured": 401,
+    "GET /dashboard missing_password_in_cloud": 401
+  }
+}

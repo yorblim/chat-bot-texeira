@@ -23,7 +23,9 @@ def run():
         assert send(payload).status_code==503
         rag.assert_not_called()
     with patch.object(app,'FB_APP_SECRET','test-secret'), \
-         patch.object(app.database,'is_duplicate_webhook',return_value=False) as dedup, \
+         patch.object(app.database,'claim_webhook',return_value=('claimed', 'synthetic-owner')) as dedup, \
+         patch.object(app.database,'renew_webhook'), \
+         patch.object(app.database,'finish_webhook'), \
          patch.object(app.database,'log_interaction') as log, \
          patch.object(app,'rag_chain',return_value={'response':'Hola','is_fallback':False}) as rag, \
          patch.object(app,'send_messenger_message',return_value=True) as outbound:
@@ -32,7 +34,7 @@ def run():
         assert send(payload).status_code==200
         rag.assert_called_once(); outbound.assert_called_once(); log.assert_called_once()
         assert log.call_args.kwargs['channel']=='messenger'
-        dedup.return_value=True
+        dedup.return_value=('completed', None)
         assert send(payload).json()['dedup'] is True
         assert outbound.call_count==1
         payload['entry'][0]['messaging'][0]['message']['is_echo']=True

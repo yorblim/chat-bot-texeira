@@ -49,7 +49,7 @@ def test_db_adapter_utilities():
 
     sql_ignore = "INSERT OR IGNORE INTO interactions (user_id, client_message_id) VALUES (?, ?)"
     adapted, binds, is_insert = db_adapter._adapt_sql_for_postgres(sql_ignore, ("user1", "msg123"))
-    assert "ON CONFLICT (client_message_id) DO NOTHING" in adapted
+    assert "ON CONFLICT (client_message_id) WHERE client_message_id IS NOT NULL DO NOTHING" in adapted
     assert ":p_0" in adapted and ":p_1" in adapted
     assert binds == {"p_0": "user1", "p_1": "msg123"}
     assert is_insert is True
@@ -128,12 +128,6 @@ def test_database_sqlite_flow():
         assert "after_hours_count" in summary
         print("  PASS | Flujo database.py SQLite OK")
     finally:
-        if database._connection:
-            try:
-                database._connection.close()
-            except Exception:
-                pass
-            database._connection = None
         if os.path.exists(temp_db):
             try:
                 os.unlink(temp_db)

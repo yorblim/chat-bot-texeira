@@ -1,7 +1,7 @@
-"""Entrada restringida para servidor continuo; no usar con scale-to-zero.
+"""Entrada pública: webhook síncrono y herramientas internas autenticadas.
 
-El ACK se transmite directamente. El procesamiento posterior usa el proceso
-actual: no es una cola durable y requiere CPU disponible después del ACK.
+En Cloud Run exige credenciales administrativas y persistencia PostgreSQL.
+El ACK se emite después del intento de procesamiento; fallos admiten reintento.
 """
 import asyncio
 import hmac
@@ -25,8 +25,12 @@ def _load_app():
 async def startup():
     _state.update(ready=False,local_app=None,error=None)
     try:
-        if os.environ.get('K_SERVICE') and not os.environ.get('ALLOW_CLOUD_RUN'):
-            raise RuntimeError('Cloud Run no soportado: faltan cola durable y persistencia externa.')
+        if os.environ.get('K_SERVICE'):
+            from db_adapter import is_postgres
+            if not all(os.getenv(key) for key in ('ADMIN_USER', 'ADMIN_PASSWORD')):
+                raise RuntimeError('Cloud Run requiere credenciales administrativas.')
+            if not is_postgres():
+                raise RuntimeError('Cloud Run requiere persistencia PostgreSQL externa.')
         local=await asyncio.to_thread(_load_app)
         for handler in local.router.on_startup:
             if asyncio.iscoroutinefunction(handler): await handler()

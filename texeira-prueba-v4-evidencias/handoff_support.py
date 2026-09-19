@@ -48,9 +48,15 @@ def create_request(user_id, channel, question, context):
         if row:
             return dict(row), False
         ticket = secrets.token_hex(6)
-        conn.execute('INSERT INTO requests(id,user_id,channel,question,context,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
+        inserted = conn.execute("INSERT INTO requests(id,user_id,channel,question,context,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?) "
+                     "ON CONFLICT (channel,user_id) WHERE status != 'closed' DO NOTHING RETURNING id",
                      (ticket,user_id,channel,question,json.dumps(context[-6:],ensure_ascii=False),'pending',now,now))
-        return dict(conn.execute('SELECT * FROM requests WHERE id=?',(ticket,)).fetchone()), True
+        if inserted.fetchone() is not None:
+            return dict(conn.execute('SELECT * FROM requests WHERE id=?',(ticket,)).fetchone()), True
+        row = conn.execute("SELECT * FROM requests WHERE user_id=? AND channel=? AND status!='closed'", (user_id, channel)).fetchone()
+        if row is None:
+            raise RuntimeError('La solicitud cambió de estado; vuelve a intentar.')
+        return dict(row), False
 
 
 def update_request(ticket, status, advisor, note):
@@ -64,8 +70,10 @@ def update_request(ticket, status, advisor, note):
         if not row: raise ValueError('Solicitud inexistente.')
         if row['status']=='closed': raise ValueError('La solicitud ya está cerrada.')
         if row['status']=='pending' and status=='closed': raise ValueError('Primero toma la solicitud en atención.')
-        conn.execute('UPDATE requests SET status=?,advisor=?,note=?,updated_at=? WHERE id=?',
-                     (status,advisor.strip(),note.strip(),datetime.now(timezone.utc).isoformat(),ticket))
+        changed = conn.execute('UPDATE requests SET status=?,advisor=?,note=?,updated_at=? WHERE id=? AND status=?',
+                     (status,advisor.strip(),note.strip(),datetime.now(timezone.utc).isoformat(),ticket,row['status']))
+        if changed.rowcount != 1:
+            raise ValueError('Otro asesor actualizó la solicitud; recarga antes de continuar.')
 
 
 def requested(text):

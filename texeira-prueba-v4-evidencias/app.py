@@ -327,6 +327,9 @@ app = FastAPI(
 )
 
 
+from auth_middleware import install_auth
+install_auth(app)
+
 @app.on_event("startup")
 async def startup_event():
     """Inicialización al arrancar el servidor."""
@@ -1502,15 +1505,6 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
             print(f"[FB INBOUND] psid={psid} user_id={user_id} "
                   f"message_id={message_id} text=\"{user_message[:50]}\"")
 
-            # Deduplicacion por message_id
-            if message_id:
-                is_dup = database.is_duplicate_webhook(message_id, user_id, SQLITE_DB_PATH)
-                if is_dup:
-                    elapsed = (time.time() - start_time) * 1000
-                    print(f"[FB DEDUP] duplicate ignored message_id={message_id} elapsed={elapsed:.0f}ms")
-                    return JSONResponse(status_code=200, content={"status": "ok", "dedup": True})
-                print(f"[FB DEDUP] new message message_id={message_id}")
-
         # ================================================================
         # RAMA WHATSAPP: object == "whatsapp_business_account" o sin object
         # ================================================================
@@ -1584,26 +1578,6 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                           f"selected_phone={phone_number} "
                           f"user_id={user_id}")
 
-                    # --- DEDUPLICACION POR MESSAGE_ID ---
-                    if message_id:
-                        is_dup = database.is_duplicate_webhook(message_id, user_id, SQLITE_DB_PATH)
-                        if is_dup:
-                            elapsed = (time.time() - start_time) * 1000
-                            print(f"[WA DEDUP] duplicate ignored message_id={message_id} elapsed={elapsed:.0f}ms")
-                            return JSONResponse(status_code=200, content={"status": "ok", "dedup": True})
-                        print(f"[WA DEDUP] new message message_id={message_id}")
-
-                    # --- FILTRO DE MENSAJES VIEJOS / REINTENTOS TARDÍOS DE META ---
-                    if msg_timestamp:
-                        try:
-                            msg_age_sec = time.time() - float(msg_timestamp)
-                            if msg_age_sec > 120:
-                                elapsed = (time.time() - start_time) * 1000
-                                print(f"[WA STALE IGNORED] Mensaje antiguo ignorado (edad={msg_age_sec:.1f}s) message_id={message_id} elapsed={elapsed:.0f}ms")
-                                return JSONResponse(status_code=200, content={"status": "ok", "stale_ignored": True})
-                        except (ValueError, TypeError):
-                            pass
-
                     channel = "whatsapp"
                 else:
                     user_id = body.get("user_id", "test_user")
@@ -1627,12 +1601,21 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
         if not user_message:
             return JSONResponse(status_code=400, content={"error": "No se proporciono un mensaje valido"})
 
-        # --- PROCESAMIENTO SINCRONIZADO (ACK rapido) ---
+        owner = None
+        if message_id:
+            state, owner = database.claim_webhook(message_id, user_id, SQLITE_DB_PATH)
+            if state == 'completed':
+                return JSONResponse(status_code=200, content={"status": "ok", "dedup": True})
+            if state == 'busy':
+                return JSONResponse(status_code=503, content={"status": "processing"}, headers={"Retry-After": "10"})
+
+        # Completar el intento antes del ACK para conservar CPU durante la petición.
         def _process_message():
             import operational_metrics as operational
             event_id = None
             generation_ms = None
             rag_result = {}
+            accepted = False
             try:
                 if channel == 'whatsapp':
                     event_id = operational.start()
@@ -1659,10 +1642,14 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                     is_predefined_response=is_predefined,
                     interaction_type=interaction_type,
                     is_rate_limit=is_rate_limit,
+                    client_message_id=message_id or None,
                     db_path=SQLITE_DB_PATH,
                 )
 
                 generation_ms = (time.perf_counter() - metric_start) * 1000
+                if owner:
+                    database.renew_webhook(message_id, owner, SQLITE_DB_PATH)
+                accepted = channel not in {'whatsapp', 'messenger'}
                 if channel == "whatsapp":
                     bot_response_clean = format_whatsapp_text(bot_response)
                     accepted = user_id != 'unknown' and send_whatsapp_message(
@@ -1675,7 +1662,9 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                     try:
                         route = rag_result.get('response_route') or rag_result.get('route') or ''
                         no_image_routes = {'social', 'help', 'evidence_unknown', 'evidence_conflict', 'evidence_contact', 'evidence_listing'}
-                        if route not in no_image_routes:
+                        wants_image = bool(re.search(r'\b(foto|fotos|imagen|imágenes|imagenes|photo|photos|picture|pictures|image|images)\b', user_message, re.IGNORECASE))
+                        wants_image = wants_image and not re.search(r"\b(no|sin|without|don't|do not)\b", user_message, re.IGNORECASE)
+                        if wants_image and route not in no_image_routes:
                             tour_img_info = get_tour_image_data(user_message + " " + bot_response, user_msg=user_message)
                             if tour_img_info and accepted:
                                 img_url, img_caption = tour_img_info
@@ -1695,19 +1684,27 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                     accepted = send_messenger_message(text=bot_response, psid=bsuid)
                     print(f"[FB OUTBOUND RESULT] psid={bsuid} accepted={accepted}")
 
+                if owner:
+                    database.finish_webhook(message_id, owner, bool(accepted), SQLITE_DB_PATH)
                 elapsed = (time.time() - start_time) * 1000
                 channel_tag = "FB" if channel == "messenger" else "WA"
                 print(f"[{channel_tag} PROCESSED] user_id={user_id} latency={elapsed:.0f}ms route={rag_result.get('response_route', 'unknown')}")
+                return bool(accepted)
             except Exception as e:
                 elapsed = (time.time() - start_time) * 1000
+                if owner:
+                    database.finish_webhook(message_id, owner, bool(accepted), SQLITE_DB_PATH)
                 if event_id:
                     operational.finish(event_id, 'processing_failed', generation_ms,
                                        (time.perf_counter()-metric_start)*1000, rag_result)
                 channel_tag = "FB" if channel == "messenger" else "WA"
                 print(f"[{channel_tag} ERROR] user_id={user_id} error={e} latency={elapsed:.0f}ms")
+                return bool(accepted)
 
         # Procesar con CPU al 100% activa mientras la conexión con Meta está abierta
-        await asyncio.to_thread(_process_message)
+        succeeded = await asyncio.to_thread(_process_message)
+        if not succeeded:
+            return JSONResponse(status_code=503, content={"error": "Procesamiento temporalmente no disponible"}, headers={"Retry-After": "10"})
 
         return JSONResponse(status_code=200, content={
             "status": "ok",
@@ -1716,7 +1713,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
 
     except Exception as e:
         latency_ms = (time.time() - start_time) * 1000
-        return JSONResponse(status_code=500, content={"error": f"Error interno: {str(e)}"})
+        return JSONResponse(status_code=500, content={"error": "Error interno; vuelve a intentar"})
 
 
 @app.get("/metrics")
