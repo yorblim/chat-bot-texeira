@@ -94,10 +94,33 @@ Se ejecutaron todas las suites de pruebas del proyecto:
 
 ---
 
-## 4. Compromiso y Protocolo GitOps
+## 4. Validación en Vivo con Neon PostgreSQL (Cero Credenciales)
+
+Se ejecutó la prueba de conectividad y funcionalidad real contra el cluster de Neon PostgreSQL recuperando el secreto `DATABASE_URL` v1 desde Google Cloud Secret Manager (`texeira-whatsapp-bot`) exclusivamente en memoria:
+
+1. **Negociación TLS y Cifrado en Vivo:**
+   - Capa TLS del socket de cliente: **Activa (`is_ssl = True`)**.
+   - Protocolo TLS negociado: **`TLSv1.3`**.
+   - Suite de cifrado: **`TLS_AES_256_GCM_SHA384`**.
+   - Channel Binding: **`tls-server-end-point` (longitud = 32 bytes)**.
+   - Parámetros efectivos: `sslmode=require`, `channel_binding=require`.
+
+2. **Identificación del Motor Remoto:**
+   - Servidor remoto: **`PostgreSQL 18.6 on aarch64-unknown-linux-gnu`**.
+   - Driver utilizado: **`pg8000` + `SQLAlchemy` con `SecureConnection`**.
+
+3. **Prueba de Escritura y Lectura Aislada (Cero Impacto):**
+   - Se creó una tabla temporal de sesión (`CREATE TEMP TABLE _probe_neon (id INT PRIMARY KEY, token TEXT)`).
+   - Inserción y consulta de token de sondeo: **Resultado = `neon_probe_ok` (PASS)**.
+   - Eliminación de tabla temporal en la misma sesión (`DROP TABLE _probe_neon`).
+   - Impacto en datos existentes de producción: **Nulo**.
+
+---
+
+## 5. Compromiso y Protocolo GitOps
 
 - **Rama de trabajo:** `feature/conexion-segura-neon` (exclusivamente en `texeira-prueba-v4-evidencias/`).
 - **Estado de `main`:** Intacto (cero merge anticipado).
 - **Despliegue a Cloud Run:** No ejecutado.
-- **Memoria persistente (Entrega 2):** No iniciada (se posterga estrictamente hasta que Codex apruebe la Entrega 1).
-- **Próximo paso:** Presentar el commit y la rama para revisión de Codex.
+- **Memoria persistente (Entrega 2):** No iniciada (se posterga estrictamente hasta que se apruebe e integre la Entrega 1).
+- **Próximo paso:** Apertura de Pull Request hacia `main`.
