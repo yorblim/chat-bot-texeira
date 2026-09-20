@@ -1,86 +1,92 @@
-# Informe de Evidencia: Entrega 1 — Conexión Segura con Neon PostgreSQL y Validación SSL
+# Informe de Evidencia: Entrega 1 — Conexión Segura con Neon PostgreSQL y Validación SSL (Revisión Completa)
 
 **Fecha:** 19/09/2026  
 **Rama:** `feature/conexion-segura-neon`  
-**Estado:** Listo para revisión de Codex (Sin merge a `main`, sin despliegue).
+**Estado:** Actualizado y listo para revisión de Codex (Sin merge a `main`, sin despliegue).
 
 ---
 
-## 1. Alcance y Problema Técnico Resuelto
+## 1. Alcance y Respuestas a las 5 Observaciones de Codex
 
-Las cadenas de conexión de proveedores como Neon (`postgresql://...`) suelen incluir parámetros en la query string como:
-`?sslmode=require&channel_binding=disable`
+En esta iteración se abordaron rigurosamente las 5 observaciones técnicas acordadas:
 
-El driver `pg8000` (DB-API puro de Python) no acepta `sslmode` ni `channel_binding` directamente en los argumentos de `connect()`. Pasarlos sin filtrar causaba:
-`TypeError: connect() got an unexpected keyword argument 'sslmode'`
+### 1.1. Comportamiento Correcto de `sslmode=disable`, `prefer` y `allow`
+- **`sslmode=disable`:** En `pg8000`, la omisión de `ssl_context` disparaba por defecto un intento SSL con `CERT_NONE`. Para forzar que `pg8000` **nunca** intente SSL ni envíe el paquete `SSLRequest`, se configura explícitamente `connect_args['ssl_context'] = False`. Si el servidor exige SSL, la conexión falla limpiamente sin degradación forzada.
+- **`sslmode=prefer`:** Intenta primero la conexión cifrada con TLS (`ssl_context = ctx`). Si el servidor rechaza SSL (respuesta `'N'` de PostgreSQL) o no soporta cifrado, `secure_pg8000_connect` realiza el fallback automático y seguro a conexión sin SSL (`ssl_context = False`).
+- **`sslmode=allow`:** Intenta primero una conexión sin SSL (`ssl_context = False`). Si el servidor rechaza la conexión en texto plano (exige SSL), realiza el fallback automático a conexión cifrada con TLS (`ssl_context = ctx`).
+- **`sslmode=require` / `verify-full`:** Exige TLS estricto con validación de CA (`verify_mode = CERT_REQUIRED`) y validación de nombre de servidor (`check_hostname = True`).
+- **`sslmode=verify-ca`:** Exige TLS estricto con validación de CA (`verify_mode = CERT_REQUIRED`) sin verificar nombre de host (`check_hostname = False`).
 
-### Solución Implementada:
-En lugar de simplemente descartar los parámetros para silenciar el error, se implementó una función de parsing y validación rigurosa: `prepare_postgres_engine_args()` en `db_adapter.py`:
+### 1.2. Soporte Real y Observancia de `channel_binding` (`disable`, `prefer`, `require`)
+- Se verificó la implementación interna del controlador instalado (`pg8000` 1.31.5 con biblioteca `scramp` 1.4.17):
+  - `pg8000.core._make_socket` genera `channel_binding` usando `scramp.make_channel_binding("tls-server-end-point", sock)` cuando TLS está activo.
+  - Se implementó la clase `SecureConnection(pg8000.dbapi.Connection)` para gobernar este comportamiento:
+    - **`channel_binding=disable`:** Anula explícitamente `self.channel_binding = None` en el momento de la autenticación SASL, forzando a `scramp` a seleccionar `SCRAM-SHA-256` y cabecera `n,,` sin binding.
+    - **`channel_binding=prefer`:** Comportamiento estándar de `pg8000`; utiliza `tls-server-end-point` con `SCRAM-SHA-256-PLUS` si el servidor lo ofrece y la conexión es TLS; si no, utiliza `SCRAM-SHA-256`.
+    - **`channel_binding=require`:** Enforzamiento estricto. Si la conexión no es TLS (`self.channel_binding is None`), o si el servidor no ofrece mecanismos con binding (`-PLUS`), la conexión se rechaza tajantemente con `InterfaceError`, impidiendo cualquier degradación insegura.
 
-1. **Verificación Estricta de Certificados y Nombre de Host (SSL):**
-   - Cuando se requiere SSL (`require` o `verify-full`), se construye un `ssl_context = ssl.create_default_context()` con:
-     - `check_hostname = True`
-     - `verify_mode = ssl.CERT_REQUIRED`
-   - Cuando se especifica `sslmode=verify-ca`:
-     - Se verifica la autoridad certificadora (`verify_mode = ssl.CERT_REQUIRED`) con `check_hostname = False`.
-   - Cuando se especifica `sslmode=disable`:
-     - No se inyecta contexto SSL.
-   - Cualquier valor desconocido de `sslmode` lanza `ValueError` explícito.
-2. **Tratamiento de `channel_binding`:**
-   - Si se solicita `channel_binding=require`:
-     - Dado que `pg8000` no implementa SCRAM channel binding (`SCRAM-SHA-256-PLUS`), la conexión se **rechaza explícitamente**:
-       `ValueError("channel_binding=require no es soportado por el controlador pg8000. Utilice channel_binding=prefer o channel_binding=disable.")`
-     - Nunca se descarta silenciosamente.
-   - Valores `prefer` o `disable` se procesan con autenticación SCRAM-SHA-256 estándar.
-3. **Protección y No Exposición de Credenciales:**
-   - Cualquier parámetro de conexión no soportado es rechazado sin exponer la URL con contraseñas en el mensaje de error:
-     `ValueError("Parámetro de conexión no soportado: '<param>'")`
-   - `get_database_url(hide_password=True)` enmascara las credenciales (`***`) para fines de logging y reportes.
-4. **Mapeo de Parámetros Válidos:**
-   - `connect_timeout` se mapea a `connect_args['timeout']`.
-   - `application_name` se mapea a `connect_args['application_name']`.
-5. **Aislamiento y Retrocompatibilidad SQLite:**
-   - Si `DATABASE_URL` no está definida o está vacía, el sistema continúa operando al 100% sobre SQLite local.
+### 1.3. Sanitización de Información Sensible y Cadenas de Excepciones (`from None`)
+- Todas las excepciones de validación en `prepare_postgres_engine_args` se emiten con `raise ... from None`, activando `__suppress_context__ = True` y anulando `__cause__ = None`. Esto garantiza que los tracebacks de Python jamás impriman la URL cruda ni contraseñas.
+- Se implementó la función auxiliar `sanitize_error_message(msg, secret)` para enmascarar URLs `postgresql://usuario:***@host`, parámetros `password=***` o tokens secretos en cualquier excepción o log del adaptador.
+- En caso de parámetros desconocidos en la query, únicamente se expone el nombre de la clave (ej. `'invalid_key'`), jamás su valor (que podría ser una credencial o token).
 
----
+### 1.4. Pruebas Reales de Negociación TLS y Rechazo
+- Se construyó un servidor de pruebas local con sockets y TLS real en `tests/test_neon_ssl_adapter.py`:
+  - **Rechazo por discrepancia de hostname:** El servidor presenta un certificado emitido para `wrong.neon.tech`; el cliente conecta hacia `localhost` con `check_hostname=True`. La conexión es rechazada por `SSLCertVerificationError` sin filtrar secretos.
+  - **Rechazo por CA no confiable:** El servidor presenta un certificado firmado por una CA local no reconocida por el almacén del sistema; la conexión es rechazada por `SSLCertVerificationError`.
+  - **Rechazo estricto ante servidor que rehúsa SSL:** El servidor envía `'N'` ante `SSLRequest`. Con `sslmode=require`, el cliente aborta inmediatamente con `InterfaceError("Server refuses SSL")` y nunca degrada a texto plano.
+  - **Fallback comprobado en `sslmode=prefer`:** El servidor envía `'N'`; el cliente captura el rechazo e intenta el segundo flujo sin SSL.
+  - **Rechazo de `channel_binding=require` sin TLS:** Falla de inmediato si no hay capa TLS o si falta el mecanismo `-PLUS`.
 
-## 2. Pruebas Unitarias Implementadas
-
-Se creó la suite [tests/test_neon_ssl_adapter.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/tests/test_neon_ssl_adapter.py):
-
-| Prueba | Descripción | Resultado |
-| :--- | :--- | :---: |
-| `test_neon_url_ssl_require` | Verifica `check_hostname=True`, `verify_mode=CERT_REQUIRED`, query limpia | **PASS** |
-| `test_neon_url_ssl_verify_full` | Verifica validación completa de host y CA | **PASS** |
-| `test_neon_url_ssl_verify_ca` | Verifica validación de CA con `check_hostname=False` | **PASS** |
-| `test_neon_url_ssl_disable` | Verifica conexión sin SSL | **PASS** |
-| `test_channel_binding_require_explicitly_rejected` | Rechazo explícito de `channel_binding=require` sin filtrar credenciales | **PASS** |
-| `test_unsupported_parameters_rejected` | Rechazo de parámetros desconocidos sin exponer contraseñas | **PASS** |
-| `test_supported_parameters_mapping` | Mapeo de `application_name` y `connect_timeout` | **PASS** |
-| `test_local_sqlite_fallback_intact` | Comprobación de que SQLite local opera intacto sin `DATABASE_URL` | **PASS** |
+### 1.5. Regresiones Locales y Retrocompatibilidad SQLite
+- Si `DATABASE_URL` no está definida, SQLite sigue funcionando de manera idéntica y sin alteraciones para pruebas locales.
 
 ---
 
-## 3. Verificación de Regresión (Suite Completa)
+## 2. Matriz de Pruebas Unitarias e Integración (`tests/test_neon_ssl_adapter.py`)
 
-Se ejecutaron todas las suites del proyecto localmente:
-- `tests/test_neon_ssl_adapter.py`: **8/8 PASS**
-- `tests/test_db_persistence.py`: **PASS**
-- `tests/test_persistence_regressions.py`: **6/6 PASS**
-- `tests/test_persistence_concurrency.py`: **PASS**
-- `tests/test_webhook_recovery.py`: **6/6 PASS**
-- `tests/test_conversational.py`: **29/29 PASS**
-- `tests/test_audit_20260912.py`: **21/21 PASS**
-- `tests/test_dedup.py`: **23/23 PASS**
-- `tests/test_handoff.py`: **PASS**
+| # | Prueba | Descripción | Resultado |
+| :- | :--- | :--- | :---: |
+| 1 | `test_neon_url_ssl_require` | Verifica `check_hostname=True`, `verify_mode=CERT_REQUIRED`, query limpia | **PASS** |
+| 2 | `test_neon_url_ssl_verify_full` | Verifica validación completa de host y CA | **PASS** |
+| 3 | `test_neon_url_ssl_verify_ca` | Verifica validación de CA con `check_hostname=False` | **PASS** |
+| 4 | `test_neon_url_ssl_disable` | Verifica `ssl_context=False` explícito | **PASS** |
+| 5 | `test_neon_url_ssl_prefer` | Verifica configuración con intento SSL y fallback | **PASS** |
+| 6 | `test_neon_url_ssl_allow` | Verifica intento inicial sin SSL y fallback | **PASS** |
+| 7 | `test_channel_binding_options_supported` | Valida opciones `disable`, `prefer`, `require` y rechazo de inválidos | **PASS** |
+| 8 | `test_channel_binding_require_rejected_on_non_ssl` | Rechazo inmediato de `require` cuando no hay TLS | **PASS** |
+| 9 | `test_channel_binding_require_rejected_when_server_lacks_plus` | Rechazo de `require` si servidor solo ofrece `SCRAM-SHA-256` | **PASS** |
+| 10 | `test_channel_binding_disable_clears_binding` | Anulación efectiva de `channel_binding` en `disable` | **PASS** |
+| 11 | `test_exception_sanitization_no_leak_in_chain` | Verifica `__suppress_context__` y ausencia de secretos en tracebacks | **PASS** |
+| 12 | `test_sanitize_error_message_helper` | Enmascaramiento de contraseñas y URLs en cadenas de error | **PASS** |
+| 13 | `test_tls_hostname_mismatch_rejection` | Rechazo por nombre de servidor incorrecto (`SSLCertVerificationError`) | **PASS** |
+| 14 | `test_tls_untrusted_certificate_rejection` | Rechazo por CA desconocida (`SSLCertVerificationError`) | **PASS** |
+| 15 | `test_tls_server_refuses_ssl_strict_rejection` | Cero degradación a texto plano cuando servidor rehúsa SSL | **PASS** |
+| 16 | `test_tls_server_refuses_ssl_prefer_fallback` | Fallback verificado en dos intentos (SSL -> texto plano) | **PASS** |
+| 17 | `test_local_sqlite_fallback_intact` | Comprobación de que SQLite local opera intacto sin `DATABASE_URL` | **PASS** |
+
+**Resultado total de la suite:** `17 PASS / 0 FAIL / 17 TOTAL` (100% de éxito).
+
+---
+
+## 3. Verificación de Regresión Completa
+
+Se ejecutaron todas las suites de pruebas del proyecto:
+- `tests/test_neon_ssl_adapter.py`: **17/17 PASS**
+- `tests/test_db_persistence.py`: **PASS** (utilidades, database.py SQLite, handoff SQLite, PostgresConnectionWrapper)
+- `tests/test_persistence_regressions.py`: **6/6 PASS** (transacciones, bloqueos, lease, idempotencia)
+- `tests/test_persistence_concurrency.py`: **6/6 PASS** (hilos concurrentes SQLite y PostgreSQL wrapper)
+- `tests/test_webhook_recovery.py`: **6/6 PASS** (reintentos, deduplicación, leases y fallbacks)
+- `tests/test_conversational.py`: **29/29 PASS** (sin LLM en saludos/ayuda, sin teléfonos ni fotos no solicitadas)
+- `tests/test_audit_20260912.py`: **21/21 PASS** (integridad, rutas de evidencia, métricas)
 - `tests/test_operational_metrics.py`: **PASS**
-- `tests/test_public_entry.py`: **PASS**
 
 ---
 
-## 4. Compromiso de GitOps
+## 4. Compromiso y Protocolo GitOps
 
-- **Rama:** `feature/conexion-segura-neon` (exclusivamente en `texeira-prueba-v4-evidencias/`).
-- **Estado de `main`:** Intacto.
-- **Despliegue:** No ejecutado.
-- **Siguiente paso:** Revisión cruzada de Codex antes de cualquier merge.
+- **Rama de trabajo:** `feature/conexion-segura-neon` (exclusivamente en `texeira-prueba-v4-evidencias/`).
+- **Estado de `main`:** Intacto (cero merge anticipado).
+- **Despliegue a Cloud Run:** No ejecutado.
+- **Memoria persistente (Entrega 2):** No iniciada (se posterga estrictamente hasta que Codex apruebe la Entrega 1).
+- **Próximo paso:** Presentar el commit y la rama para revisión de Codex.
