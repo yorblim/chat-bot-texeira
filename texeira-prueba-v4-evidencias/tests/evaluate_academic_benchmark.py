@@ -28,7 +28,7 @@ def run_benchmark(bank_path='BANCO_EVALUACION_ACADEMICA.json', output_path='RESU
          patch.object(handoff_support,'notify_advisor',return_value=False), \
          patch.object(app.database,'log_interaction'), \
          patch.object(app,'get_llm',return_value=MockLLM()), \
-         patch.object(app,'conversation_history',{}):
+         patch.object(app,'SQLITE_DB_PATH',str(Path(tmp)/'memory.db')):
         for case in bank['cases']:
             start=time.perf_counter()
             with contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()):

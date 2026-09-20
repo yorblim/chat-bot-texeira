@@ -9,7 +9,7 @@ import verified_routes
 import trial_support
 
 def run():
-    evidence=json.loads(Path('EVALUACION_REAL_EXPLORATORIA_20260915.json').read_text(encoding='utf-8'))
+    evidence=json.loads((Path(__file__).resolve().parents[1] / 'docs/evaluaciones/EVALUACION_REAL_EXPLORATORIA_20260915.json').read_text(encoding='utf-8'))
     for case in evidence['cases'][2:]:
         ns={'detect_language':app.detect_language,'get_history':lambda uid:[],
             'conversation_history':{},'add_to_history':lambda *args:None}
