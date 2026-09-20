@@ -26,6 +26,7 @@ En esta iteración se abordaron rigurosamente las 5 observaciones técnicas acor
     - **`channel_binding=require`:** Enforzamiento estricto:
       - Si la conexión no es TLS (`self.channel_binding is None`), o si el servidor no ofrece mecanismos con binding (`-PLUS`), la conexión se rechaza tajantemente con `InterfaceError`.
       - **Soporte de protocolo PostgreSQL SASL (Mensajes 11 y 12):** Permite el procesamiento regular de `AuthenticationSASLContinue` (código 11) y `AuthenticationSASLFinal` (código 12), rechazando únicamente métodos no-SCRAM.
+      - **Rechazo estricto de `AuthenticationOk` prematuro/sin SCRAM-PLUS:** Antes de aceptar `AuthenticationOk` (código 0), se valida rigurosamente que se haya completado la autenticación `SCRAM-SHA-256-PLUS`. Si el servidor envía código 0 sin SASL o con SASL incompleto, la conexión se rechaza inmediatamente con `InterfaceError`.
       - **Flujo completo SCRAM-SHA-256-PLUS:** Validado exitosamente en un ciclo de 4 pasos (10 -> InitialResponse, 11 -> Response, 12 -> Final, 0 -> Ok).
       - **Cero degradación en `prefer` y `allow`:** En `prefer`, si falla SSL con `channel_binding=require`, no se realiza fallback a texto plano; en `allow`, el primer intento sin SSL no fuerza `disable`.
 
@@ -63,25 +64,26 @@ En esta iteración se abordaron rigurosamente las 5 observaciones técnicas acor
 | 9 | `test_channel_binding_require_rejected_when_server_lacks_plus` | Rechazo de `require` si servidor solo ofrece `SCRAM-SHA-256` | **PASS** |
 | 10 | `test_channel_binding_disable_clears_binding` | Anulación efectiva de `channel_binding` en `disable` | **PASS** |
 | 11 | `test_channel_binding_require_allows_sasl_continue_and_final` | Permite mensajes SASL 11 y 12 en protocolo con `channel_binding=require` | **PASS** |
-| 12 | `test_scram_sha_256_plus_full_authentication_flow` | Autenticación completa y exitosa SCRAM-SHA-256-PLUS (4 pasos SASL) | **PASS** |
-| 13 | `test_channel_binding_require_no_downgrade_in_prefer_and_allow` | No degradación de `channel_binding` a `disable` en `prefer` ni `allow` | **PASS** |
-| 14 | `test_exception_sanitization_no_leak_in_chain` | Verifica `__suppress_context__` y ausencia de secretos en tracebacks | **PASS** |
-| 15 | `test_sanitize_error_message_helper` | Enmascaramiento de contraseñas y URLs en cadenas de error | **PASS** |
-| 16 | `test_exception_sanitization_in_second_attempts` | Sanitización rigurosa de excepciones originadas en segundos intentos | **PASS** |
-| 17 | `test_tls_hostname_mismatch_rejection` | Rechazo por nombre de servidor incorrecto (`SSLCertVerificationError`) | **PASS** |
-| 18 | `test_tls_untrusted_certificate_rejection` | Rechazo por CA desconocida (`SSLCertVerificationError`) | **PASS** |
-| 19 | `test_tls_server_refuses_ssl_strict_rejection` | Cero degradación a texto plano cuando servidor rehúsa SSL | **PASS** |
-| 20 | `test_tls_server_refuses_ssl_prefer_fallback` | Fallback verificado en dos intentos (SSL -> texto plano) | **PASS** |
-| 21 | `test_local_sqlite_fallback_intact` | Comprobación de que SQLite local opera intacto sin `DATABASE_URL` | **PASS** |
+| 12 | `test_channel_binding_require_rejects_auth_ok_without_scram_plus` | Rechaza `AuthenticationOk` si no se completó SCRAM-SHA-256-PLUS | **PASS** |
+| 13 | `test_scram_sha_256_plus_full_authentication_flow` | Autenticación completa y exitosa SCRAM-SHA-256-PLUS (4 pasos SASL) | **PASS** |
+| 14 | `test_channel_binding_require_no_downgrade_in_prefer_and_allow` | No degradación de `channel_binding` a `disable` en `prefer` ni `allow` | **PASS** |
+| 15 | `test_exception_sanitization_no_leak_in_chain` | Verifica `__suppress_context__` y ausencia de secretos en tracebacks | **PASS** |
+| 16 | `test_sanitize_error_message_helper` | Enmascaramiento de contraseñas y URLs en cadenas de error | **PASS** |
+| 17 | `test_exception_sanitization_in_second_attempts` | Sanitización rigurosa de excepciones originadas en segundos intentos | **PASS** |
+| 18 | `test_tls_hostname_mismatch_rejection` | Rechazo por nombre de servidor incorrecto (`SSLCertVerificationError`) | **PASS** |
+| 19 | `test_tls_untrusted_certificate_rejection` | Rechazo por CA desconocida (`SSLCertVerificationError`) | **PASS** |
+| 20 | `test_tls_server_refuses_ssl_strict_rejection` | Cero degradación a texto plano cuando servidor rehúsa SSL | **PASS** |
+| 21 | `test_tls_server_refuses_ssl_prefer_fallback` | Fallback verificado en dos intentos (SSL -> texto plano) | **PASS** |
+| 22 | `test_local_sqlite_fallback_intact` | Comprobación de que SQLite local opera intacto sin `DATABASE_URL` | **PASS** |
 
-**Resultado total de la suite:** `21 PASS / 0 FAIL / 21 TOTAL` (100% de éxito).
+**Resultado total de la suite:** `22 PASS / 0 FAIL / 22 TOTAL` (100% de éxito).
 
 ---
 
 ## 3. Verificación de Regresión Completa
 
 Se ejecutaron todas las suites de pruebas del proyecto:
-- `tests/test_neon_ssl_adapter.py`: **21/21 PASS**
+- `tests/test_neon_ssl_adapter.py`: **22/22 PASS**
 - `tests/test_db_persistence.py`: **PASS** (utilidades, database.py SQLite, handoff SQLite, PostgresConnectionWrapper)
 - `tests/test_persistence_regressions.py`: **6/6 PASS** (transacciones, bloqueos, lease, idempotencia)
 - `tests/test_persistence_concurrency.py`: **6/6 PASS** (hilos concurrentes SQLite y PostgreSQL wrapper)

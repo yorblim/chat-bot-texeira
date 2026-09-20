@@ -66,11 +66,13 @@ class SecureConnection(pg8000.dbapi.Connection):
     - Implementa y valida channel_binding ('disable', 'prefer', 'require').
     - Exige SCRAM-SHA-256-PLUS si channel_binding=require.
     - Soporta los mensajes 11 (AuthenticationSASLContinue) y 12 (AuthenticationSASLFinal).
+    - Valida que SCRAM-SHA-256-PLUS se haya completado antes de aceptar AuthenticationOk (código 0).
     - Impide degradación silenciosa de seguridad.
     """
     def __init__(self, *args, channel_binding_mode: str = "prefer", sslmode: Optional[str] = None, **kwargs):
         self._channel_binding_mode = channel_binding_mode
         self._sslmode = sslmode
+        self._sasl_plus_completed = False
         super().__init__(*args, **kwargs)
 
     def handle_AUTHENTICATION_REQUEST(self, data, context):
@@ -88,16 +90,36 @@ class SecureConnection(pg8000.dbapi.Connection):
                     raise pg8000.exceptions.InterfaceError(
                         "channel_binding=require solicitado, pero el servidor no ofrece mecanismos SCRAM con channel binding (SCRAM-SHA-256-PLUS)."
                     )
-            elif auth_code not in (0, 11, 12):
+            elif auth_code == 0:
+                auth_obj = getattr(self, "auth", None)
+                stage = getattr(auth_obj, "stage", None)
+                stage_name = getattr(stage, "name", str(stage))
+                is_completed = (
+                    getattr(self, "_sasl_plus_completed", False)
+                    or (
+                        auth_obj is not None
+                        and getattr(auth_obj, "mechanism_name", "").endswith("-PLUS")
+                        and stage_name == "set_server_final"
+                    )
+                )
+                if not is_completed:
+                    raise pg8000.exceptions.InterfaceError(
+                        "channel_binding=require solicitado, pero se recibió AuthenticationOk sin haber completado la autenticación SCRAM-SHA-256-PLUS."
+                    )
+            elif auth_code not in (11, 12):
                 raise pg8000.exceptions.InterfaceError(
                     f"channel_binding=require solicitado, pero el servidor requiere autenticación no-SCRAM ({auth_code})."
                 )
         super().handle_AUTHENTICATION_REQUEST(data, context)
-        if self._channel_binding_mode == "require" and auth_code == 10:
-            if hasattr(self, "auth") and self.auth and not getattr(self.auth, "mechanism_name", "").endswith("-PLUS"):
-                raise pg8000.exceptions.InterfaceError(
-                    f"channel_binding=require solicitado, pero el mecanismo seleccionado no es -PLUS ({getattr(self.auth, 'mechanism_name', '')})."
-                )
+        if self._channel_binding_mode == "require":
+            if auth_code == 10:
+                if hasattr(self, "auth") and self.auth and not getattr(self.auth, "mechanism_name", "").endswith("-PLUS"):
+                    raise pg8000.exceptions.InterfaceError(
+                        f"channel_binding=require solicitado, pero el mecanismo seleccionado no es -PLUS ({getattr(self.auth, 'mechanism_name', '')})."
+                    )
+            elif auth_code == 12:
+                if hasattr(self, "auth") and self.auth and getattr(self.auth, "mechanism_name", "").endswith("-PLUS"):
+                    self._sasl_plus_completed = True
 
 
 def secure_pg8000_connect(*args, channel_binding: str = "prefer", sslmode: Optional[str] = None, **kwargs):

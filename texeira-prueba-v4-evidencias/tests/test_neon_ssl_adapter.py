@@ -247,6 +247,45 @@ def test_channel_binding_require_allows_sasl_continue_and_final():
     print("  PASS | test_channel_binding_require_allows_sasl_continue_and_final")
 
 
+def test_channel_binding_require_rejects_auth_ok_without_scram_plus():
+    """
+    Valida que channel_binding=require rechace AuthenticationOk (código 0) si no
+    se completó previamente una negociación exitosa de SCRAM-SHA-256-PLUS:
+    1. Si el servidor envía AuthenticationOk inmediatamente (ej. trust authentication) sin SASL.
+    2. Si el servidor inició SASL pero saltó a AuthenticationOk antes de completar mensajes 11 y 12.
+    """
+    dummy_conn = SecureConnection.__new__(SecureConnection)
+    dummy_conn._channel_binding_mode = "require"
+    dummy_conn.channel_binding = b"tls_binding_bytes"
+    dummy_conn._sasl_plus_completed = False
+    dummy_conn.auth = None
+
+    context_dummy = type("Ctx", (), {"error": None})()
+    auth_ok_data = struct.pack("!i", 0)
+
+    # Caso 1: Servidor envía AuthenticationOk inmediatamente (sin SASL)
+    try:
+        dummy_conn.handle_AUTHENTICATION_REQUEST(auth_ok_data, context_dummy)
+        assert False, "Debería haber rechazado AuthenticationOk sin autenticación SASL previa"
+    except pg8000.exceptions.InterfaceError as e:
+        assert "se recibió AuthenticationOk sin haber completado la autenticación SCRAM-SHA-256-PLUS" in str(e)
+
+    # Caso 2: Servidor inició SASL pero saltó a AuthenticationOk sin completar el handshake
+    class IncompleteAuth:
+        def __init__(self):
+            self.mechanism_name = "SCRAM-SHA-256-PLUS"
+            self.stage = type("Stage", (), {"name": "get_client_first"})()
+
+    dummy_conn.auth = IncompleteAuth()
+    try:
+        dummy_conn.handle_AUTHENTICATION_REQUEST(auth_ok_data, context_dummy)
+        assert False, "Debería haber rechazado AuthenticationOk con SASL incompleto"
+    except pg8000.exceptions.InterfaceError as e:
+        assert "se recibió AuthenticationOk sin haber completado la autenticación SCRAM-SHA-256-PLUS" in str(e)
+
+    print("  PASS | test_channel_binding_require_rejects_auth_ok_without_scram_plus")
+
+
 def test_scram_sha_256_plus_full_authentication_flow():
     """
     Valida un ciclo completo y exitoso de autenticación SCRAM-SHA-256-PLUS con channel_binding=require.
@@ -891,6 +930,7 @@ if __name__ == "__main__":
     test_channel_binding_require_rejected_when_server_lacks_plus()
     test_channel_binding_disable_clears_binding()
     test_channel_binding_require_allows_sasl_continue_and_final()
+    test_channel_binding_require_rejects_auth_ok_without_scram_plus()
     test_scram_sha_256_plus_full_authentication_flow()
     test_channel_binding_require_no_downgrade_in_prefer_and_allow()
     test_exception_sanitization_no_leak_in_chain()
@@ -902,5 +942,5 @@ if __name__ == "__main__":
     test_tls_server_refuses_ssl_prefer_fallback()
     test_local_sqlite_fallback_intact()
     print("================================================================================")
-    print("RESULTADO: 21 PASS / 0 FAIL / 21 TOTAL — TODOS LOS TESTS APROBADOS")
+    print("RESULTADO: 22 PASS / 0 FAIL / 22 TOTAL — TODOS LOS TESTS APROBADOS")
     print("================================================================================")
