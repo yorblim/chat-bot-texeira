@@ -36,7 +36,7 @@ def is_postgres() -> bool:
     return bool(url and (url.startswith("postgres://") or url.startswith("postgresql://") or url.startswith("postgresql+")))
 
 
-def sanitize_error_message(msg: str, secret: Optional[str] = None) -> str:
+def sanitize_error_message(msg: str, secret: Optional[Union[str, bytes]] = None) -> str:
     """
     Elimina contraseñas, URLs con credenciales y datos sensibles de mensajes de error.
     Garantiza que ninguna credencial quede expuesta en logs o excepciones.
@@ -44,12 +44,19 @@ def sanitize_error_message(msg: str, secret: Optional[str] = None) -> str:
     if not msg:
         return ""
     sanitized = str(msg)
-    if secret and secret in sanitized:
+    if isinstance(secret, bytes):
+        secret = secret.decode("utf-8", errors="ignore")
+    if secret and len(secret) > 0 and secret in sanitized:
         sanitized = sanitized.replace(secret, "***")
-    # Enmascarar credenciales tipo postgresql://usuario:contraseña@host
-    sanitized = re.sub(r":([^:@/]+)@", r":***@", sanitized)
-    # Enmascarar parámetros password=..., pwd=..., secret=...
-    sanitized = re.sub(r"(password|pwd|secret)=([^&\s]+)", r"\1=***", sanitized, flags=re.IGNORECASE)
+    # Enmascarar credenciales tipo postgresql://usuario:contraseña@host o user:pass@host
+    sanitized = re.sub(r":([^:@/\s]+)@", r":***@", sanitized)
+    # Enmascarar parámetros password=..., pwd=..., secret=... tanto con comillas como sin comillas
+    sanitized = re.sub(
+        r"""(['"]?(?:password|pwd|secret)['"]?\s*[:=]\s*['"]?)([^'"\s,;&]+)(['"]?)""",
+        r"\1***\3",
+        sanitized,
+        flags=re.IGNORECASE,
+    )
     return sanitized
 
 
@@ -58,6 +65,7 @@ class SecureConnection(pg8000.dbapi.Connection):
     Conexión PG8000 reforzada:
     - Implementa y valida channel_binding ('disable', 'prefer', 'require').
     - Exige SCRAM-SHA-256-PLUS si channel_binding=require.
+    - Soporta los mensajes 11 (AuthenticationSASLContinue) y 12 (AuthenticationSASLFinal).
     - Impide degradación silenciosa de seguridad.
     """
     def __init__(self, *args, channel_binding_mode: str = "prefer", sslmode: Optional[str] = None, **kwargs):
@@ -80,54 +88,81 @@ class SecureConnection(pg8000.dbapi.Connection):
                     raise pg8000.exceptions.InterfaceError(
                         "channel_binding=require solicitado, pero el servidor no ofrece mecanismos SCRAM con channel binding (SCRAM-SHA-256-PLUS)."
                     )
-            elif auth_code != 0:
+            elif auth_code not in (0, 11, 12):
                 raise pg8000.exceptions.InterfaceError(
                     f"channel_binding=require solicitado, pero el servidor requiere autenticación no-SCRAM ({auth_code})."
                 )
         super().handle_AUTHENTICATION_REQUEST(data, context)
+        if self._channel_binding_mode == "require" and auth_code == 10:
+            if hasattr(self, "auth") and self.auth and not getattr(self.auth, "mechanism_name", "").endswith("-PLUS"):
+                raise pg8000.exceptions.InterfaceError(
+                    f"channel_binding=require solicitado, pero el mecanismo seleccionado no es -PLUS ({getattr(self.auth, 'mechanism_name', '')})."
+                )
 
 
 def secure_pg8000_connect(*args, channel_binding: str = "prefer", sslmode: Optional[str] = None, **kwargs):
     """
     Envoltorio seguro para pg8000.dbapi.connect:
     - Respeta sslmode=disable, allow, prefer, require, verify-ca, verify-full.
-    - Aplica fallback en prefer y allow.
-    - Respeta channel_binding=disable, prefer, require.
-    - Enmascara credenciales en excepciones.
+    - Aplica fallback en prefer y allow respetando channel_binding.
+    - Respeta channel_binding=disable, prefer, require sin degradar requerimientos.
+    - Enmascara credenciales y suprime trazas encadenadas en todas las excepciones.
     """
     cb_mode = channel_binding
     sm_mode = sslmode or ("disable" if kwargs.get("ssl_context") is False else "require")
+
+    pwd = kwargs.get("password")
+    if not pwd and len(args) > 4:
+        pwd = args[4]
+    if isinstance(pwd, bytes):
+        pwd = pwd.decode("utf-8", errors="ignore")
+
+    def _safe_raise(exc: Exception):
+        safe_msg = sanitize_error_message(str(exc), pwd)
+        try:
+            raise type(exc)(safe_msg) from None
+        except TypeError:
+            raise RuntimeError(safe_msg) from None
 
     if sm_mode == "disable":
         kwargs["ssl_context"] = False
         try:
             return SecureConnection(*args, channel_binding_mode=cb_mode, sslmode="disable", **kwargs)
         except Exception as e:
-            safe = sanitize_error_message(str(e), kwargs.get("password"))
-            raise type(e)(safe) from None
+            _safe_raise(e)
 
     elif sm_mode == "prefer":
         ssl_ctx = kwargs.get("ssl_context")
         if ssl_ctx is False:
-            return SecureConnection(*args, channel_binding_mode=cb_mode, sslmode="prefer", **kwargs)
+            try:
+                return SecureConnection(*args, channel_binding_mode=cb_mode, sslmode="prefer", **kwargs)
+            except Exception as e:
+                _safe_raise(e)
         try:
             return SecureConnection(*args, channel_binding_mode=cb_mode, sslmode="prefer", **kwargs)
         except (pg8000.exceptions.InterfaceError, ssl.SSLError, socket.error) as exc:
             err_text = str(exc)
             if "refuses SSL" in err_text or "not available" in err_text or "communication error" in err_text:
+                if cb_mode == "require":
+                    # No se puede hacer fallback a texto plano si channel_binding=require
+                    _safe_raise(exc)
                 logger.warning("[DB_ADAPTER] Servidor no soporta SSL en modo prefer; reintentando sin SSL...")
                 fallback_kwargs = dict(kwargs)
                 fallback_kwargs["ssl_context"] = False
-                return SecureConnection(*args, channel_binding_mode="disable", sslmode="prefer", **fallback_kwargs)
-            safe = sanitize_error_message(err_text, kwargs.get("password"))
-            raise type(exc)(safe) from None
+                try:
+                    return SecureConnection(*args, channel_binding_mode=cb_mode, sslmode="prefer", **fallback_kwargs)
+                except Exception as fb_exc:
+                    _safe_raise(fb_exc)
+            _safe_raise(exc)
+        except Exception as e:
+            _safe_raise(e)
 
     elif sm_mode == "allow":
-        # Intenta sin SSL primero
+        # Intenta sin SSL primero preservando channel_binding_mode=cb_mode
         no_ssl_kwargs = dict(kwargs)
         no_ssl_kwargs["ssl_context"] = False
         try:
-            return SecureConnection(*args, channel_binding_mode="disable", sslmode="allow", **no_ssl_kwargs)
+            return SecureConnection(*args, channel_binding_mode=cb_mode, sslmode="allow", **no_ssl_kwargs)
         except (pg8000.exceptions.InterfaceError, pg8000.exceptions.DatabaseError, socket.error) as exc:
             logger.warning("[DB_ADAPTER] Conexión sin SSL falló en modo allow; reintentando con SSL...")
             ctx = kwargs.get("ssl_context")
@@ -137,15 +172,19 @@ def secure_pg8000_connect(*args, channel_binding: str = "prefer", sslmode: Optio
                 ctx.verify_mode = ssl.CERT_REQUIRED
             ssl_kwargs = dict(kwargs)
             ssl_kwargs["ssl_context"] = ctx
-            return SecureConnection(*args, channel_binding_mode=cb_mode, sslmode="allow", **ssl_kwargs)
+            try:
+                return SecureConnection(*args, channel_binding_mode=cb_mode, sslmode="allow", **ssl_kwargs)
+            except Exception as ssl_exc:
+                _safe_raise(ssl_exc)
+        except Exception as e:
+            _safe_raise(e)
 
     else:
         # require, verify-ca, verify-full
         try:
             return SecureConnection(*args, channel_binding_mode=cb_mode, sslmode=sm_mode, **kwargs)
         except Exception as e:
-            safe = sanitize_error_message(str(e), kwargs.get("password"))
-            raise type(e)(safe) from None
+            _safe_raise(e)
 
 
 # Reemplazar la fábrica por defecto de pg8000 para que cualquier llamada a connect use la versión segura

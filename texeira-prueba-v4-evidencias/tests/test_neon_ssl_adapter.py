@@ -200,6 +200,208 @@ def test_channel_binding_disable_clears_binding():
     print("  PASS | test_channel_binding_disable_clears_binding")
 
 
+def test_channel_binding_require_allows_sasl_continue_and_final():
+    """
+    Valida que channel_binding=require acepte los mensajes 11 (AuthenticationSASLContinue)
+    y 12 (AuthenticationSASLFinal), que forman parte del protocolo normal SASL de PostgreSQL.
+    """
+    dummy_conn = SecureConnection.__new__(SecureConnection)
+    dummy_conn._channel_binding_mode = "require"
+    dummy_conn.channel_binding = b"tls_binding_bytes"
+
+    class DummyAuth:
+        def __init__(self):
+            self.server_first = None
+            self.server_final = None
+            self.mechanism_name = "SCRAM-SHA-256-PLUS"
+
+        def set_server_first(self, data):
+            self.server_first = data
+
+        def get_client_final(self):
+            return "c_final_data"
+
+        def set_server_final(self, data):
+            self.server_final = data
+
+    dummy_conn.auth = DummyAuth()
+    dummy_conn._send_message = lambda *args, **kwargs: None
+    dummy_conn._sock = type("DummySock", (), {"flush": lambda self: None})()
+
+    context_dummy = type("Ctx", (), {"error": None})()
+
+    # Mensaje 11: AuthenticationSASLContinue (debe ser procesado sin lanzar excepción)
+    sasl_continue_data = struct.pack("!i", 11) + b"r=servernonce,s=salt,i=4096"
+    dummy_conn.handle_AUTHENTICATION_REQUEST(sasl_continue_data, context_dummy)
+    assert dummy_conn.auth.server_first == "r=servernonce,s=salt,i=4096"
+
+    # Mensaje 12: AuthenticationSASLFinal (debe ser procesado sin lanzar excepción)
+    sasl_final_data = struct.pack("!i", 12) + b"v=server_signature_data"
+    dummy_conn.handle_AUTHENTICATION_REQUEST(sasl_final_data, context_dummy)
+    assert dummy_conn.auth.server_final == "v=server_signature_data"
+
+    # Mensaje 0: AuthenticationOk (debe ser procesado sin lanzar excepción)
+    auth_ok_data = struct.pack("!i", 0)
+    dummy_conn.handle_AUTHENTICATION_REQUEST(auth_ok_data, context_dummy)
+
+    print("  PASS | test_channel_binding_require_allows_sasl_continue_and_final")
+
+
+def test_scram_sha_256_plus_full_authentication_flow():
+    """
+    Valida un ciclo completo y exitoso de autenticación SCRAM-SHA-256-PLUS con channel_binding=require.
+    Comprueba el intercambio íntegro de los 4 mensajes (10 -> InitialResponse, 11 -> Response, 12 -> Final, 0 -> Ok).
+    """
+    import scramp
+    import scramp.core
+
+    user = "neon_user"
+    pwd = "super_secure_password_123"
+    cb_data = ("tls-server-end-point", b"simulated_tls_exporter_binding_bytes_456")
+
+    # Configuración del servidor SCRAM
+    mech = scramp.core.ScramMechanism("SCRAM-SHA-256-PLUS")
+    salt = scramp.core.Salt(b"test_salt_123456")
+    salted_pwd = scramp.core._make_salted_password(mech.hf, pwd, salt, 4096)
+    c_key, stored_key, s_key = scramp.core._c_key_stored_key_s_key(mech.hf, salted_pwd)
+
+    def auth_fn(u):
+        return (salt, stored_key, s_key, 4096)
+
+    scram_server = scramp.core.ScramServer(mech, auth_fn, channel_binding=cb_data)
+
+    # Crear conexión SecureConnection simulada
+    conn = SecureConnection.__new__(SecureConnection)
+    conn._channel_binding_mode = "require"
+    conn.channel_binding = cb_data
+    conn.user = user.encode("utf-8")
+    conn.password = pwd.encode("utf-8")
+    conn._client_encoding = "utf-8"
+
+    sent_messages = []
+
+    def mock_send_message(code, data):
+        sent_messages.append((code, data))
+
+    conn._send_message = mock_send_message
+    conn._sock = type("DummySock", (), {"flush": lambda self: None})()
+
+    context_dummy = type("Ctx", (), {"error": None})()
+
+    # Paso 1: Servidor envía AuthenticationSASL (código 10) ofreciendo SCRAM-SHA-256 y SCRAM-SHA-256-PLUS
+    msg10_data = struct.pack("!i", 10) + b"SCRAM-SHA-256\x00SCRAM-SHA-256-PLUS\x00\x00"
+    conn.handle_AUTHENTICATION_REQUEST(msg10_data, context_dummy)
+
+    # Verificar que el cliente seleccionó SCRAM-SHA-256-PLUS
+    assert conn.auth.mechanism_name == "SCRAM-SHA-256-PLUS"
+    assert len(sent_messages) == 1
+    # Mensaje enviado por el cliente: mech + length + client_first
+    client_first_payload = sent_messages[0][1]
+    mech_name_sent, rest = client_first_payload.split(b"\x00", 1)
+    assert mech_name_sent == b"SCRAM-SHA-256-PLUS"
+    init_len = struct.unpack("!i", rest[:4])[0]
+    client_first_str = rest[4:4 + init_len].decode("utf-8")
+
+    # Servidor procesa client_first y genera server_first
+    scram_server.set_client_first(client_first_str)
+    server_first_str = scram_server.get_server_first()
+
+    # Paso 2: Servidor envía AuthenticationSASLContinue (código 11) con server_first
+    msg11_data = struct.pack("!i", 11) + server_first_str.encode("utf-8")
+    conn.handle_AUTHENTICATION_REQUEST(msg11_data, context_dummy)
+
+    # Verificar que el cliente envió client_final
+    assert len(sent_messages) == 2
+    client_final_str = sent_messages[1][1].decode("utf-8")
+
+    # Servidor procesa client_final y genera server_final
+    scram_server.set_client_final(client_final_str)
+    server_final_str = scram_server.get_server_final()
+
+    # Paso 3: Servidor envía AuthenticationSASLFinal (código 12) con server_final
+    msg12_data = struct.pack("!i", 12) + server_final_str.encode("utf-8")
+    conn.handle_AUTHENTICATION_REQUEST(msg12_data, context_dummy)
+
+    # Paso 4: Servidor envía AuthenticationOk (código 0)
+    msg0_data = struct.pack("!i", 0)
+    conn.handle_AUTHENTICATION_REQUEST(msg0_data, context_dummy)
+
+    print("  PASS | test_scram_sha_256_plus_full_authentication_flow (4 pasos SASL completados con éxito)")
+
+
+def test_channel_binding_require_no_downgrade_in_prefer_and_allow():
+    """
+    Valida que channel_binding=require NO sufra degradación a 'disable':
+    1. En sslmode=prefer: ante fallo de SSL, NO debe hacer fallback a no-SSL ni forzar 'disable'.
+    2. En sslmode=allow: el primer intento sin SSL debe recibir 'require', no 'disable'.
+    """
+    recorded_calls = []
+
+    class MockSecureConnection:
+        def __init__(self, *args, **kwargs):
+            recorded_calls.append(kwargs)
+            sm = kwargs.get("sslmode")
+            cb = kwargs.get("channel_binding_mode")
+            ssl_ctx = kwargs.get("ssl_context")
+
+            if sm == "prefer":
+                if ssl_ctx is not False:
+                    raise pg8000.exceptions.InterfaceError("Server refuses SSL")
+            elif sm == "allow":
+                if ssl_ctx is False:
+                    if cb == "require":
+                        raise pg8000.exceptions.InterfaceError(
+                            "channel_binding=require solicitado, pero la conexión no es SSL o no se pudo establecer channel binding."
+                        )
+
+    orig_cls = globals().get("SecureConnection")
+    globals()["SecureConnection"] = MockSecureConnection
+    import db_adapter
+    orig_adapter_conn = db_adapter.SecureConnection
+    db_adapter.SecureConnection = MockSecureConnection
+
+    try:
+        # 1. Probar prefer con channel_binding=require
+        recorded_calls.clear()
+        try:
+            secure_pg8000_connect(
+                user="u",
+                password="p",
+                host="localhost",
+                channel_binding="require",
+                sslmode="prefer",
+            )
+            assert False, "Debería haber fallado sin degradar a fallback no-SSL"
+        except pg8000.exceptions.InterfaceError as e:
+            assert "Server refuses SSL" in str(e)
+        # Debe haber intentado exactamente 1 vez (con SSL) y NUNCA haber forzado disable
+        assert len(recorded_calls) == 1
+        assert recorded_calls[0].get("channel_binding_mode") == "require"
+
+        # 2. Probar allow con channel_binding=require
+        recorded_calls.clear()
+        secure_pg8000_connect(
+            user="u",
+            password="p",
+            host="localhost",
+            channel_binding="require",
+            sslmode="allow",
+        )
+        # En allow, deben haberse ejecutado 2 intentos:
+        # Intento 1: no-SSL con channel_binding_mode='require' (NO 'disable')
+        # Intento 2: SSL con channel_binding_mode='require'
+        assert len(recorded_calls) == 2
+        assert recorded_calls[0].get("channel_binding_mode") == "require"
+        assert recorded_calls[0].get("ssl_context") is False
+        assert recorded_calls[1].get("channel_binding_mode") == "require"
+        assert recorded_calls[1].get("ssl_context") is not False
+    finally:
+        globals()["SecureConnection"] = orig_cls
+        db_adapter.SecureConnection = orig_adapter_conn
+
+    print("  PASS | test_channel_binding_require_no_downgrade_in_prefer_and_allow")
+
+
 # ==============================================================================
 # 3. PRUEBAS DE SANITIZACIÓN DE EXCEPCIONES Y SECRETOS (from None)
 # ==============================================================================
@@ -251,6 +453,92 @@ def test_sanitize_error_message_helper():
     assert "password=***" in sanitized2
 
     print("  PASS | test_sanitize_error_message_helper")
+
+
+def test_exception_sanitization_in_second_attempts():
+    """
+    Valida que las excepciones originadas en el segundo intento (fallback de prefer
+    o segundo intento de allow) salgan rigurosamente sanitizadas y sin trazas encadenadas.
+    """
+    fictitious_secret = "fictitious_pass_xyz987"
+
+    class FailingSecondAttemptConnection:
+        call_count = 0
+
+        def __init__(self, *args, **kwargs):
+            FailingSecondAttemptConnection.call_count += 1
+            sm = kwargs.get("sslmode")
+            ssl_ctx = kwargs.get("ssl_context")
+
+            if sm == "prefer":
+                if ssl_ctx is not False:
+                    raise pg8000.exceptions.InterfaceError("Server refuses SSL")
+                else:
+                    # Segundo intento (fallback)
+                    raise pg8000.exceptions.DatabaseError(
+                        f"authentication failed for user test with password={fictitious_secret}"
+                    )
+            elif sm == "allow":
+                if ssl_ctx is False:
+                    # Primer intento falla
+                    raise socket.error("connection refused on non-ssl port")
+                else:
+                    # Segundo intento con SSL
+                    raise pg8000.exceptions.InterfaceError(
+                        f"SSL connection failed: credentials error password={fictitious_secret}"
+                    )
+
+    orig_cls = globals().get("SecureConnection")
+    globals()["SecureConnection"] = FailingSecondAttemptConnection
+    import db_adapter
+    orig_adapter_conn = db_adapter.SecureConnection
+    db_adapter.SecureConnection = FailingSecondAttemptConnection
+
+    try:
+        # 1. Fallo en segundo intento de prefer
+        FailingSecondAttemptConnection.call_count = 0
+        try:
+            secure_pg8000_connect(
+                user="u",
+                password=fictitious_secret,
+                host="localhost",
+                channel_binding="prefer",
+                sslmode="prefer",
+            )
+            assert False, "Debería haber fallado en el segundo intento de prefer"
+        except pg8000.exceptions.DatabaseError as exc:
+            exc_str = str(exc)
+            assert fictitious_secret not in exc_str
+            assert "password=***" in exc_str
+            assert exc.__cause__ is None
+            assert exc.__suppress_context__ is True
+            tb = "".join(traceback.format_exception(exc))
+            assert fictitious_secret not in tb
+
+        # 2. Fallo en segundo intento de allow
+        FailingSecondAttemptConnection.call_count = 0
+        try:
+            secure_pg8000_connect(
+                user="u",
+                password=fictitious_secret,
+                host="localhost",
+                channel_binding="prefer",
+                sslmode="allow",
+            )
+            assert False, "Debería haber fallado en el segundo intento de allow"
+        except pg8000.exceptions.InterfaceError as exc:
+            exc_str = str(exc)
+            assert fictitious_secret not in exc_str
+            assert "password=***" in exc_str
+            assert exc.__cause__ is None
+            assert exc.__suppress_context__ is True
+            tb = "".join(traceback.format_exception(exc))
+            assert fictitious_secret not in tb
+    finally:
+        globals()["SecureConnection"] = orig_cls
+        db_adapter.SecureConnection = orig_adapter_conn
+
+    print("  PASS | test_exception_sanitization_in_second_attempts")
 
 
 # ==============================================================================
@@ -602,13 +890,17 @@ if __name__ == "__main__":
     test_channel_binding_require_rejected_on_non_ssl()
     test_channel_binding_require_rejected_when_server_lacks_plus()
     test_channel_binding_disable_clears_binding()
+    test_channel_binding_require_allows_sasl_continue_and_final()
+    test_scram_sha_256_plus_full_authentication_flow()
+    test_channel_binding_require_no_downgrade_in_prefer_and_allow()
     test_exception_sanitization_no_leak_in_chain()
     test_sanitize_error_message_helper()
+    test_exception_sanitization_in_second_attempts()
     test_tls_hostname_mismatch_rejection()
     test_tls_untrusted_certificate_rejection()
     test_tls_server_refuses_ssl_strict_rejection()
     test_tls_server_refuses_ssl_prefer_fallback()
     test_local_sqlite_fallback_intact()
     print("================================================================================")
-    print("RESULTADO: 17 PASS / 0 FAIL / 17 TOTAL — TODOS LOS TESTS APROBADOS")
+    print("RESULTADO: 21 PASS / 0 FAIL / 21 TOTAL — TODOS LOS TESTS APROBADOS")
     print("================================================================================")
