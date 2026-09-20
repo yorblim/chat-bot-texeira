@@ -7,6 +7,7 @@ La configuración del proveedor y la durabilidad del trabajo se validan por sepa
 
 import os
 import re
+import ssl
 import sqlite3
 import logging
 from contextlib import contextmanager
@@ -29,16 +30,94 @@ def is_postgres() -> bool:
     return bool(url and (url.startswith("postgres://") or url.startswith("postgresql://") or url.startswith("postgresql+")))
 
 
-def get_database_url() -> Optional[str]:
+def prepare_postgres_engine_args(raw_url: Optional[str] = None) -> Tuple[Any, Dict[str, Any]]:
+    """
+    Parsea, valida y prepara la URL y los connect_args para SQLAlchemy con pg8000.
+    - Garantiza verificación estricta de certificados y nombre de host (SSL seguro).
+    - Valida sslmode y channel_binding (rechaza channel_binding=require explícitamente).
+    - Rechaza parámetros no soportados sin exponer credenciales en los mensajes de error.
+    - Elimina parámetros de query que no soporta pg8000 para evitar TypeErrors.
+    """
+    if not raw_url:
+        raise ValueError("DATABASE_URL no puede estar vacía.")
+    
+    from sqlalchemy.engine import make_url
+    try:
+        u = make_url(raw_url)
+    except Exception:
+        raise ValueError("URL de base de datos malformada.")
+    
+    if u.drivername in ("postgres", "postgresql"):
+        u = u.set(drivername="postgresql+pg8000")
+    elif not u.drivername.startswith("postgresql"):
+        raise ValueError(f"Protocolo de base de datos no soportado: {u.drivername}")
+
+    query = dict(u.query)
+
+    # 1. Validar channel_binding: pg8000 no implementa SCRAM channel binding
+    cb = query.pop("channel_binding", None)
+    if cb == "require":
+        raise ValueError("channel_binding=require no es soportado por el controlador pg8000. Utilice channel_binding=prefer o channel_binding=disable.")
+    elif cb is not None and cb not in ("prefer", "disable"):
+        raise ValueError(f"Valor de channel_binding no válido: '{cb}'")
+
+    # 2. Validar sslmode y configurar ssl_context
+    sslmode = query.pop("sslmode", None)
+    connect_args = {}
+    if sslmode in ("require", "verify-full"):
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = True
+        ctx.verify_mode = ssl.CERT_REQUIRED
+        connect_args["ssl_context"] = ctx
+    elif sslmode == "verify-ca":
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_REQUIRED
+        connect_args["ssl_context"] = ctx
+    elif sslmode in ("prefer", "allow"):
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_OPTIONAL
+        connect_args["ssl_context"] = ctx
+    elif sslmode == "disable":
+        pass
+    elif sslmode is not None:
+        raise ValueError(f"Valor de sslmode no válido: '{sslmode}'")
+    else:
+        # Si no se especifica y el host es remoto, exigir SSL por defecto
+        if u.host not in ("localhost", "127.0.0.1", "::1", None):
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = True
+            ctx.verify_mode = ssl.CERT_REQUIRED
+            connect_args["ssl_context"] = ctx
+
+    # 3. Mapear parámetros soportados por pg8000
+    if "connect_timeout" in query:
+        val = query.pop("connect_timeout")
+        try:
+            connect_args["timeout"] = int(val)
+        except ValueError:
+            raise ValueError(f"Valor de connect_timeout inválido: '{val}'")
+            
+    if "application_name" in query:
+        connect_args["application_name"] = query.pop("application_name")
+
+    # 4. Rechazar parámetros no reconocidos (sin exponer credenciales)
+    if query:
+        unsupported = sorted(query.keys())[0]
+        raise ValueError(f"Parámetro de conexión no soportado: '{unsupported}'")
+
+    clean_u = u.set(query={})
+    return clean_u, connect_args
+
+
+def get_database_url(hide_password: bool = False) -> Optional[str]:
     """Retorna la URL normalizada para SQLAlchemy con driver pg8000."""
     raw = os.getenv("DATABASE_URL", "").strip()
     if not raw:
         return None
-    if raw.startswith("postgres://"):
-        raw = "postgresql+pg8000://" + raw[len("postgres://"):]
-    elif raw.startswith("postgresql://"):
-        raw = "postgresql+pg8000://" + raw[len("postgresql://"):]
-    return raw
+    clean_u, _ = prepare_postgres_engine_args(raw)
+    return clean_u.render_as_string(hide_password=hide_password)
 
 
 def get_engine():
@@ -46,16 +125,18 @@ def get_engine():
     global _ENGINE
     if _ENGINE is None and is_postgres():
         from sqlalchemy import create_engine
-        url = get_database_url()
+        raw = os.getenv("DATABASE_URL", "").strip()
+        clean_url, connect_args = prepare_postgres_engine_args(raw)
         try:
             _ENGINE = create_engine(
-                url,
+                clean_url,
+                connect_args=connect_args,
                 pool_pre_ping=True,
                 pool_recycle=300,
                 pool_size=5,
                 max_overflow=10,
             )
-            logger.info("[DB_ADAPTER] Motor PostgreSQL (pg8000) conectado exitosamente.")
+            logger.info("[DB_ADAPTER] Motor PostgreSQL (pg8000) conectado exitosamente con SSL.")
         except Exception as e:
             logger.error(f"[DB_ADAPTER] Error al conectar motor PostgreSQL: {e}")
             raise
