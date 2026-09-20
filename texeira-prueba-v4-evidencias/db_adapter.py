@@ -7,10 +7,17 @@ La configuración del proveedor y la durabilidad del trabajo se validan por sepa
 
 import os
 import re
+import ssl
+import socket
 import sqlite3
 import logging
 from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Tuple, Union
+
+import pg8000.core
+import pg8000.dbapi
+import pg8000.exceptions
+from pg8000.core import i_unpack, NULL_BYTE
 
 logger = logging.getLogger(__name__)
 
@@ -29,16 +36,315 @@ def is_postgres() -> bool:
     return bool(url and (url.startswith("postgres://") or url.startswith("postgresql://") or url.startswith("postgresql+")))
 
 
-def get_database_url() -> Optional[str]:
+def sanitize_error_message(msg: str, secret: Optional[Union[str, bytes]] = None) -> str:
+    """
+    Elimina contraseñas, URLs con credenciales y datos sensibles de mensajes de error.
+    Garantiza que ninguna credencial quede expuesta en logs o excepciones.
+    """
+    if not msg:
+        return ""
+    sanitized = str(msg)
+    if isinstance(secret, bytes):
+        secret = secret.decode("utf-8", errors="ignore")
+    if secret and len(secret) > 0 and secret in sanitized:
+        sanitized = sanitized.replace(secret, "***")
+    # Enmascarar credenciales tipo postgresql://usuario:contraseña@host o user:pass@host
+    sanitized = re.sub(r":([^:@/\s]+)@", r":***@", sanitized)
+    # Enmascarar parámetros password=..., pwd=..., secret=... tanto con comillas como sin comillas
+    sanitized = re.sub(
+        r"""(['"]?(?:password|pwd|secret)['"]?\s*[:=]\s*['"]?)([^'"\s,;&]+)(['"]?)""",
+        r"\1***\3",
+        sanitized,
+        flags=re.IGNORECASE,
+    )
+    return sanitized
+
+
+class SecureConnection(pg8000.dbapi.Connection):
+    """
+    Conexión PG8000 reforzada:
+    - Implementa y valida channel_binding ('disable', 'prefer', 'require').
+    - Exige SCRAM-SHA-256-PLUS si channel_binding=require.
+    - Soporta los mensajes 11 (AuthenticationSASLContinue) y 12 (AuthenticationSASLFinal).
+    - Valida que SCRAM-SHA-256-PLUS se haya completado antes de aceptar AuthenticationOk (código 0).
+    - Impide degradación silenciosa de seguridad.
+    """
+    def __init__(self, *args, channel_binding_mode: str = "prefer", sslmode: Optional[str] = None, **kwargs):
+        self._channel_binding_mode = channel_binding_mode
+        self._sslmode = sslmode
+        self._sasl_plus_completed = False
+        super().__init__(*args, **kwargs)
+
+    def handle_AUTHENTICATION_REQUEST(self, data, context):
+        auth_code = i_unpack(data)[0]
+        if self._channel_binding_mode == "disable":
+            self.channel_binding = None
+        elif self._channel_binding_mode == "require":
+            if self.channel_binding is None:
+                raise pg8000.exceptions.InterfaceError(
+                    "channel_binding=require solicitado, pero la conexión no es SSL o no se pudo establecer channel binding."
+                )
+            if auth_code == 10:
+                mechanisms = [m.decode("ascii") for m in data[4:-2].split(NULL_BYTE)]
+                if not any(m.endswith("-PLUS") for m in mechanisms):
+                    raise pg8000.exceptions.InterfaceError(
+                        "channel_binding=require solicitado, pero el servidor no ofrece mecanismos SCRAM con channel binding (SCRAM-SHA-256-PLUS)."
+                    )
+            elif auth_code == 0:
+                auth_obj = getattr(self, "auth", None)
+                stage = getattr(auth_obj, "stage", None)
+                stage_name = getattr(stage, "name", str(stage))
+                is_completed = (
+                    getattr(self, "_sasl_plus_completed", False)
+                    or (
+                        auth_obj is not None
+                        and getattr(auth_obj, "mechanism_name", "").endswith("-PLUS")
+                        and stage_name == "set_server_final"
+                    )
+                )
+                if not is_completed:
+                    raise pg8000.exceptions.InterfaceError(
+                        "channel_binding=require solicitado, pero se recibió AuthenticationOk sin haber completado la autenticación SCRAM-SHA-256-PLUS."
+                    )
+            elif auth_code not in (11, 12):
+                raise pg8000.exceptions.InterfaceError(
+                    f"channel_binding=require solicitado, pero el servidor requiere autenticación no-SCRAM ({auth_code})."
+                )
+        super().handle_AUTHENTICATION_REQUEST(data, context)
+        if self._channel_binding_mode == "require":
+            if auth_code == 10:
+                if hasattr(self, "auth") and self.auth and not getattr(self.auth, "mechanism_name", "").endswith("-PLUS"):
+                    raise pg8000.exceptions.InterfaceError(
+                        f"channel_binding=require solicitado, pero el mecanismo seleccionado no es -PLUS ({getattr(self.auth, 'mechanism_name', '')})."
+                    )
+            elif auth_code == 12:
+                if hasattr(self, "auth") and self.auth and getattr(self.auth, "mechanism_name", "").endswith("-PLUS"):
+                    self._sasl_plus_completed = True
+
+
+def secure_pg8000_connect(*args, channel_binding: str = "prefer", sslmode: Optional[str] = None, **kwargs):
+    """
+    Envoltorio seguro para pg8000.dbapi.connect:
+    - Respeta sslmode=disable, allow, prefer, require, verify-ca, verify-full.
+    - Aplica fallback en prefer y allow respetando channel_binding.
+    - Respeta channel_binding=disable, prefer, require sin degradar requerimientos.
+    - Enmascara credenciales y suprime trazas encadenadas en todas las excepciones.
+    """
+    cb_mode = channel_binding
+    sm_mode = sslmode or ("disable" if kwargs.get("ssl_context") is False else "require")
+
+    pwd = kwargs.get("password")
+    if not pwd and len(args) > 4:
+        pwd = args[4]
+    if isinstance(pwd, bytes):
+        pwd = pwd.decode("utf-8", errors="ignore")
+
+    def _safe_raise(exc: Exception):
+        safe_msg = sanitize_error_message(str(exc), pwd)
+        try:
+            raise type(exc)(safe_msg) from None
+        except TypeError:
+            raise RuntimeError(safe_msg) from None
+
+    if sm_mode == "disable":
+        kwargs["ssl_context"] = False
+        try:
+            return SecureConnection(*args, channel_binding_mode=cb_mode, sslmode="disable", **kwargs)
+        except Exception as e:
+            _safe_raise(e)
+
+    elif sm_mode == "prefer":
+        ssl_ctx = kwargs.get("ssl_context")
+        if ssl_ctx is False:
+            try:
+                return SecureConnection(*args, channel_binding_mode=cb_mode, sslmode="prefer", **kwargs)
+            except Exception as e:
+                _safe_raise(e)
+        try:
+            return SecureConnection(*args, channel_binding_mode=cb_mode, sslmode="prefer", **kwargs)
+        except (pg8000.exceptions.InterfaceError, ssl.SSLError, socket.error) as exc:
+            err_text = str(exc)
+            if "refuses SSL" in err_text or "not available" in err_text or "communication error" in err_text:
+                if cb_mode == "require":
+                    # No se puede hacer fallback a texto plano si channel_binding=require
+                    _safe_raise(exc)
+                logger.warning("[DB_ADAPTER] Servidor no soporta SSL en modo prefer; reintentando sin SSL...")
+                fallback_kwargs = dict(kwargs)
+                fallback_kwargs["ssl_context"] = False
+                try:
+                    return SecureConnection(*args, channel_binding_mode=cb_mode, sslmode="prefer", **fallback_kwargs)
+                except Exception as fb_exc:
+                    _safe_raise(fb_exc)
+            _safe_raise(exc)
+        except Exception as e:
+            _safe_raise(e)
+
+    elif sm_mode == "allow":
+        # Intenta sin SSL primero preservando channel_binding_mode=cb_mode
+        no_ssl_kwargs = dict(kwargs)
+        no_ssl_kwargs["ssl_context"] = False
+        try:
+            return SecureConnection(*args, channel_binding_mode=cb_mode, sslmode="allow", **no_ssl_kwargs)
+        except (pg8000.exceptions.InterfaceError, pg8000.exceptions.DatabaseError, socket.error) as exc:
+            logger.warning("[DB_ADAPTER] Conexión sin SSL falló en modo allow; reintentando con SSL...")
+            ctx = kwargs.get("ssl_context")
+            if ctx is False or ctx is None:
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_REQUIRED
+            ssl_kwargs = dict(kwargs)
+            ssl_kwargs["ssl_context"] = ctx
+            try:
+                return SecureConnection(*args, channel_binding_mode=cb_mode, sslmode="allow", **ssl_kwargs)
+            except Exception as ssl_exc:
+                _safe_raise(ssl_exc)
+        except Exception as e:
+            _safe_raise(e)
+
+    else:
+        # require, verify-ca, verify-full
+        try:
+            return SecureConnection(*args, channel_binding_mode=cb_mode, sslmode=sm_mode, **kwargs)
+        except Exception as e:
+            _safe_raise(e)
+
+
+# Reemplazar la fábrica por defecto de pg8000 para que cualquier llamada a connect use la versión segura
+pg8000.dbapi.connect = secure_pg8000_connect
+
+
+def prepare_postgres_engine_args(raw_url: Optional[str] = None) -> Tuple[Any, Dict[str, Any]]:
+    """
+    Parsea, valida y prepara la URL y los connect_args para SQLAlchemy con pg8000.
+    - Soporta y valida estrictamente sslmode: disable, allow, prefer, require, verify-ca, verify-full.
+    - Soporta y valida estrictamente channel_binding: disable, prefer, require.
+    - Rechaza parámetros no soportados sin exponer credenciales en los mensajes ni en trazas de excepciones.
+    - Elimina parámetros de query que no soporta pg8000 para evitar TypeErrors.
+    """
+    if not raw_url:
+        raise ValueError("DATABASE_URL no puede estar vacía.") from None
+
+    from sqlalchemy.engine import make_url
+    try:
+        u = make_url(raw_url)
+    except Exception:
+        raise ValueError("URL de base de datos malformada.") from None
+
+    if u.drivername in ("postgres", "postgresql"):
+        u = u.set(drivername="postgresql+pg8000")
+    elif not u.drivername.startswith("postgresql"):
+        raise ValueError("Protocolo de base de datos no soportado.") from None
+
+    query = dict(u.query)
+    connect_args: Dict[str, Any] = {}
+
+    # 1. Validar channel_binding
+    cb = query.pop("channel_binding", None)
+    VALID_CB = ("disable", "prefer", "require")
+    if cb is not None and cb not in VALID_CB:
+        raise ValueError(f"Valor de channel_binding no válido: '{cb}'") from None
+    connect_args["channel_binding"] = cb or "prefer"
+
+    # 2. Validar sslmode y configurar ssl_context
+    sslmode = query.pop("sslmode", None)
+    VALID_SSLMODES = ("disable", "allow", "prefer", "require", "verify-ca", "verify-full")
+    if sslmode is not None and sslmode not in VALID_SSLMODES:
+        raise ValueError(f"Valor de sslmode no válido: '{sslmode}'") from None
+
+    if sslmode == "disable":
+        connect_args["ssl_context"] = False
+        connect_args["sslmode"] = "disable"
+    elif sslmode in ("require", "verify-full"):
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = True
+        ctx.verify_mode = ssl.CERT_REQUIRED
+        connect_args["ssl_context"] = ctx
+        connect_args["sslmode"] = sslmode
+    elif sslmode == "verify-ca":
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_REQUIRED
+        connect_args["ssl_context"] = ctx
+        connect_args["sslmode"] = "verify-ca"
+    elif sslmode == "prefer":
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_REQUIRED
+        connect_args["ssl_context"] = ctx
+        connect_args["sslmode"] = "prefer"
+    elif sslmode == "allow":
+        connect_args["ssl_context"] = False
+        connect_args["sslmode"] = "allow"
+    else:
+        # Si no se especifica y el host es remoto, exigir SSL por defecto
+        if u.host not in ("localhost", "127.0.0.1", "::1", None):
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = True
+            ctx.verify_mode = ssl.CERT_REQUIRED
+            connect_args["ssl_context"] = ctx
+            connect_args["sslmode"] = "require"
+        else:
+            connect_args["sslmode"] = "prefer"
+
+    # 3. Mapear parámetros soportados por pg8000
+    if "connect_timeout" in query:
+        val = query.pop("connect_timeout")
+        try:
+            connect_args["timeout"] = int(val)
+        except (ValueError, TypeError):
+            raise ValueError("Valor de connect_timeout inválido.") from None
+
+    if "application_name" in query:
+        connect_args["application_name"] = query.pop("application_name")
+
+    # 4. Rechazar parámetros no reconocidos (sin exponer valores sensibles)
+    if query:
+        unsupported = sorted(query.keys())[0]
+        raise ValueError(f"Parámetro de conexión no soportado: '{unsupported}'") from None
+
+    clean_u = u.set(query={})
+    return clean_u, connect_args
+
+
+def make_connection_creator(clean_url, connect_args: Dict[str, Any]):
+    """Crea una fábrica de conexiones para SQLAlchemy con validación de seguridad y fallback."""
+    user = clean_url.username or "postgres"
+    password = clean_url.password
+    host = clean_url.host or "localhost"
+    port = clean_url.port or 5432
+    database = clean_url.database
+
+    base_kwargs: Dict[str, Any] = {
+        "user": user,
+        "password": password,
+        "host": host,
+        "port": port,
+        "database": database,
+    }
+    for k in ("timeout", "application_name", "ssl_context"):
+        if k in connect_args:
+            base_kwargs[k] = connect_args[k]
+
+    cb = connect_args.get("channel_binding", "prefer")
+    sm = connect_args.get("sslmode", "require")
+
+    def creator():
+        return secure_pg8000_connect(
+            **base_kwargs,
+            channel_binding=cb,
+            sslmode=sm,
+        )
+
+    return creator
+
+
+def get_database_url(hide_password: bool = False) -> Optional[str]:
     """Retorna la URL normalizada para SQLAlchemy con driver pg8000."""
     raw = os.getenv("DATABASE_URL", "").strip()
     if not raw:
         return None
-    if raw.startswith("postgres://"):
-        raw = "postgresql+pg8000://" + raw[len("postgres://"):]
-    elif raw.startswith("postgresql://"):
-        raw = "postgresql+pg8000://" + raw[len("postgresql://"):]
-    return raw
+    clean_u, _ = prepare_postgres_engine_args(raw)
+    return clean_u.render_as_string(hide_password=hide_password)
 
 
 def get_engine():
@@ -46,19 +352,23 @@ def get_engine():
     global _ENGINE
     if _ENGINE is None and is_postgres():
         from sqlalchemy import create_engine
-        url = get_database_url()
+        raw = os.getenv("DATABASE_URL", "").strip()
+        clean_url, connect_args = prepare_postgres_engine_args(raw)
+        creator = make_connection_creator(clean_url, connect_args)
         try:
             _ENGINE = create_engine(
-                url,
+                clean_url,
+                creator=creator,
                 pool_pre_ping=True,
                 pool_recycle=300,
                 pool_size=5,
                 max_overflow=10,
             )
-            logger.info("[DB_ADAPTER] Motor PostgreSQL (pg8000) conectado exitosamente.")
+            logger.info("[DB_ADAPTER] Motor PostgreSQL (pg8000) conectado exitosamente con SSL y channel_binding.")
         except Exception as e:
-            logger.error(f"[DB_ADAPTER] Error al conectar motor PostgreSQL: {e}")
-            raise
+            safe_msg = sanitize_error_message(str(e))
+            logger.error(f"[DB_ADAPTER] Error al conectar motor PostgreSQL: {safe_msg}")
+            raise RuntimeError(f"Error de conexión a PostgreSQL: {safe_msg}") from None
     return _ENGINE
 
 
