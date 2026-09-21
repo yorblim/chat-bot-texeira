@@ -59,21 +59,46 @@ def create_request(user_id, channel, question, context):
         return dict(row), False
 
 
-def update_request(ticket, status, advisor, note):
+class AdvisorDeliveryError(RuntimeError):
+    """El proveedor no confirmó el envío; no confirmar cambios del ticket."""
+
+
+def update_request(ticket, status, advisor, note, send_to_customer=False):
+    if not isinstance(send_to_customer, bool):
+        raise ValueError('La opción de envío debe ser verdadera o falsa.')
     if status not in {'in_progress','closed'} or not advisor.strip():
         raise ValueError('Indica el asesor y un estado válido.')
     if status == 'closed' and not note.strip():
         raise ValueError('Describe el resultado de la atención antes de cerrar.')
+    if send_to_customer and not note.strip():
+        raise ValueError('Escribe la respuesta que deseas enviar.')
     with connection() as conn:
         conn.execute('BEGIN IMMEDIATE')
-        row=conn.execute('SELECT * FROM requests WHERE id=?',(ticket,)).fetchone()
+        lock = ' FOR UPDATE' if is_postgres() else ''
+        row=conn.execute('SELECT * FROM requests WHERE id=?' + lock,(ticket,)).fetchone()
         if not row: raise ValueError('Solicitud inexistente.')
         if row['status']=='closed': raise ValueError('La solicitud ya está cerrada.')
         if row['status']=='pending' and status=='closed': raise ValueError('Primero toma la solicitud en atención.')
+        if send_to_customer and row['channel'] != 'whatsapp':
+            raise ValueError('Esta solicitud no pertenece al canal WhatsApp.')
         changed = conn.execute('UPDATE requests SET status=?,advisor=?,note=?,updated_at=? WHERE id=? AND status=?',
                      (status,advisor.strip(),note.strip(),datetime.now(timezone.utc).isoformat(),ticket,row['status']))
         if changed.rowcount != 1:
             raise ValueError('Otro asesor actualizó la solicitud; recarga antes de continuar.')
+        if send_to_customer:
+            # Mantener el bloqueo hasta terminar: otra operación no puede cerrar
+            # el mismo ticket entre la validación y el intento de envío.
+            try:
+                from src.services.whatsapp import send_whatsapp_message
+                sent = send_whatsapp_message(
+                    text=f"Hola, soy {advisor.strip()} de Texeira Travel:\n\n{note.strip()}",
+                    to_phone=row['user_id'],
+                )
+            except Exception:
+                raise AdvisorDeliveryError('WhatsApp no confirmó el envío. El ticket no se actualizó. Comprueba la entrega antes de reintentar.') from None
+            if not sent:
+                raise AdvisorDeliveryError('WhatsApp no confirmó el envío. El ticket no se actualizó. Comprueba la entrega antes de reintentar.')
+    return send_to_customer
 
 
 def requested(text):
@@ -225,25 +250,11 @@ def install(ns):
             status=str(body.get('status',''))
             advisor=str(body.get('advisor',''))[:100]
             note=str(body.get('note',''))[:2000]
-            send_to_customer=bool(body.get('send_to_customer',False))
-
-            # Envío automático a WhatsApp del cliente si está marcado y hay mensaje
-            msg_sent=False
-            if send_to_customer and note.strip() and status in {'in_progress','closed'}:
-                with connection() as conn:
-                    req_row=conn.execute('SELECT user_id, channel FROM requests WHERE id=?', (ticket,)).fetchone()
-                if req_row and req_row['channel'] == 'whatsapp':
-                    user_id=req_row['user_id']
-                    try:
-                        from src.services.whatsapp import send_whatsapp_message
-                        client_msg=f"Hola, soy {advisor.strip()} de Texeira Travel:\n\n{note.strip()}"
-                        msg_sent=bool(send_whatsapp_message(text=client_msg, to_phone=user_id))
-                        print(f"[HANDOFF ADVISOR SEND] ticket={ticket} user={user_id} sent={msg_sent}")
-                    except Exception as e:
-                        print(f"[HANDOFF ADVISOR SEND ERROR] {e}")
-
-            update_request(ticket,status,advisor,note)
+            send_to_customer=body.get('send_to_customer',False)
+            msg_sent=update_request(ticket,status,advisor,note,send_to_customer)
             return JSONResponse({'ok':True, 'message_sent': msg_sent})
+        except AdvisorDeliveryError as exc:
+            return JSONResponse({'ok':False, 'message_sent':False, 'error':str(exc)},status_code=502)
         except (ValueError,TypeError,AttributeError) as exc:
             return JSONResponse({'error':str(exc)},status_code=400)
 
