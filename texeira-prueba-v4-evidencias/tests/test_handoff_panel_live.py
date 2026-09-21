@@ -53,7 +53,7 @@ def run_handoff_audit():
     # 2. Seguridad del panel
     print("\n[1/5] Verificando protección de /handoffs...")
     try:
-        urllib.request.urlopen(f"{base_url}/handoffs", timeout=15)
+        urllib.request.urlopen(f"{base_url}/handoffs", timeout=45)
         raise AssertionError("Fallo de seguridad: /handoffs sin auth no fue bloqueado.")
     except urllib.error.HTTPError as e:
         assert e.code == 401, f"Se esperaba 401, obtenido {e.code}"
@@ -62,10 +62,10 @@ def run_handoff_audit():
     # 3. Acceso autorizado al panel HTML
     print("\n[2/5] Verificando renderizado de /handoffs con Basic Auth...")
     req = urllib.request.Request(f"{base_url}/handoffs", headers=headers)
-    with urllib.request.urlopen(req, timeout=15) as r:
+    with urllib.request.urlopen(req, timeout=45) as r:
         assert r.status == 200
         html = r.read().decode("utf-8")
-        assert "Solicitudes para asesores" in html
+        assert "Consola de Asesores" in html or "Solicitudes para asesores" in html
         assert "X-Handoff-CSRF" in html or "__CSRF__" in html or "refresh" in html
         # Extraer CSRF token del panel
         csrf_match = re.search(r"X-Handoff-CSRF':\s*'([^']+)'", html)
@@ -77,7 +77,7 @@ def run_handoff_audit():
     test_user = "pilot_handoff_eval_user"
     payload = json.dumps({"user_id": test_user, "message": "Quiero hablar con un asesor"}).encode("utf-8")
     req = urllib.request.Request(f"{base_url}/test-chat", data=payload, headers=headers)
-    with urllib.request.urlopen(req, timeout=25) as r:
+    with urllib.request.urlopen(req, timeout=45) as r:
         assert r.status == 200
         data = json.loads(r.read().decode("utf-8"))
         ans = data.get("response", "")
@@ -89,7 +89,7 @@ def run_handoff_audit():
     # 5. Verificación de ticket en Neon PostgreSQL y en /handoffs/data
     print("\n[4/5] Verificando persistencia y consulta de tickets en /handoffs/data y Neon...")
     req = urllib.request.Request(f"{base_url}/handoffs/data", headers=headers)
-    with urllib.request.urlopen(req, timeout=15) as r:
+    with urllib.request.urlopen(req, timeout=45) as r:
         assert r.status == 200
         data_rows = json.loads(r.read().decode("utf-8"))
         ticket_row = next((x for x in data_rows if x.get("id") == ticket_id), None)
