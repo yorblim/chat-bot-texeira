@@ -222,25 +222,230 @@ def install(ns):
             return JSONResponse({'error':'Solicitud no autorizada'},status_code=403)
         try:
             body=await request.json()
-            update_request(ticket,str(body.get('status','')),str(body.get('advisor',''))[:100],str(body.get('note',''))[:2000])
-            return JSONResponse({'ok':True})
+            status=str(body.get('status',''))
+            advisor=str(body.get('advisor',''))[:100]
+            note=str(body.get('note',''))[:2000]
+            send_to_customer=bool(body.get('send_to_customer',False))
+
+            # Envío automático a WhatsApp del cliente si está marcado y hay mensaje
+            msg_sent=False
+            if send_to_customer and note.strip() and status in {'in_progress','closed'}:
+                with connection() as conn:
+                    req_row=conn.execute('SELECT user_id, channel FROM requests WHERE id=?', (ticket,)).fetchone()
+                if req_row and req_row['channel'] == 'whatsapp':
+                    user_id=req_row['user_id']
+                    try:
+                        from src.services.whatsapp import send_whatsapp_message
+                        client_msg=f"Hola, soy {advisor.strip()} de Texeira Travel:\n\n{note.strip()}"
+                        msg_sent=bool(send_whatsapp_message(text=client_msg, to_phone=user_id))
+                        print(f"[HANDOFF ADVISOR SEND] ticket={ticket} user={user_id} sent={msg_sent}")
+                    except Exception as e:
+                        print(f"[HANDOFF ADVISOR SEND ERROR] {e}")
+
+            update_request(ticket,status,advisor,note)
+            return JSONResponse({'ok':True, 'message_sent': msg_sent})
         except (ValueError,TypeError,AttributeError) as exc:
             return JSONResponse({'error':str(exc)},status_code=400)
 
 
-PANEL='''<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-<title>Solicitudes para asesores — Texeira</title>
-<style>body{font:16px system-ui;max-width:1000px;margin:32px auto;padding:20px;background:#f4f7f8;color:#18333b}article{background:white;padding:20px;margin:16px 0;border:1px solid #cbdadd;border-radius:12px}button,input,textarea{font:inherit;padding:10px;margin:5px}button{cursor:pointer}pre{white-space:pre-wrap}label{display:block}textarea{width:90%}</style>
-<h1>Solicitudes para asesores</h1><p>Registrar una solicitud no significa que el cliente ya fue atendido. Cierra cada caso solo después de la atención y anota el resultado.</p>
-<p>Avisos automáticos al WhatsApp del asesor: Configurado (notificación activa al registrar solicitud si ADVISOR_WHATSAPP_PHONE está definido).</p>
-<a href="/operational-metrics">Ver métricas operativas</a> <button id="refresh">Actualizar</button><p id="feedback" role="status"></p><main id="list"></main>
+PANEL='''<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consola de Asesores y Handoffs — Texeira Travel</title>
+<style>
+  :root { --primary: #0284c7; --primary-hover: #0369a1; --success: #16a34a; --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --muted: #64748b; }
+  body { font-family: system-ui, -apple-system, sans-serif; max-width: 960px; margin: 30px auto; padding: 20px; background: var(--bg); color: var(--text); }
+  header { margin-bottom: 24px; border-bottom: 1px solid #cbd5e1; padding-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  h1 { margin: 0; font-size: 24px; color: #0369a1; display: flex; align-items: center; gap: 8px; }
+  .nav-links a { color: var(--primary); text-decoration: none; font-weight: 500; margin-right: 16px; }
+  .nav-links a:hover { text-decoration: underline; }
+  article { background: var(--card); padding: 22px; margin: 16px 0; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; text-transform: uppercase; }
+  .badge-pending { background: #fef3c7; color: #92400e; }
+  .badge-in_progress { background: #dbeafe; color: #1e40af; }
+  .badge-closed { background: #dcfce7; color: #166534; }
+  .client-meta { color: var(--muted); font-size: 14px; margin-bottom: 10px; }
+  .client-query { font-size: 16px; font-weight: 500; background: #f8fafc; padding: 12px; border-left: 4px solid var(--primary); border-radius: 4px; margin: 12px 0; }
+  details { margin: 12px 0; background: #fafafa; padding: 8px 12px; border-radius: 8px; border: 1px solid #eee; }
+  summary { font-size: 14px; font-weight: 600; cursor: pointer; color: var(--muted); }
+  pre { white-space: pre-wrap; font-size: 13px; margin: 8px 0; color: #334155; }
+  label { display: block; font-weight: 600; font-size: 14px; margin: 10px 0 4px; color: #334155; }
+  input[type="text"], textarea { width: 100%; box-sizing: border-box; font-family: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; }
+  textarea { min-height: 80px; resize: vertical; }
+  .checkbox-group { display: flex; align-items: center; gap: 8px; margin: 14px 0; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .checkbox-group input { width: 18px; height: 18px; cursor: pointer; }
+  .btn-group { display: flex; gap: 10px; margin-top: 14px; }
+  button { font-family: inherit; font-weight: 600; font-size: 14px; padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; transition: background 0.15s ease-in-out; }
+  .btn-take { background: #e0f2fe; color: #0369a1; }
+  .btn-take:hover { background: #bae6fd; }
+  .btn-close { background: var(--success); color: white; }
+  .btn-close:hover { background: #15803d; }
+  .btn-refresh { background: white; border: 1px solid #cbd5e1; color: var(--text); }
+  .btn-refresh:hover { background: #f8fafc; }
+  .closed-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; margin-top: 10px; font-size: 14px; }
+  #feedback { margin: 10px 0; font-weight: 600; }
+  #feedback.error { color: #dc2626; }
+  #feedback.success { color: #16a34a; }
+</style>
+<header>
+  <div>
+    <h1>🛎️ Consola de Asesores — Texeira Travel</h1>
+    <p style="margin: 4px 0 0; color: var(--muted); font-size: 14px;">Gestión de consultas escaladas y atención humana por WhatsApp</p>
+  </div>
+  <div class="nav-links">
+    <a href="/dashboard">📊 Dashboard</a>
+    <a href="/operational-metrics">📈 Métricas</a>
+    <button id="refresh" class="btn-refresh">🔄 Actualizar</button>
+  </div>
+</header>
+<p id="feedback" role="status"></p>
+<main id="list"></main>
 <script>
-const stateNames={pending:'Pendiente',in_progress:'En atención',closed:'Cerrada'};
-const elem=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e};
-async function load(){const r=await fetch('/handoffs/data');if(!r.ok)throw Error('No se pudieron cargar las solicitudes');const rows=await r.json();const list=document.getElementById('list');list.replaceChildren();if(!rows.length)list.append(elem('p','No hay solicitudes registradas.'));
-for(const x of rows){const a=elem('article');a.append(elem('h2',`${x.id} · ${stateNames[x.status]}`),elem('p',`${x.channel} · ${x.user_id} · ${new Date(x.created_at).toLocaleString()}`),elem('p',x.question));
-const details=elem('details');details.append(elem('summary','Ver contexto'));for(const h of JSON.parse(x.context))details.append(elem('pre',`${h.role}: ${h.content}`));a.append(details);
-if(x.status==='closed'){a.append(elem('p',`Asesor: ${x.advisor}`),elem('p',x.note));}
-else{const label=elem('label','Asesor responsable');const who=elem('input');who.value=x.advisor;label.append(who);const nlabel=elem('label','Resultado de atención');const note=elem('textarea');note.value=x.note;nlabel.append(note);const b=elem('button',x.status==='pending'?'Tomar solicitud':'Cerrar solicitud');b.onclick=async()=>{b.disabled=true;try{const r=await fetch('/handoffs/'+x.id,{method:'POST',headers:{'Content-Type':'application/json','X-Handoff-CSRF':'__CSRF__'},body:JSON.stringify({status:x.status==='pending'?'in_progress':'closed',advisor:who.value,note:note.value})});const d=await r.json();if(!r.ok)throw Error(d.error);await load()}catch(e){document.getElementById('feedback').textContent=e.message;b.disabled=false}};a.append(label,nlabel,b)}list.append(a)}}
-document.getElementById('refresh').onclick=()=>load().catch(e=>document.getElementById('feedback').textContent=e.message);load().catch(e=>document.getElementById('feedback').textContent=e.message);
+const stateNames = { pending: 'Pendiente', in_progress: 'En atención', closed: 'Cerrada' };
+const stateBadges = { pending: 'badge-pending', in_progress: 'badge-in_progress', closed: 'badge-closed' };
+const elem = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+};
+
+async function load() {
+  const list = document.getElementById('list');
+  try {
+    const r = await fetch('/handoffs/data');
+    if (!r.ok) throw Error('No se pudieron cargar las solicitudes.');
+    const rows = await r.json();
+    list.replaceChildren();
+    if (!rows.length) {
+      list.append(elem('p', '', 'No hay solicitudes registradas en este momento.'));
+      return;
+    }
+    for (const x of rows) {
+      const a = elem('article');
+      
+      const head = elem('div', 'card-header');
+      head.append(
+        elem('h2', '', `Ticket #${x.id}`),
+        elem('span', `badge ${stateBadges[x.status] || ''}`, stateNames[x.status] || x.status)
+      );
+      a.append(head);
+
+      const meta = elem('div', 'client-meta');
+      meta.textContent = `Canal: ${x.channel} · Cliente: ${x.user_id} · Fecha: ${new Date(x.created_at).toLocaleString()}`;
+      a.append(meta);
+
+      const query = elem('div', 'client-query');
+      query.textContent = `Consulta: "${x.question}"`;
+      a.append(query);
+
+      if (x.context && x.context !== '[]') {
+        const det = elem('details');
+        det.append(elem('summary', '', '💬 Ver historial previo de conversación'));
+        try {
+          const hist = JSON.parse(x.context);
+          for (const h of hist) {
+            det.append(elem('pre', '', `[${h.role.toUpperCase()}]: ${h.content}`));
+          }
+        } catch(e) {}
+        a.append(det);
+      }
+
+      if (x.status === 'closed') {
+        const closedBox = elem('div', 'closed-box');
+        closedBox.append(
+          elem('strong', '', `Atendido por: ${x.advisor || 'Asesor'}`),
+          elem('p', '', `Resultado: ${x.note || 'Cerrado'}`)
+        );
+        a.append(closedBox);
+      } else {
+        const formDiv = elem('div');
+        
+        const lWho = elem('label', '', 'Nombre del Asesor');
+        const who = elem('input');
+        who.type = 'text';
+        who.placeholder = 'Ej: Eugenio Maldonado';
+        who.value = x.advisor || '';
+        formDiv.append(lWho, who);
+
+        const lNote = elem('label', '', 'Respuesta al cliente / Nota de atención');
+        const note = elem('textarea');
+        note.placeholder = 'Escribe aquí el mensaje para el cliente o el resultado de la atención...';
+        note.value = x.note || '';
+        formDiv.append(lNote, note);
+
+        const checkLabel = elem('label', 'checkbox-group');
+        const sendCheck = elem('input');
+        sendCheck.type = 'checkbox';
+        sendCheck.checked = true;
+        checkLabel.append(sendCheck, ' Enviar esta respuesta directamente al WhatsApp del cliente');
+        formDiv.append(checkLabel);
+
+        const btnGroup = elem('div', 'btn-group');
+        
+        if (x.status === 'pending') {
+          const bTake = elem('button', 'btn-take', '✋ Tomar solicitud');
+          bTake.onclick = async () => {
+            if (!who.value.trim()) { alert('Por favor ingresa tu nombre de asesor.'); who.focus(); return; }
+            bTake.disabled = true;
+            await sendUpdate(x.id, 'in_progress', who.value, note.value, false);
+          };
+          btnGroup.append(bTake);
+        }
+
+        const bClose = elem('button', 'btn-close', sendCheck.checked ? '🚀 Responder y Cerrar' : '✅ Cerrar Solicitud');
+        sendCheck.onchange = () => {
+          bClose.textContent = sendCheck.checked ? '🚀 Responder y Cerrar' : '✅ Cerrar Solicitud';
+        };
+
+        bClose.onclick = async () => {
+          if (!who.value.trim()) { alert('Por favor ingresa tu nombre de asesor.'); who.focus(); return; }
+          if (!note.value.trim()) { alert('Escribe la respuesta o nota de atención antes de cerrar.'); note.focus(); return; }
+          bClose.disabled = true;
+          await sendUpdate(x.id, 'closed', who.value, note.value, sendCheck.checked);
+        };
+        btnGroup.append(bClose);
+
+        formDiv.append(btnGroup);
+        a.append(formDiv);
+      }
+
+      list.append(a);
+    }
+  } catch (err) {
+    list.replaceChildren(elem('p', 'error', err.message));
+  }
+}
+
+async function sendUpdate(ticketId, status, advisor, note, sendToCustomer) {
+  const fb = document.getElementById('feedback');
+  fb.className = '';
+  fb.textContent = 'Procesando...';
+  try {
+    const r = await fetch(`/handoffs/${ticketId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Handoff-CSRF':'__CSRF__'
+      },
+      body: JSON.stringify({
+        status: status,
+        advisor: advisor,
+        note: note,
+        send_to_customer: sendToCustomer
+      })
+    });
+    const d = await r.json();
+    if (!r.ok) throw Error(d.error || 'Error al actualizar');
+    fb.className = 'success';
+    fb.textContent = d.message_sent ? '¡Respuesta enviada por WhatsApp y ticket actualizado!' : 'Ticket actualizado correctamente.';
+    setTimeout(() => { fb.textContent = ''; }, 4000);
+    await load();
+  } catch (e) {
+    fb.className = 'error';
+    fb.textContent = e.message;
+  }
+}
+
+document.getElementById('refresh').onclick = load;
+load();
 </script></html>'''
