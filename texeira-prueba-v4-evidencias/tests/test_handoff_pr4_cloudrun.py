@@ -207,6 +207,7 @@ def run_test():
     finally:
         if test_user_id:
             print("\n[Limpieza] Limpiando datos sintéticos generados en Neon PostgreSQL...")
+            cleaned = False
             try:
                 raw_db_url = get_secret("DATABASE_URL", "1")
                 sep = "&" if "?" in raw_db_url else "?"
@@ -216,9 +217,19 @@ def run_test():
                     conn.execute("DELETE FROM requests WHERE user_id = ?", (test_user_id,))
                     conn.execute("DELETE FROM interactions WHERE user_id = ?", (test_user_id,))
                     conn.execute("DELETE FROM conversation_memory WHERE user_id = ?", (test_user_id,))
+                cleaned = True
                 print(f"  PASS | Registros sintéticos de {test_user_id} eliminados con éxito de Neon PostgreSQL.")
-            except Exception as e:
-                print(f"  INFO | Limpieza directa en Neon omitida ({type(e).__name__}: {e}).")
+            except Exception:
+                cleaned = False
+                print("  ERROR | validación incompleta: limpieza pendiente")
+                print(f"  Identificador sintético pendiente: {test_user_id}")
+
+            if not cleaned:
+                print("\n=====================================================================")
+                print(f"   [FALLO] validación incompleta: limpieza pendiente")
+                print(f"   Identificador sintético pendiente: {test_user_id}")
+                print("=====================================================================")
+                sys.exit(1)
 
     print("\n=====================================================================")
     print("   ¡PR #4 VALIDADO AL 100% EN VIVO EN CLOUD RUN (00023-rp9)!")
