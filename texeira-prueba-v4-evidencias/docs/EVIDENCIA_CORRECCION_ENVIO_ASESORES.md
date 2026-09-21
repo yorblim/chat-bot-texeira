@@ -35,6 +35,7 @@ envíos desde tickets que no pertenecen a WhatsApp. Las notas internas no envía
 - **PR Integrado:** PR #4 (`feature/corregir-envio-panel-asesores` fusionado a `main` en commit `d6f3ea6`).
 - **Compilación Cloud Build:** `aac33065-6d7f-4976-b81a-f7d039d8d2d6` (SUCCESS).
 - **Servicio y Revisión Activa:** `texeira-whatsapp` en `texeira-whatsapp-00023-rp9` (recibiendo el 100% del tráfico).
+- **Consumo y Escala a Cero:** El servicio opera con `min-instances = 0`, lo que reduce a cero las instancias activas y el costo de cómputo en reposo cuando no hay tráfico entrante. Esto optimiza el consumo, aunque no garantiza costo $0 absoluto, ya que persisten cargos variables por peticiones atendidas, ancho de banda saliente, consultas a Secret Manager y artefactos almacenados.
 - **Script de Auditoría en Vivo:** `tests/test_handoff_pr4_cloudrun.py` (Aprobado al 100%):
   - Salud (`/health` HTTP 200) y protección anónima (`/handoffs` HTTP 401).
   - Carga de consola con Basic Auth y extracción de token anti-CSRF.
@@ -46,14 +47,17 @@ envíos desde tickets que no pertenecen a WhatsApp. Las notas internas no envía
   - Cierre formal con nota interna y sin despacho a cliente (`ok: true`, `message_sent: false`).
   - Bloqueo de doble cierre sobre ticket ya cerrado (HTTP 400).
   - Verificación de persistencia final de estado en `/handoffs/data` (estado `closed`).
+  - **Higiene y Limpieza en `finally`:** La prueba implementa un bloque de limpieza en `finally` para purgar de Neon PostgreSQL los registros sintéticos creados (`requests`, `interactions`, `conversation_memory`) bajo el identificador de prueba.
 
 ## Límites
 
-La aceptación de Meta no equivale a entrega al teléfono. Una interrupción de red
-puede dejar el resultado externo incierto; por eso la interfaz pide comprobar la
-entrega antes de reintentar y no reintenta automáticamente. Un fallo del commit
-posterior a la aceptación externa tampoco permite garantizar envío exactamente
-una vez. Esto requeriría seguimiento persistente del intento y conciliación con
-el proveedor. La transacción mantiene un bloqueo durante la llamada al proveedor
-(timeout configurado por el servicio de WhatsApp); en SQLite bloquea otras escrituras.
+1. **Simulación vs. Entrega Real en Producción:**
+   El comportamiento ante fallos del proveedor de mensajería (rollback atómico y HTTP 502 ante excepciones o respuesta `False`) fue verificado mediante simulación controlada (`tests/test_handoff_send_failures.py`). En la validación en vivo sobre Cloud Run se operó mediante nota interna (`send_to_customer=False`), ya que no se indujeron fallos deliberados en la infraestructura productiva de Meta. Esta comprobación es válida para asegurar la integridad de la máquina de estados y las transacciones, pero no equivale a una validación de entrega de mensajes a terminales móviles reales de WhatsApp.
+2. **Incertidumbre de Red Externa:**
+   La aceptación de Meta no equivale a entrega al teléfono del usuario. Una interrupción de red puede dejar el resultado externo incierto; por ello, la interfaz solicita comprobar la entrega antes de reintentar y no realiza reintentos automáticos no supervisados.
+3. **Consistencia Exactamente-Una-Vez:**
+   Un fallo del commit posterior a la aceptación externa tampoco permite garantizar envío exactamente una vez sin un mecanismo de conciliación asíncrona persistente con el proveedor.
+4. **Concurrencia:**
+   La transacción mantiene un bloqueo durante la llamada al proveedor (con timeout estricto); en SQLite bloquea escrituras concurrentes, mientras que en PostgreSQL utiliza aislamiento a nivel de fila (`SELECT ... FOR UPDATE`).
+
 
