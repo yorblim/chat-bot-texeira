@@ -30,6 +30,23 @@ envíos desde tickets que no pertenecen a WhatsApp. Las notas internas no envía
   Verifica rechazo previo al envío, rollback y exclusión de cierres simultáneos.
   No se envían mensajes ni se modifican tickets reales.
 
+## Validación en Vivo en Producción (Cloud Run)
+
+- **PR Integrado:** PR #4 (`feature/corregir-envio-panel-asesores` fusionado a `main` en commit `d6f3ea6`).
+- **Compilación Cloud Build:** `aac33065-6d7f-4976-b81a-f7d039d8d2d6` (SUCCESS).
+- **Servicio y Revisión Activa:** `texeira-whatsapp` en `texeira-whatsapp-00023-rp9` (recibiendo el 100% del tráfico).
+- **Script de Auditoría en Vivo:** `tests/test_handoff_pr4_cloudrun.py` (Aprobado al 100%):
+  - Salud (`/health` HTTP 200) y protección anónima (`/handoffs` HTTP 401).
+  - Carga de consola con Basic Auth y extracción de token anti-CSRF.
+  - Generación de ticket ante derivación humana por `/test-chat`.
+  - Rechazo de actualización sin token CSRF (HTTP 403).
+  - Rechazo de transición prematura `pending` $\to$ `closed` sin tomar caso (HTTP 400).
+  - Toma de ticket a `in_progress` (HTTP 200).
+  - Rechazo de parámetro de envío no booleano `send_to_customer='false'` (HTTP 400).
+  - Cierre formal con nota interna y sin despacho a cliente (`ok: true`, `message_sent: false`).
+  - Bloqueo de doble cierre sobre ticket ya cerrado (HTTP 400).
+  - Verificación de persistencia final de estado en `/handoffs/data` (estado `closed`).
+
 ## Límites
 
 La aceptación de Meta no equivale a entrega al teléfono. Una interrupción de red
@@ -40,5 +57,3 @@ una vez. Esto requeriría seguimiento persistente del intento y conciliación co
 el proveedor. La transacción mantiene un bloqueo durante la llamada al proveedor
 (timeout configurado por el servicio de WhatsApp); en SQLite bloquea otras escrituras.
 
-Este cambio se presenta para revisión en su propia rama. No modifica la revisión
-de Cloud Run ni constituye una prueba de entrega real de WhatsApp.
