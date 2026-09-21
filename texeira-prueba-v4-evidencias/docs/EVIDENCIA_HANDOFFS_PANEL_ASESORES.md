@@ -1,7 +1,7 @@
 # Evidencia de Validación: Panel Administrativo y Derivación a Asesores (Handoffs)
 
 **Fecha:** 2026-09-21  
-**Servicio Cloud Run:** `texeira-whatsapp` (`texeira-whatsapp-00021-9mp`)  
+**Servicio Cloud Run:** `texeira-whatsapp` (`texeira-whatsapp-00022-tm5` — Activa al 100%)  
 **Base de Datos:** Neon PostgreSQL (Tabla `requests`)  
 **Módulo Evaluado:** [handoff_support.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/handoff_support.py) y [advisor_entry.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/advisor_entry.py)
 
@@ -15,12 +15,16 @@ Se auditó de punta a punta el mecanismo de atención humana cuando un turista s
    - `/handoffs` y `/handoffs/data` están estrictamente protegidos mediante HTTP Basic Auth (`ADMIN_USER` / `ADMIN_PASSWORD` en Secret Manager v2).
    - Solicitudes no autenticadas devuelven inmediatamente `401 Unauthorized` (`Acceso restringido`).
 2. **Generación Persistente de Tickets:**
-   - La solicitud de un turista genera un identificador criptográfico único (ej. `#f10aac46486f`).
+   - La solicitud de un turista genera un identificador criptográfico único (ej. `#b1365a041af2`).
    - El ticket se inserta en la tabla `requests` de Neon PostgreSQL con estado `pending`, almacenando el contexto de los últimos turnos de la conversación en formato JSON.
    - El bot informa al turista de manera transparente que la solicitud está registrada y pendiente de atención humana, permitiéndole continuar interactuando con el bot.
-3. **Panel de Gestión de Asesores (`/handoffs`):**
+3. **Consola Híbrida de Asesores (`/handoffs`):**
    - Interfaz web interactiva con token anti-CSRF (`X-Handoff-CSRF`).
-   - Endpoint de datos JSON `/handoffs/data` que devuelve la lista de solicitudes pendientes y activas.
+   - Endpoint de datos JSON `/handoffs/data` que devuelve la lista de solicitudes con su historial previo de conversación.
+   - **Opción Híbrida de Respuesta Directa por WhatsApp:**
+     - El asesor puede redactar una respuesta personalizada y marcar la casilla *"Enviar esta respuesta directamente al WhatsApp del cliente"*.
+     - Al cerrar o actualizar, el sistema despacha el mensaje formalmente formateado mediante la API oficial de WhatsApp Cloud API (`send_whatsapp_message`) hacia el número del cliente.
+     - Si la casilla está desmarcada, el sistema almacena la nota únicamente como registro interno de coordinación.
 4. **Ciclo de Vida Completo del Ticket:**
    - **Toma de Caso:** Cambio de estado de `pending` $\to$ `in_progress` asignando el nombre del asesor responsable (ej. `"Carlos Mendoza"`).
    - **Cierre de Caso:** Cambio de estado de `in_progress` $\to$ `closed` con nota obligatoria de resultado de la atención (`"Atención completada: reserva coordinada satisfactoriamente"`).
