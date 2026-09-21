@@ -18,7 +18,6 @@ import hmac
 import time
 import uuid
 import asyncio
-from collections import defaultdict
 from typing import Optional, Dict, List
 
 from dotenv import load_dotenv
@@ -290,30 +289,30 @@ RESPUESTA (solo basada en el contexto anterior):"""
 # Almacena el historial de mensajes por usuario (últimos 10 turnos).
 # Permite que el agente recuerde el hilo de la conversación.
 
-conversation_history: Dict[str, List[dict]] = defaultdict(list)
+from conversation_memory import ConversationMemory, suspend_recording
+
 MAX_HISTORY_TURNS = 10
+conversation_history = ConversationMemory(lambda: SQLITE_DB_PATH, MAX_HISTORY_TURNS * 2)
 
 
 def get_history(user_id: str) -> List[dict]:
-    """Retorna el historial de conversación de un usuario."""
     return conversation_history.get(user_id, [])
 
 
 def add_to_history(user_id: str, role: str, content: str):
-    """Agrega un mensaje al historial del usuario."""
-    conversation_history[user_id].append({
-        "role": role,
-        "content": content,
-        "timestamp": time.time()
-    })
-    # Mantener solo los últimos MAX_HISTORY_TURNS turnos
-    if len(conversation_history[user_id]) > MAX_HISTORY_TURNS * 2:
-        conversation_history[user_id] = conversation_history[user_id][-MAX_HISTORY_TURNS * 2:]
+    conversation_history.append(user_id, role, content)
+
+
+def add_history_turn(user_id: str, question: str, response: str):
+    conversation_history.add_turn(user_id, question, response)
 
 
 def clear_history(user_id: str):
-    """Limpia el historial de un usuario."""
-    conversation_history[user_id] = []
+    conversation_history.clear(user_id)
+
+
+def update_last_history_response(user_id: str, content: str):
+    conversation_history.update_last_response(user_id, content)
 
 
 # ============================================================

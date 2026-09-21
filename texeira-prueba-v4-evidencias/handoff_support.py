@@ -158,7 +158,11 @@ def apply_request(ns, result, user_id, channel, question):
     result['resolved_autonomously']=False
     # Mantener exactamente la respuesta final en el historial.
     history=ns['conversation_history'].get(user_id,[])
-    if history and history[-1].get('role')=='ai': history[-1]['content']=result['response']
+    if history and history[-1].get('role')=='ai':
+        if 'update_last_history_response' in ns:
+            ns['update_last_history_response'](user_id, result['response'])
+        else:
+            history[-1]['content']=result['response']
     return result
 
 
@@ -175,11 +179,18 @@ def install(ns):
                 else:
                     result['response']+='\nPara registrar una solicitud de atención humana, escribe: asesor.'
                 history=ns['conversation_history'].get(user_id,[])
-                if history and history[-1].get('role')=='ai': history[-1]['content']=result['response']
+                if history and history[-1].get('role')=='ai':
+                    if 'update_last_history_response' in ns:
+                        ns['update_last_history_response'](user_id, result['response'])
+                    else:
+                        history[-1]['content']=result['response']
             return result
         text='Registrando solicitud de atención humana.'
-        ns['add_to_history'](user_id,'human',question)
-        ns['add_to_history'](user_id,'ai',text)
+        if 'add_history_turn' in ns:
+            ns['add_history_turn'](user_id, question, text)
+        else:
+            ns['add_to_history'](user_id,'human',question)
+            ns['add_to_history'](user_id,'ai',text)
         return dict(response=text,is_fallback=False,is_predefined=True,is_escalation=False,
                     resolved_autonomously=False,needs_agency_confirmation=True,
                     handoff_requested=True,handoff_language=ns['detect_language'](question),

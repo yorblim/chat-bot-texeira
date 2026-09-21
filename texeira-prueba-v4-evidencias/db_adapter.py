@@ -579,6 +579,8 @@ def ensure_postgres_schema():
     from sqlalchemy import text
     with engine.begin() as conn:
         conn.execute(text(WEBHOOK_RECEIPTS_SCHEMA))
+        from conversation_memory import SCHEMA as memory_schema
+        conn.execute(text(memory_schema))
         # 1. Tabla de interacciones
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS interactions (

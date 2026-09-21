@@ -1,4 +1,5 @@
 """Una sola decision de evidencia y un solo par de mensajes por turno."""
+from contextlib import nullcontext
 import re
 from src.evidence import get_facts, detect_conflicts, is_product_confirmed
 
@@ -88,6 +89,13 @@ def install(ns, support, original):
     support.detect_field_from_question=lambda q:field(support.normalize(q))
     ns['_evaluate_evidence_layer']=lambda *args:None
     ns['check_tour_intent']=lambda *args,**kwargs:None
+    def record(user_id, question, response):
+        if 'add_history_turn' in ns:
+            ns['add_history_turn'](user_id, question, response)
+        else:
+            ns['add_to_history'](user_id, 'human', question)
+            ns['add_to_history'](user_id, 'ai', response)
+
     def chain(question,user_id='default'):
         q=support.normalize(question); lang=ns['detect_language'](question); en=lang=='en'
         prior=list(ns['get_history'](user_id))
@@ -97,9 +105,7 @@ def install(ns, support, original):
         social_key = _SOCIAL_INTENTS.get(q.strip(' ?¿!.'))
         if social_key:
             text = _SOCIAL_RESPONSES[social_key]
-            ns['conversation_history'][user_id]=list(prior)
-            ns['add_to_history'](user_id,'human',question)
-            ns['add_to_history'](user_id,'ai',text)
+            record(user_id, question, text)
             return dict(response=text,context_used=False,is_predefined=True,is_fallback=False,
                 resolved_autonomously=True,is_escalation=False,needs_agency_confirmation=False,
                 needs_confirmation=False,conflict_detected=False,evidence_status='social',
@@ -108,17 +114,14 @@ def install(ns, support, original):
         # --- AYUDA: respuesta corta, sin NOTICES, sin LLM ---
         if re.search(r'\b(ayuda|ayudame|me ayudas|puedes ayudarme|que puedes hacer|que haces|en que me puedes ayudar|en que puedes ayudar|para que sirves|como me puedes ayudar)\b', q) or q.strip(' ?¿!.') in {'ayuda','help'}:
             text = 'I can help with tours, itineraries, schedules and documented services. What would you like to know?' if en or q.strip(' ?¿!.') == 'help' else _HELP_RESPONSE
-            ns['conversation_history'][user_id]=list(prior)
-            ns['add_to_history'](user_id,'human',question)
-            ns['add_to_history'](user_id,'ai',text)
+            record(user_id, question, text)
             return dict(response=text,context_used=False,is_predefined=True,is_fallback=False,
                 resolved_autonomously=True,is_escalation=False,needs_agency_confirmation=False,
                 needs_confirmation=False,conflict_detected=False,evidence_status='social',
                 sources_used=[],route='help',response_route='help')
 
         def finish(text,route, pending=False, sources=(), conflict=False, predefined=True):
-            ns['conversation_history'][user_id]=list(prior)
-            ns['add_to_history'](user_id,'human',question);ns['add_to_history'](user_id,'ai',text)
+            record(user_id, question, text)
             return dict(response=text,context_used=bool(sources),is_predefined=predefined,is_fallback=False,
                 resolved_autonomously=not pending,is_escalation=False,needs_agency_confirmation=pending,
                 needs_confirmation=pending,conflict_detected=conflict,evidence_status='conflict' if conflict else ('unknown' if pending else 'documented'),
@@ -223,15 +226,15 @@ def install(ns, support, original):
             tour_title = ('Machu Picchu by Train' if eid=='machu-picchu-tren' else name) if en else name
             return finish(tour_title+'\n'+'\n'.join(lines),'evidence_'+fld,sources=[f.source_id for f in selected])
         # Para otras consultas se conserva el RAG y su proveedor, sin la segunda capa de evidencia.
-        result=original(question,user_id)
+        with ns.get('suspend_recording', nullcontext)():
+            result=original(question,user_id)
         # La ausencia explícita de evidencia no equivale a resolución autónoma.
         answer_norm = support.normalize(result.get('response', ''))
         if re.search(r'cannot confirm|can.t confirm|does not contain.*information|no incluye el nombre|no especifica|no (?:puedo|podemos) confirmar|no (?:esta|estan) documentad', answer_norm):
             result['needs_agency_confirmation'] = True
             result['needs_confirmation'] = True
             result['resolved_autonomously'] = False
-        ns['conversation_history'][user_id]=list(prior)
-        ns['add_to_history'](user_id,'human',question);ns['add_to_history'](user_id,'ai',result['response'])
+        record(user_id, question, result['response'])
         result['is_escalation']=False
         if result.get('is_rate_limit') or result.get('is_fallback'):result['resolved_autonomously']=False
         return result
