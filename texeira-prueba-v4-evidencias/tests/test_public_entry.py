@@ -16,6 +16,8 @@ async def run():
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=entry.app),base_url='http://test') as c:
         r=await c.get('/healthz')
         assert r.status_code==503 and 'synthetic-secret' not in r.text
+        r2=await c.get('/health')
+        assert r2.status_code==503 and 'synthetic-secret' not in r2.text
         assert (await c.post('/webhook',json={})).status_code==503
         with patch.dict(os.environ,{'META_VERIFY_TOKEN':''}):
             assert (await c.get('/webhook',params={'hub.mode':'subscribe','hub.verify_token':'','hub.challenge':'x'})).status_code==403

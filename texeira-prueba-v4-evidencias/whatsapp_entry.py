@@ -51,6 +51,7 @@ async def shutdown():
             else: await asyncio.to_thread(handler)
     _state['local_app']=None
 
+@app.get('/health')
 @app.get('/healthz')
 def health():
     ready=_state['ready'] and _state['local_app'] is not None and not _state['error']
