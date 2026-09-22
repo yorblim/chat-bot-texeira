@@ -7,75 +7,109 @@ import os
 import re
 
 
-def get_tour_image_data(text: str, user_msg: str = ""):
-    """Detecta tours o intención en la conversación y retorna (url_imagen, caption_elegante).
-    Usa las imágenes reales y verificadas de los atractivos de Cusco alojadas en el propio servidor.
-    """
-    base_url = os.getenv('APP_BASE_URL', 'https://texeira-whatsapp-a5uzavilla-uc.a.run.app').rstrip('/')
+def is_photo_requested(user_msg: str) -> bool:
+    """Determina si el usuario solicita explícitamente ver fotos o imágenes."""
+    if not user_msg:
+        return False
+    u = user_msg.lower()
+    # Descartar si el usuario especifica una negación hacia las fotos
+    if re.search(r"\b(no|sin|without|don't|do not)\b.*?\b(fotos?|im[aá]genes?|photos?|pictures?)\b", u):
+        return False
+    return bool(re.search(r"\b(fotos?|im[aá]genes?|fotograf[ií]as?|photos?|pictures?|images?)\b", u))
 
-    images = {
-        'machu_picchu': (
-            f"{base_url}/images/machu_picchu.jpg",
-            '🏔️ *Machu Picchu Mágico* — ¡La Maravilla del Mundo te espera con Texeira Travel Tour! ✨'
-        ),
-        'montana_7_colores': (
-            f"{base_url}/images/montana_7_colores.jpg",
-            '🌈 *Montaña de 7 Colores (Vinicunca)* — Paisajes andinos únicos a más de 5,000 m.s.n.m.'
-        ),
-        'laguna_humantay': (
-            f"{base_url}/images/laguna_humantay.jpg",
-            '💎 *Laguna Humantay* — Espejo de aguas turquesas y nevados sagrados de Cusco.'
-        ),
-        'valle_sagrado': (
-            f"{base_url}/images/valle_sagrado.jpg",
-            '🌾 *Valle Sagrado de los Incas* — Tradición viva, fortalezas y paisajes imponentes.'
-        ),
-        'maras_moray': (
-            f"{base_url}/images/maras_moray.jpg",
-            '🧂 *Maras y Moray* — Salineras milenarias y laboratorio agrícola inca.'
-        ),
-        'city_tour': (
-            f"{base_url}/images/city_tour_cusco.jpg",
-            '🏛️ *City Tour Cusco* — Plaza de Armas, templos sagrados y centros arqueológicos.'
-        ),
-        'cusco_general': (
-            f"{base_url}/images/cusco_general.jpg",
-            '✨ *Texeira Travel Tour* — Tu mejor experiencia de viaje en el corazón de los Andes. 🇵🇪'
-        ),
+
+def is_brochure_requested(user_msg: str) -> bool:
+    """Determina si el usuario solicita explícitamente un folleto, brochure o documento PDF."""
+    if not user_msg:
+        return False
+    u = user_msg.lower()
+    # Descartar si el usuario especifica una negación hacia los folletos
+    if re.search(r"\b(no|sin|without|don't|do not)\b.*?\b(folletos?|brochures?|pdfs?|documentos?)\b", u):
+        return False
+    return bool(re.search(r"\b(folletos?|brochures?|pdfs?|documentos?|itinerario\s+en\s+pdf|gu[ií]a\s+en\s+pdf)\b", u))
+
+
+def get_tour_image_data(text: str, user_msg: str = "", entity_id: str = ""):
+    """Detecta tours o intención en la conversación y retorna (url_imagen, caption_elegante).
+    Usa tanto las imágenes cargadas dinámicamente en el catálogo como las canónicas verificadas.
+    """
+    base_url = os.getenv('APP_BASE_URL', 'https://texeira-whatsapp-1038134693816.us-central1.run.app').rstrip('/')
+
+    canonical_images = {
+        'machu-picchu-tren': (f"{base_url}/images/machu_picchu.jpg", '🏔️ *Machu Picchu Mágico* — ¡La Maravilla del Mundo te espera con Texeira Travel Tour! ✨'),
+        'machu-picchu-car': (f"{base_url}/images/machu_picchu.jpg", '🏔️ *Machu Picchu By Car* — Aventura escénica hacia la Maravilla del Mundo con Texeira Travel. ✨'),
+        'montana-7-colores': (f"{base_url}/images/montana_7_colores.jpg", '🌈 *Montaña de 7 Colores (Vinicunca)* — Paisajes andinos únicos a más de 5,000 m.s.n.m.'),
+        'laguna-humantay': (f"{base_url}/images/laguna_humantay.jpg", '💎 *Laguna Humantay* — Espejo de aguas turquesas y nevados sagrados de Cusco.'),
+        'valle-sagrado': (f"{base_url}/images/valle_sagrado.jpg", '🌾 *Valle Sagrado de los Incas* — Tradición viva, fortalezas y paisajes imponentes.'),
+        'valle-sur': (f"{base_url}/images/cusco_general.jpg", '🏺 *Valle Sur Cusco* — Tipón, Pikillacta y la Capilla Sixtina de América en Andahuaylillas.'),
+        'maras-moray': (f"{base_url}/images/maras_moray.jpg", '🧂 *Maras y Moray* — Salineras milenarias y laboratorio agrícola inca.'),
+        'maras-moray-cuatrimoto': (f"{base_url}/images/maras_moray.jpg", '🏍️ *Maras y Moray en Cuatrimoto* — Adrenalina, paisajes y cultura en el Valle Sagrado.'),
+        'city-tour-cusco': (f"{base_url}/images/city_tour_cusco.jpg", '🏛️ *City Tour Cusco* — Plaza de Armas, templos sagrados y centros arqueológicos.'),
     }
 
-    t = text.lower()
-    u = user_msg.lower() if user_msg else t
+    # 1. Identificar la entidad
+    target_eid = entity_id or ""
+    if not target_eid:
+        try:
+            from trial_support import detect_entity_from_question
+            detected = detect_entity_from_question(user_msg or text)
+            if detected and detected != "unknown":
+                target_eid = detected
+        except Exception:
+            pass
 
-    # 1. Si el usuario preguntó específicamente por un destino/tour puntual:
-    if any(k in u for k in ['machu picchu', 'aguas calientes', 'tren a machu', 'ciudadela']):
-        return images['machu_picchu']
-    if any(k in u for k in ['7 colores', 'montaña de 7', 'vinicunca', 'rainbow']):
-        return images['montana_7_colores']
-    if any(k in u for k in ['humantay', 'laguna']):
-        return images['laguna_humantay']
-    if any(k in u for k in ['valle sagrado', 'pisac', 'ollantaytambo', 'urubamba']):
-        return images['valle_sagrado']
-    if any(k in u for k in ['maras', 'moray', 'salineras']):
-        return images['maras_moray']
-    if any(k in u for k in ['city tour', 'koricancha', 'sacsayhuam', 'tambomachay', 'qenqo']):
-        return images['city_tour']
+    # 2. Consultar si hay foto dinámica registrada en catalog_service
+    if target_eid:
+        try:
+            import catalog_service
+            tour = catalog_service.get_tour(target_eid)
+            if tour and tour.get("photo_filename"):
+                photo_file = tour["photo_filename"]
+                caption = f"📸 *{tour.get('name', target_eid)}* — ¡Descubre esta maravilla con Texeira Travel Tour! ✨"
+                return (f"{base_url}/images/{photo_file}", caption)
+        except Exception:
+            pass
 
-    # 2. Si el texto de respuesta describe exclusiva o principalmente un tour puntual:
-    if any(k in t for k in ['machu picchu', 'aguas calientes', 'ciudadela']):
-        return images['machu_picchu']
-    if any(k in t for k in ['7 colores', 'montaña de 7', 'vinicunca']):
-        return images['montana_7_colores']
-    if any(k in t for k in ['humantay', 'laguna humantay']):
-        return images['laguna_humantay']
-    if any(k in t for k in ['valle sagrado']):
-        return images['valle_sagrado']
-    if any(k in t for k in ['salineras de maras', 'maras y moray']):
-        return images['maras_moray']
+        # Si no hay foto dinámica cargada, usar el asset canónico si existe
+        if target_eid in canonical_images:
+            return canonical_images[target_eid]
 
-    # 3. Si el usuario pide explícitamente ver fotos o imágenes:
-    if any(k in u for k in ['foto', 'fotos', 'imagen', 'imagenes', 'fotografia', 'photos', 'pictures']):
-        return images['cusco_general']
+    # 3. Si el usuario pidió fotos expresamente y no se detectó un tour particular
+    if is_photo_requested(user_msg):
+        return (f"{base_url}/images/cusco_general.jpg", '✨ *Texeira Travel Tour* — Tu mejor experiencia de viaje en el corazón de los Andes. 🇵🇪')
+
+    return None
+
+
+def get_tour_brochure_data(text: str, user_msg: str = "", entity_id: str = ""):
+    """Detecta tours y retorna (url_folleto, nombre_archivo_display, caption) si existe un folleto PDF oficial."""
+    base_url = os.getenv('APP_BASE_URL', 'https://texeira-whatsapp-1038134693816.us-central1.run.app').rstrip('/')
+
+    target_eid = entity_id or ""
+    if not target_eid:
+        try:
+            from trial_support import detect_entity_from_question
+            detected = detect_entity_from_question(user_msg or text)
+            if detected and detected != "unknown":
+                target_eid = detected
+        except Exception:
+            pass
+
+    if not target_eid:
+        return None
+
+    try:
+        import catalog_service
+        tour = catalog_service.get_tour(target_eid)
+        if tour and tour.get("brochure_filename"):
+            pdf_file = tour["brochure_filename"]
+            tour_name = tour.get("name", target_eid)
+            safe_name = re.sub(r"[^\w\s\-]", "", tour_name).strip().replace(" ", "_")
+            display_name = f"Folleto_{safe_name}.pdf"
+            caption = f"📄 *Folleto Informativo Oficial: {tour_name}*\n_Texeira Travel Tour Agency E.I.R.L._"
+            return (f"{base_url}/brochures/{pdf_file}", display_name, caption)
+    except Exception as e:
+        print(f"[VISUAL BROCHURE RESOLVE ERROR] {e}")
 
     return None
 
