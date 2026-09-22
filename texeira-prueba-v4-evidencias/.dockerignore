@@ -17,6 +17,9 @@
 !advisor_entry.py
 !whatsapp_entry.py
 !auth_middleware.py
+!catalog_service.py
+!catalog_support.py
+!catalog_ui.py
 !src/
 !src/**
 src/**/__pycache__/
@@ -30,5 +33,7 @@ src/**/*.pyc
 !data/provisional.json
 !data/images/
 !data/images/**
+!data/brochures/
+!data/brochures/**
 !chroma_f1_confirmado_20260915_db/
 !chroma_f1_confirmado_20260915_db/**
