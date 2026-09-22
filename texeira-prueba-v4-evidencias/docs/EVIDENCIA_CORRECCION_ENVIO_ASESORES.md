@@ -48,13 +48,20 @@ envíos desde tickets que no pertenecen a WhatsApp. Las notas internas no envía
   - Bloqueo de doble cierre sobre ticket ya cerrado (HTTP 400).
   - Verificación de persistencia final de estado en `/handoffs/data` (estado `closed`).
   - **Higiene y Limpieza en `finally`:** La prueba implementa un bloque de limpieza en `finally` para purgar de Neon PostgreSQL los registros sintéticos creados (`requests`, `interactions`, `conversation_memory`) bajo el identificador de prueba.
+- **Validación Real de Entrega en WhatsApp Superada:**
+  Se ejecutó con éxito la prueba operativa de extremo a extremo:
+  1. El usuario solicitó atención humana («asesor») desde la aplicación oficial de WhatsApp.
+  2. El bot registró la solicitud y generó el ticket en Neon PostgreSQL.
+  3. El asesor tomó el caso en la consola web (`in_progress`), redactó la atención personalizada y seleccionó el envío directo.
+  4. Google Cloud Run despachó el mensaje hacia Meta WhatsApp Cloud API (`send_whatsapp_message`).
+  5. Se confirmó la recepción física del mensaje en el terminal móvil del usuario y el ticket transitó a `closed` con persistencia en base de datos.
 
 ## Límites
 
-1. **Simulación vs. Entrega Real en Producción:**
-   El comportamiento ante fallos del proveedor de mensajería (rollback atómico y HTTP 502 ante excepciones o respuesta `False`) fue verificado mediante simulación controlada (`tests/test_handoff_send_failures.py`). En la validación en vivo sobre Cloud Run se operó mediante nota interna (`send_to_customer=False`), ya que no se indujeron fallos deliberados en la infraestructura productiva de Meta. Esta comprobación es válida para asegurar la integridad de la máquina de estados y las transacciones, pero no equivale a una validación de entrega de mensajes a terminales móviles reales de WhatsApp.
+1. **Simulación de Fallos vs. Entrega Real:**
+   El flujo exitoso de entrega en terminales móviles reales de WhatsApp ha quedado plenamente verificado. Por su parte, la tolerancia a fallos del proveedor (rollback atómico a estado previo y HTTP 502 si Meta responde `False` o genera un error de red) se mantiene auditada mediante simulación controlada (`tests/test_handoff_send_failures.py`), dado que no se inducen interrupciones deliberadas en el entorno productivo de Meta.
 2. **Incertidumbre de Red Externa:**
-   La aceptación de Meta no equivale a entrega al teléfono del usuario. Una interrupción de red puede dejar el resultado externo incierto; por ello, la interfaz solicita comprobar la entrega antes de reintentar y no realiza reintentos automáticos no supervisados.
+   La aceptación de Meta no equivale a entrega al teléfono del usuario en casos de desconexión prolongada o bloqueo del destinatario. Una interrupción de red puede dejar el resultado externo incierto; por ello, la interfaz solicita comprobar la entrega antes de reintentar y no realiza reintentos automáticos no supervisados.
 3. **Consistencia Exactamente-Una-Vez:**
    Un fallo del commit posterior a la aceptación externa tampoco permite garantizar envío exactamente una vez sin un mecanismo de conciliación asíncrona persistente con el proveedor.
 4. **Concurrencia:**
