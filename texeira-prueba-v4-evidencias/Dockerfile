@@ -51,6 +51,9 @@ COPY operational_metrics.py .
 COPY advisor_entry.py .
 COPY auth_middleware.py .
 COPY whatsapp_entry.py .
+COPY catalog_service.py .
+COPY catalog_support.py .
+COPY catalog_ui.py .
 
 # Directorio para bases de datos de estado (montar volumen externo aquí)
 RUN mkdir -p /app/state /app/logs
