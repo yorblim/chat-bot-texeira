@@ -167,9 +167,15 @@ _load_tour_images()
 # ============================================================
 # SERVICIOS DE MENSAJERÍA Y MOTOR VISUAL (MODULARIZADOS)
 # ============================================================
-from src.services.whatsapp import send_whatsapp_message, send_whatsapp_image
+from src.services.whatsapp import send_whatsapp_message, send_whatsapp_image, send_whatsapp_document
 from src.services.messenger import send_messenger_message
-from src.visual.visual_engine import format_whatsapp_text, get_tour_image_data
+from src.visual.visual_engine import (
+    format_whatsapp_text,
+    get_tour_image_data,
+    get_tour_brochure_data,
+    is_photo_requested,
+    is_brochure_requested,
+)
 
 
 # Mensaje de fallback estricto (handoff obligatorio)
@@ -1704,31 +1710,56 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                 accepted = channel not in {'whatsapp', 'messenger'}
                 if channel == "whatsapp":
                     bot_response_clean = format_whatsapp_text(bot_response)
+
+                    # Evaluar solicitud de folleto previo al envío de texto para incorporar nota si no existe PDF
+                    route = rag_result.get('response_route') or rag_result.get('route') or ''
+                    no_multimedia_routes = {'social', 'help', 'evidence_unknown', 'evidence_conflict', 'evidence_contact', 'evidence_listing'}
+                    detected_eid = rag_result.get('entity_id') or ''
+
+                    tour_doc_info = None
+                    if is_brochure_requested(user_message) and route not in no_multimedia_routes:
+                        tour_doc_info = get_tour_brochure_data(user_message + " " + bot_response, user_msg=user_message, entity_id=detected_eid)
+                        if not tour_doc_info:
+                            bot_response_clean += "\n\n📄 _Nota: Actualmente este tour no cuenta con folleto en PDF en línea, pero nuestro asesor te facilitará el itinerario completo._"
+
                     accepted = user_id != 'unknown' and send_whatsapp_message(
                         text=bot_response_clean,
                         to_phone=phone_number if phone_number else None,
                         recipient_bsuid=bsuid if bsuid else None,
                         phone_number_id=phone_number_id,
                     )
-                    # Enviar imagen temática relevante SOLO cuando se presenta o describe un tour
+
+                    # Despacho de Assets Multimedia (Fotos y Folletos PDF) SOLO bajo solicitud válida
                     try:
-                        route = rag_result.get('response_route') or rag_result.get('route') or ''
-                        no_image_routes = {'social', 'help', 'evidence_unknown', 'evidence_conflict', 'evidence_contact', 'evidence_listing'}
-                        wants_image = bool(re.search(r'\b(foto|fotos|imagen|imágenes|imagenes|photo|photos|picture|pictures|image|images)\b', user_message, re.IGNORECASE))
-                        wants_image = wants_image and not re.search(r"\b(no|sin|without|don't|do not)\b", user_message, re.IGNORECASE)
-                        if wants_image and route not in no_image_routes:
-                            tour_img_info = get_tour_image_data(user_message + " " + bot_response, user_msg=user_message)
-                            if tour_img_info and accepted:
-                                img_url, img_caption = tour_img_info
-                                send_whatsapp_image(
-                                    image_url=img_url,
-                                    caption=img_caption,
+                        if accepted and route not in no_multimedia_routes:
+                            # 1. Enviar Foto si fue solicitada expresamente
+                            if is_photo_requested(user_message):
+                                tour_img_info = get_tour_image_data(user_message + " " + bot_response, user_msg=user_message, entity_id=detected_eid)
+                                if tour_img_info:
+                                    img_url, img_caption = tour_img_info
+                                    send_whatsapp_image(
+                                        image_url=img_url,
+                                        caption=img_caption,
+                                        to_phone=phone_number if phone_number else None,
+                                        recipient_bsuid=bsuid if bsuid else None,
+                                        phone_number_id=phone_number_id,
+                                    )
+                                    print(f"[WA MULTIMEDIA PHOTO SENT] to={phone_number or bsuid} url={img_url}")
+
+                            # 2. Enviar Folleto PDF si fue solicitado y está cargado en el catálogo
+                            if tour_doc_info:
+                                doc_url, doc_filename, doc_caption = tour_doc_info
+                                send_whatsapp_document(
+                                    document_url=doc_url,
+                                    filename=doc_filename,
+                                    caption=doc_caption,
                                     to_phone=phone_number if phone_number else None,
                                     recipient_bsuid=bsuid if bsuid else None,
                                     phone_number_id=phone_number_id,
                                 )
-                    except Exception as img_err:
-                        print(f"[WA IMAGE SEND ATTEMPT] {img_err}")
+                                print(f"[WA MULTIMEDIA BROCHURE SENT] to={phone_number or bsuid} filename={doc_filename}")
+                    except Exception as media_err:
+                        print(f"[WA MULTIMEDIA DISPATCH ERROR] {media_err}")
 
                     operational.finish(event_id, 'api_accepted' if accepted else 'send_failed',
                                        generation_ms, (time.perf_counter()-metric_start)*1000, rag_result)

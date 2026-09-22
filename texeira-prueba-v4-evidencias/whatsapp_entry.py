@@ -67,6 +67,7 @@ async def meta_verify(request:Request):
     return Response(status_code=403)
 
 IMAGES_DIR = os.path.join(os.path.dirname(__file__), "data", "images")
+BROCHURES_DIR = os.path.join(os.path.dirname(__file__), "data", "brochures")
 
 @app.get("/images/{filename}")
 async def serve_image(filename: str):
@@ -75,9 +76,37 @@ async def serve_image(filename: str):
     if not re.match(r"^[\w\-\.]+\.(jpg|jpeg|png|webp)$", filename, re.IGNORECASE):
         return Response(status_code=400)
     file_path = os.path.join(IMAGES_DIR, filename)
-    if not os.path.exists(file_path):
-        return Response(status_code=404)
-    return FileResponse(file_path, media_type="image/jpeg")
+    if os.path.exists(file_path):
+        mime = "image/png" if filename.lower().endswith(".png") else "image/webp" if filename.lower().endswith(".webp") else "image/jpeg"
+        return FileResponse(file_path, media_type=mime)
+    try:
+        import catalog_service
+        asset = catalog_service.get_asset_bytes(filename, "photo")
+        if asset:
+            content_bytes, media_type = asset
+            return Response(content=content_bytes, media_type=media_type)
+    except Exception:
+        pass
+    return Response(status_code=404)
+
+@app.get("/brochures/{filename}")
+async def serve_brochure(filename: str):
+    import re
+    from fastapi.responses import FileResponse
+    if not re.match(r"^[\w\-\.]+\.pdf$", filename, re.IGNORECASE):
+        return Response(status_code=400)
+    file_path = os.path.join(BROCHURES_DIR, filename)
+    if os.path.exists(file_path):
+        return FileResponse(file_path, media_type="application/pdf")
+    try:
+        import catalog_service
+        asset = catalog_service.get_asset_bytes(filename, "brochure")
+        if asset:
+            content_bytes, media_type = asset
+            return Response(content=content_bytes, media_type=media_type)
+    except Exception:
+        pass
+    return Response(status_code=404)
 
 class ForwardResponse(Response):
     def __init__(self,local_app):

@@ -243,6 +243,9 @@ def get_tour_by_id(entity_id: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+get_tour = get_tour_by_id
+
+
 def upsert_tour(data: Dict[str, Any]) -> Tuple[bool, str]:
     """
     Crea o actualiza un tour en la base de datos.
@@ -462,6 +465,23 @@ def delete_tour(entity_id: str) -> Tuple[bool, str]:
                 invalidate_catalog_cache()
                 return True, "Tour canónico desactivado."
             else:
+                row_files = conn.execute(
+                    "SELECT photo_filename, brochure_filename FROM catalog_tours WHERE entity_id = ?",
+                    (entity_id,)
+                ).fetchone()
+                if row_files:
+                    p_file = row_files["photo_filename"] if hasattr(row_files, "__getitem__") else row_files[0]
+                    b_file = row_files["brochure_filename"] if hasattr(row_files, "__getitem__") else row_files[1]
+                    if p_file and (IMAGES_DIR / p_file).exists():
+                        try:
+                            (IMAGES_DIR / p_file).unlink()
+                        except Exception:
+                            pass
+                    if b_file and (BROCHURES_DIR / b_file).exists():
+                        try:
+                            (BROCHURES_DIR / b_file).unlink()
+                        except Exception:
+                            pass
                 conn.execute("DELETE FROM catalog_tours WHERE entity_id = ?", (entity_id,))
                 invalidate_catalog_cache()
                 return True, "Tour personalizado eliminado."

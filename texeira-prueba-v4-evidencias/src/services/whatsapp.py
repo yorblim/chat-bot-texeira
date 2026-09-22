@@ -161,3 +161,63 @@ def send_whatsapp_image(
     except Exception as e:
         print(f"[WA IMAGE ERROR] {e}")
         return False
+
+
+def send_whatsapp_document(
+    document_url: str,
+    filename: str = "folleto.pdf",
+    caption: str = "",
+    to_phone: Optional[str] = None,
+    recipient_bsuid: Optional[str] = None,
+    phone_number_id: Optional[str] = None,
+    to_number: Optional[str] = None,
+) -> bool:
+    """Envía un documento PDF a WhatsApp Cloud API (Meta Graph API v26.0)."""
+    destination = to_phone or to_number
+    if not destination and recipient_bsuid and WHATSAPP_TEST_MODE:
+        mapped_phone = WHATSAPP_TEST_BSUID_MAP.get(recipient_bsuid)
+        if mapped_phone:
+            destination = mapped_phone
+            recipient_bsuid = None
+
+    token = os.getenv("META_ACCESS_TOKEN", "") or META_ACCESS_TOKEN
+    if not token or token.startswith("tu-token"):
+        return False
+
+    target_phone_id = phone_number_id or os.getenv("META_PHONE_NUMBER_ID", "") or META_PHONE_NUMBER_ID
+    if not target_phone_id:
+        return False
+
+    url = f"https://graph.facebook.com/v26.0/{target_phone_id}/messages"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "type": "document",
+        "document": {
+            "link": document_url,
+            "filename": filename or "folleto.pdf",
+        }
+    }
+    if caption:
+        payload["document"]["caption"] = caption[:1024]
+
+    if destination:
+        payload["to"] = destination
+    elif recipient_bsuid:
+        payload["recipient"] = recipient_bsuid
+    else:
+        return False
+
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            resp = client.post(url, json=payload, headers=headers)
+            print(f"[WA DOCUMENT OUTBOUND] status={resp.status_code} filename={filename} url={document_url[:60]}")
+            return resp.status_code in (200, 201)
+    except Exception as e:
+        print(f"[WA DOCUMENT ERROR] {e}")
+        return False
+
