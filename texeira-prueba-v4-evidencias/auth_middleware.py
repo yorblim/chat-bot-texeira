@@ -14,6 +14,8 @@ from fastapi.responses import Response
 PROTECTED_PREFIXES = (
     '/dashboard',
     '/handoffs',
+    '/catalogo',
+    '/api/catalog',
     '/operational-metrics',
     '/history', '/metrics', '/test-chat', '/chat', '/docs', '/redoc', '/openapi.json',
 )

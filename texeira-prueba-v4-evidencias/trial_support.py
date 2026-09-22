@@ -55,29 +55,36 @@ def normalize(text):
 
 def detect_entity_from_question(question: str) -> str:
     q = normalize(question)
-    entity_keywords = {
-        'city-tour-cusco': ['city tour', 'citytour', 'city-tour', 'tour cusco', 'tour de cusco'],
-        'valle-sagrado': ['valle sagrado', 'sacred valley'],
-        'machu-picchu-tren': ['machu picchu en tren', 'machupicchu tren', 'machu picchu'],
-        'machu-picchu-car': ['machu picchu by car', 'machu picchu en auto', 'machu picchu en carro'],
-        'valle-sur': ['valle sur', 'south valley'],
-        'montana-7-colores': ['montana de 7 colores', '7 colores', 'rainbow mountain', 'vinicunca', 'valle rojo'],
-        'laguna-humantay': ['humantay', 'laguna humantay'],
-        'waqra-pukara': ['waqra pukara', 'huaccra pukara'],
-        'maras-moray': ['maras moray', 'maras-moray', 'moray maras'],
-        'maras-moray-cuatrimoto': ['cuatrimoto', 'cuatrimotos', 'atv maras'],
-        'camino-inka': ['camino inka', 'camino inca', 'inka trail'],
-        'salkantay-trek': ['salkantay', 'salkantay trek'],
-        'inka-jungle': ['inka jungle', 'inca jungle'],
-        'choquequirao': ['choquequirao'],
-        'tour-mistico': ['tour mistico', 'mistico', 'mystic'],
-        'islas-titicaca': ['titicaca', 'islas del titicaca', 'uros', 'taquile'],
-        'canon-colca': ['canon del colca', 'colca', 'baños termales'],
-        'ruta-del-sol': ['ruta del sol', 'cusco puno', 'cusco a puno'],
-    }
+    try:
+        from catalog_service import get_active_entity_keywords
+        entity_keywords = get_active_entity_keywords()
+    except Exception:
+        entity_keywords = None
+
+    if not entity_keywords:
+        entity_keywords = {
+            'city-tour-cusco': ['city tour', 'citytour', 'city-tour', 'tour cusco', 'tour de cusco'],
+            'valle-sagrado': ['valle sagrado', 'sacred valley'],
+            'machu-picchu-tren': ['machu picchu en tren', 'machupicchu tren', 'machu picchu'],
+            'machu-picchu-car': ['machu picchu by car', 'machu picchu en auto', 'machu picchu en carro'],
+            'valle-sur': ['valle sur', 'south valley'],
+            'montana-7-colores': ['montana de 7 colores', '7 colores', 'rainbow mountain', 'vinicunca', 'valle rojo'],
+            'laguna-humantay': ['humantay', 'laguna humantay'],
+            'waqra-pukara': ['waqra pukara', 'huaccra pukara'],
+            'maras-moray': ['maras moray', 'maras-moray', 'moray maras'],
+            'maras-moray-cuatrimoto': ['cuatrimoto', 'cuatrimotos', 'atv maras'],
+            'camino-inka': ['camino inka', 'camino inca', 'inka trail'],
+            'salkantay-trek': ['salkantay', 'salkantay trek'],
+            'inka-jungle': ['inka jungle', 'inca jungle'],
+            'choquequirao': ['choquequirao'],
+            'tour-mistico': ['tour mistico', 'mistico', 'mystic'],
+            'islas-titicaca': ['titicaca', 'islas del titicaca', 'uros', 'taquile'],
+            'canon-colca': ['canon del colca', 'colca', 'baños termales'],
+            'ruta-del-sol': ['ruta del sol', 'cusco puno', 'cusco a puno'],
+        }
     for entity_id, keywords in entity_keywords.items():
         for kw in keywords:
-            if kw in q:
+            if normalize(kw) in q:
                 return entity_id
     return None
 

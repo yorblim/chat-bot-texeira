@@ -303,6 +303,7 @@ PANEL='''<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewpo
     <p style="margin: 4px 0 0; color: var(--muted); font-size: 14px;">Gestión de consultas escaladas y atención humana por WhatsApp</p>
   </div>
   <div class="nav-links">
+    <a href="/catalogo">🗺️ Catálogo</a>
     <a href="/dashboard">📊 Dashboard</a>
     <a href="/operational-metrics">📈 Métricas</a>
     <button id="refresh" class="btn-refresh">🔄 Actualizar</button>

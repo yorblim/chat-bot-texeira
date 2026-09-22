@@ -451,7 +451,11 @@ def get_dashboard_html(metrics: dict, interactions: list[dict]) -> str:
                         <h1>✈️ Texeira Travel Tour</h1>
                         <p>Panel de Control del Agente Conversacional RAG</p>
                     </div>
-                    <div class="header-badge">🔄 Auto-refresh: 30s</div>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <a href="/handoffs" style="color:white; text-decoration:none; font-weight:600; font-size:13px; background:rgba(255,255,255,0.2); padding:8px 14px; border-radius:20px;">🛎️ Asesores</a>
+                        <a href="/catalogo" style="color:white; text-decoration:none; font-weight:600; font-size:13px; background:rgba(255,255,255,0.2); padding:8px 14px; border-radius:20px;">🗺️ Catálogo</a>
+                        <div class="header-badge">🔄 Auto-refresh: 30s</div>
+                    </div>
                 </div>
             </div>
 

@@ -654,6 +654,29 @@ def ensure_postgres_schema():
                 handoff_id TEXT
             );
         """))
+
+        # 5. Catálogo dinámico de tours y assets multimedia
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS catalog_tours (
+                entity_id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                aliases TEXT NOT NULL DEFAULT '[]',
+                official_price TEXT DEFAULT '',
+                currency TEXT NOT NULL DEFAULT 'USD',
+                schedule TEXT DEFAULT '',
+                duration TEXT DEFAULT '',
+                includes TEXT DEFAULT '',
+                excludes TEXT DEFAULT '',
+                photo_filename TEXT DEFAULT '',
+                photo_data BYTEA,
+                brochure_filename TEXT DEFAULT '',
+                brochure_data BYTEA,
+                is_canonical INTEGER NOT NULL DEFAULT 0,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+        """))
     _PG_INITIALIZED = True
     logger.info("[DB_ADAPTER] Esquema PostgreSQL verificado e inicializado.")
 

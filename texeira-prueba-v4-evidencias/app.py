@@ -39,10 +39,43 @@ from src.evidence import (
 )
 from trial_support import (
     detect_entity_from_question, detect_field_from_question,
-    ENTITY_IDS as CONFIRMED_PRODUCTS, NAMES as _ENTITY_NAMES_LIST,
+    ENTITY_IDS as _BASE_CONFIRMED_PRODUCTS, NAMES as _ENTITY_NAMES_LIST,
 )
-# Build ENTITY_NAME_MAP from parallel lists
-ENTITY_NAME_MAP = dict(zip(CONFIRMED_PRODUCTS, _ENTITY_NAMES_LIST))
+
+class DynamicEntityNameMap(dict):
+    """Mapeo dinámico de entity_id a nombre legible, consultando el catálogo dinámico."""
+    def get(self, key, default=None):
+        if dict.__contains__(self, key):
+            return dict.__getitem__(self, key)
+        try:
+            from catalog_service import get_tour_by_id
+            tour = get_tour_by_id(key)
+            if tour:
+                return tour["name"]
+        except Exception:
+            pass
+        return default if default is not None else key
+
+    def __getitem__(self, key):
+        val = self.get(key)
+        if val is not None:
+            return val
+        raise KeyError(key)
+
+class DynamicConfirmedProducts(list):
+    """Colección dinámica de productos confirmados que incluye tours creados por la agencia."""
+    def __contains__(self, key):
+        if list.__contains__(self, key):
+            return True
+        try:
+            from catalog_service import get_tour_by_id
+            tour = get_tour_by_id(key)
+            return bool(tour and tour.get("is_active", 1))
+        except Exception:
+            return False
+
+CONFIRMED_PRODUCTS = DynamicConfirmedProducts(_BASE_CONFIRMED_PRODUCTS)
+ENTITY_NAME_MAP = DynamicEntityNameMap(zip(_BASE_CONFIRMED_PRODUCTS, _ENTITY_NAMES_LIST))
 
 from langdetect import detect, DetectorFactory, LangDetectException
 from openai import RateLimitError
@@ -862,6 +895,26 @@ def _evaluate_evidence_layer(question: str, user_id: str) -> dict | None:
                 "needs_confirmation": True,
                 "conflict_detected": True,
                 "sources_used": _get_sources_from_conflicts(price_conflicts),
+            }
+        if price_facts:
+            entity_name = ENTITY_NAME_MAP.get(entity_detected, entity_detected)
+            price_val = price_facts[0].value
+            add_to_history(user_id, "human", question)
+            response = (
+                f"El precio oficial de {entity_name} es de {price_val} por persona "
+                "(servicio compartido). Para coordinar tu reserva o consultar disponibilidad, escribe: asesor."
+            )
+            add_to_history(user_id, "ai", response)
+            return {
+                "response": response,
+                "context_used": True,
+                "is_fallback": False,
+                "is_predefined": False,
+                "response_route": "evidence_confirmed_price",
+                "evidence_status": "confirmed",
+                "needs_confirmation": False,
+                "conflict_detected": False,
+                "sources_used": [f.source_id for f in price_facts],
             }
         if not price_facts and not market_facts:
             entity_name = ENTITY_NAME_MAP.get(entity_detected, entity_detected)
@@ -1905,11 +1958,22 @@ async def serve_image(filename: str):
         return JSONResponse(status_code=400, content={"error": "Nombre de archivo inválido"})
 
     file_path = os.path.join(IMAGES_DIR, filename)
-    if not os.path.exists(file_path):
-        return JSONResponse(status_code=404, content={"error": "Imagen no encontrada"})
+    if os.path.exists(file_path):
+        from fastapi.responses import FileResponse
+        return FileResponse(file_path, media_type="image/jpeg")
 
-    from fastapi.responses import FileResponse
-    return FileResponse(file_path, media_type="image/jpeg")
+    # Recuperación desde base de datos (PostgreSQL/SQLite)
+    try:
+        from catalog_service import get_asset_bytes
+        asset = get_asset_bytes(filename, "photo")
+        if asset:
+            content_bytes, media_type = asset
+            from fastapi.responses import Response
+            return Response(content=content_bytes, media_type=media_type)
+    except Exception:
+        pass
+
+    return JSONResponse(status_code=404, content={"error": "Imagen no encontrada"})
 
 
 @app.get("/")
@@ -1930,6 +1994,7 @@ async def root():
             "POST /test-chat": "Prueba manual del bot",
             "GET /metrics": "Métricas de investigación",
             "GET /dashboard": "Panel de administración",
+            "GET /catalogo": "Gestión de catálogo y tarifas",
             "GET /history/{user_id}": "Historial de conversación",
             "DELETE /history/{user_id}": "Limpiar historial",
         },
@@ -1942,3 +2007,6 @@ from handoff_support import install as _install_handoff
 _install_handoff(globals())
 from operational_metrics import install as _install_operational
 _install_operational(app)
+from catalog_support import install as _install_catalog
+_install_catalog(app)
+
