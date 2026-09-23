@@ -592,7 +592,8 @@ def get_chat_html() -> str:
         // ---------- Parser markdown simple (negritas **, viñetas - y *) ----------
         function inlineFormat(text) {
             var out = escapeHtml(text);
-            out = out.replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>');
+            out = out.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color:var(--accent); font-weight:600; text-decoration:underline;">$1</a>');
             return out;
         }
 

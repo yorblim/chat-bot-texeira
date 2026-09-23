@@ -1867,6 +1867,24 @@ async def test_chat(request: TestChatRequest):
         rag_result = apply_request(globals(), rag_result, request.user_id, 'test', request.message)
         bot_response = rag_result["response"]
 
+        # Enriquecer respuesta en /test-chat para que fotos y folletos se muestren en la UI web
+        from src.visual.visual_engine import is_photo_requested, is_brochure_requested, get_tour_image_data, get_tour_brochure_data
+        detected_eid = rag_result.get('entity_id') or ''
+        route = rag_result.get('response_route') or rag_result.get('route') or ''
+        no_multimedia_routes = {'social', 'help', 'evidence_unknown', 'evidence_conflict', 'evidence_contact', 'evidence_listing'}
+
+        if is_photo_requested(request.message) and route not in no_multimedia_routes:
+            tour_img_info = get_tour_image_data(request.message + " " + bot_response, user_msg=request.message, entity_id=detected_eid)
+            if tour_img_info:
+                img_url, img_caption = tour_img_info
+                bot_response += f"\n\n![{img_caption}]({img_url})"
+
+        if is_brochure_requested(request.message) and route not in no_multimedia_routes:
+            tour_doc_info = get_tour_brochure_data(request.message + " " + bot_response, user_msg=request.message, entity_id=detected_eid)
+            if tour_doc_info:
+                doc_url, doc_filename, doc_caption = tour_doc_info
+                bot_response += f"\n\n[📄 Descargar Folleto PDF: {doc_filename}]({doc_url})"
+
         # CORRECCIÓN #3: resolved_autonomously correcto
         resolved_autonomously = rag_result.get("resolved_autonomously", not rag_result["is_fallback"])
         # Red de seguridad: el flag de escalamiento de la cadena (si existe)
