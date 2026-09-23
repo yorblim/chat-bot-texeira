@@ -439,33 +439,36 @@ def retriever():
         return None
     import hashlib
     marker = json.loads((INDEX / 'READY.json').read_text(encoding='utf-8'))
-    if marker.get('inputs') != input_hashes():
-        raise RuntimeError('Las fuentes o documentos cambiaron: crear otro índice versionado.')
+    expected = marker.get('inputs', {})
+    actual = input_hashes()
+    if expected != actual:
+        mismatches = [k for k in expected if expected.get(k) != actual.get(k)]
+        raise RuntimeError(f'Las fuentes o documentos cambiaron ({", ".join(mismatches)}): crear otro índice versionado.')
     from src.retriever import build_hybrid_retriever
-    return build_hybrid_retriever(documents=documents(), persist_directory=str(INDEX))
+    return build_hybrid_retriever(documents=documents(include_dynamic=True), persist_directory=str(INDEX))
 
 def input_hashes():
     import hashlib
     names=['tours_catalog.json','evidence_facts.json','conflicts.json','source_registry.json']
     values={name:hashlib.sha256((ROOT/'data'/name).read_bytes()).hexdigest() for name in names}
-    values['documents']=hashlib.sha256(json.dumps(documents(),ensure_ascii=False,sort_keys=True).encode()).hexdigest()
+    values['documents']=hashlib.sha256(json.dumps(documents(include_dynamic=False),ensure_ascii=False,sort_keys=True).encode()).hexdigest()
     return values
 
 
-def documents():
+def documents(include_dynamic: bool = True):
     from langchain.text_splitter import RecursiveCharacterTextSplitter
     splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=150)
 
     if EVIDENCE_AVAILABLE:
-        return _build_evidence_documents(splitter)
+        return _build_evidence_documents(splitter, include_dynamic=include_dynamic)
     return _build_fallback_documents(splitter)
 
 
-def _build_evidence_documents(splitter):
+def _build_evidence_documents(splitter, include_dynamic: bool = True):
     rows = []
     for tour in CATALOG['tours']:
         entity_id = tour['entity_id']
-        context = build_context_for_entity(entity_id)
+        context = build_context_for_entity(entity_id, include_dynamic=include_dynamic)
         if not context:
             continue
         for i, chunk in enumerate(splitter.split_text(NOTICES['es'] + '\n' + tour['name'] + '\n' + context)):
