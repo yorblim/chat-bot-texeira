@@ -63,7 +63,31 @@ _HELP_RESPONSE = '¡Claro! Puedo ayudarte con tours, recorridos, horarios e info
 
 def install(ns, support, original):
     catalog = support.CATALOG
-    tours = {t['entity_id']:t for t in catalog['tours']}
+
+    def get_current_tours():
+        res = {t['entity_id']: dict(t) for t in catalog['tours']}
+        try:
+            from catalog_service import get_all_tours
+            dynamic = get_all_tours(active_only=True)
+            for dt in dynamic:
+                res[dt['entity_id']] = {
+                    'entity_id': dt['entity_id'],
+                    'name': dt['name'],
+                    'confirmed_product': True,
+                    'official_price': dt.get('official_price', ''),
+                    'currency': dt.get('currency', 'USD'),
+                    'schedule': dt.get('schedule', ''),
+                    'duration': dt.get('duration', ''),
+                    'includes': dt.get('includes', ''),
+                    'excludes': dt.get('excludes', ''),
+                    'photo_filename': dt.get('photo_filename', ''),
+                    'brochure_filename': dt.get('brochure_filename', ''),
+                }
+        except Exception:
+            pass
+        return res
+
+    tours = get_current_tours()
     aliases = {eid:[support.normalize(t['name'])] for eid,t in tours.items()}
     aliases.update({
         'machu-picchu-car':['machu picchu by car','machu picchu en auto','machu picchu en carro'],
@@ -79,10 +103,26 @@ def install(ns, support, original):
     def entity(q):
         if re.search(r'cuatrimotos?|\batv\b|quad bike',q) and re.search(r'maras|moray|tour cuatrimoto',q):
             return 'maras-moray-cuatrimoto'
+        try:
+            from catalog_service import get_active_entity_keywords
+            active_kw = get_active_entity_keywords()
+            hits = [(len(k), eid) for eid, kws in active_kw.items() for k in kws if k in q]
+            if hits:
+                return max(hits)[1]
+        except Exception:
+            pass
         hits=[(len(a),eid) for eid,aa in aliases.items() for a in aa if a in q]
         return max(hits)[1] if hits else None
     def field(q):
-        for key,pattern in [('excludes',r'no incluye|no esta incluido|exclu|not include'),('includes',r'inclu|include'),('schedule',r'horario|hora|schedule|timetable|what time|departure'),('duration',r'dura|how long'),('stops',r'lugares|recorrido|ruta|paradas|itinerary|route|places'),('price',r'precio|cuesta|soles|\bpen\b|price|cost|how much'),('product',r'tienen|ofrecen|documentado|oferta|do you have|do you offer')]:
+        for key,pattern in [
+            ('excludes',r'no incluye|no esta incluido|exclu|not include'),
+            ('includes',r'inclu|include'),
+            ('price',r'precio|cuesta|cuanto cuesta|costo|costos|tarifa|tarifas|soles|\bpen\b|price|prices|cost|costs|how much'),
+            ('schedule',r'horario|hora|schedule|timetable|what time|departure'),
+            ('duration',r'dura|how long'),
+            ('stops',r'lugares|recorrido|\bruta\b|paradas|itinerary|\broute\b|places'),
+            ('product',r'tienen|ofrecen|documentado|oferta|do you have|do you offer')
+        ]:
             if re.search(pattern,q): return key
         return None
     support.detect_entity_from_question=lambda q:entity(support.normalize(q))
@@ -100,6 +140,7 @@ def install(ns, support, original):
         q=support.normalize(question); lang=ns['detect_language'](question); en=lang=='en'
         prior=list(ns['get_history'](user_id))
         phone=' / '.join(catalog['agency']['phones'])
+        active_tours = get_current_tours()
 
         # --- SOCIAL / CONVERSACIONAL: respuesta corta, sin NOTICES, sin LLM ---
         social_key = _SOCIAL_INTENTS.get(q.strip(' ?¿!.'))
@@ -120,16 +161,16 @@ def install(ns, support, original):
                 needs_confirmation=False,conflict_detected=False,evidence_status='social',
                 sources_used=[],route='help',response_route='help')
 
-        def finish(text,route, pending=False, sources=(), conflict=False, predefined=True):
+        def finish(text,route, pending=False, sources=(), conflict=False, predefined=True, entity_id=None):
             record(user_id, question, text)
             return dict(response=text,context_used=bool(sources),is_predefined=predefined,is_fallback=False,
                 resolved_autonomously=not pending,is_escalation=False,needs_agency_confirmation=pending,
                 needs_confirmation=pending,conflict_detected=conflict,evidence_status='conflict' if conflict else ('unknown' if pending else 'documented'),
-                sources_used=sorted(set(sources)),route=route,response_route=route)
-        def unknown(subject):
+                sources_used=sorted(set(sources)),route=route,response_route=route,entity_id=entity_id)
+        def unknown(subject, entity_id=None):
             if en:
-                return finish('This information requires confirmation with the agency: '+subject+'. '+phone,'evidence_unknown',True)
-            return finish('Este dato requiere confirmacion con la agencia: '+subject+'. '+phone,'evidence_unknown',True)
+                return finish('This information requires confirmation with the agency: '+subject+'. '+phone,'evidence_unknown',True,entity_id=entity_id)
+            return finish('Este dato requiere confirmacion con la agencia: '+subject+'. '+phone,'evidence_unknown',True,entity_id=entity_id)
 
         # Catálogo de tours solicitados (antes de evaluar fechas o disponibilidad comercial)
         if (q.strip(' ?¿!.') in {'tour','tours','que tours tienen','que tours ofrecen','lista de tours','what tours do you offer','what tours do you have'} or
@@ -138,7 +179,7 @@ def install(ns, support, original):
             re.search(r'\b(muestres?|muestrame|mostrar|ver|dime)\s+(los\s+)?disponibles?\b', q) or
             re.search(r'^\s*(tours?|viajes?)\s*$', q)):
             title = 'Documented tours (availability to be confirmed):\n' if en else 'Tours documentados por Texeira Travel:\n'
-            return finish(title+'\n'.join('- '+t['name'] for t in tours.values() if is_product_confirmed(t['entity_id'])),'evidence_listing',sources=['F1','F2','F3'])
+            return finish(title+'\n'.join('- '+t['name'] for t in active_tours.values() if is_product_confirmed(t['entity_id'])),'evidence_listing',sources=['F1','F2','F3'])
 
         # Operaciones comerciales y disponibilidad para fechas puntuales
         if re.search(r'cancel|reembols|refund|yape|paypal|\bpagar\b|\bpago\b|adelant|deposit|\bpay\b|payment|descuento|discount|reserva|booking|\bbook\b|cupos?|spots?|availability|available|disponib|manana|tomorrow|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}',q):
@@ -149,27 +190,77 @@ def install(ns, support, original):
             return unknown(subj)
         if re.search(r'contact|telefono|whatsapp|correo|email|direccion|ubicacion',q):
             a=catalog['agency'];return finish(phone+'\n'+', '.join(a['emails'])+'\n'+a['address'],'evidence_contact',sources=['F1','F2','F3'])
-        eid=entity(q); fld=field(q)
+
+        eid=entity(q)
+        if not eid:
+            for h in reversed(prior):
+                if h.get('role') == 'human':
+                    eid = entity(support.normalize(h['content']))
+                    if eid: break
+
+        # ---- MULTIMEDIA: FOTOS Y FOLLETOS PDF ----
+        from src.visual.visual_engine import is_photo_requested, is_brochure_requested, get_tour_image_data, get_tour_brochure_data
+
+        if is_photo_requested(question):
+            img_data = get_tour_image_data(question, user_msg=question, entity_id=eid or "")
+            tour_obj = active_tours.get(eid) if eid else None
+            tour_name = tour_obj['name'] if tour_obj else None
+            if img_data:
+                img_url, img_caption = img_data
+                msg = f"Sure! Here is a photo of {tour_name or 'our tours with Texeira Travel'}. 📸✨" if en else f"¡Por supuesto! Aquí tienes una imagen de {tour_name or 'nuestros destinos con Texeira Travel'}. 📸✨"
+                return finish(msg, 'evidence_photo', sources=['ASSET_OFICIAL'], entity_id=eid)
+            else:
+                msg = f"Currently we don't have online photos for {tour_name or 'this tour'}, but our advisor can share our gallery with you." if en else f"Actualmente no disponemos de fotos en línea para {tour_name or 'este tour'}, pero nuestro asesor te compartirá nuestra galería completa."
+                return finish(msg, 'evidence_photo', sources=['ASSET_OFICIAL'], entity_id=eid)
+
+        if is_brochure_requested(question):
+            doc_data = get_tour_brochure_data(question, user_msg=question, entity_id=eid or "")
+            tour_obj = active_tours.get(eid) if eid else None
+            tour_name = tour_obj['name'] if tour_obj else None
+            if doc_data:
+                doc_url, doc_filename, doc_caption = doc_data
+                msg = f"Sure! Here is the official PDF brochure for {tour_name or 'the tour'}. 📄✨" if en else f"¡Por supuesto! Te adjunto el folleto oficial en PDF de {tour_name or 'este tour'}. 📄✨"
+                return finish(msg, 'evidence_brochure', sources=['ASSET_OFICIAL'], entity_id=eid)
+            else:
+                if eid and tour_name:
+                    msg = f"Currently {tour_name} does not have an online PDF brochure, but our advisor will share the full itinerary with you." if en else f"Actualmente {tour_name} no cuenta con folleto en PDF en línea, pero nuestro asesor te facilitará el itinerario completo."
+                else:
+                    msg = "Which of our tours would you like to receive the PDF brochure or itinerary for?" if en else "¿De cuál de nuestros tours te gustaría recibir el folleto o itinerario en PDF?"
+                return finish(msg, 'evidence_brochure', sources=['CATALOGO_OFICIAL'], entity_id=eid)
+
+        fld=field(q)
         if eid == 'machu-picchu-tren' and re.search(r'dormir|pernoct|alojamiento|overnight|sleep|accommodation', q):
             detail = ('overnight accommodation is not documented for this train tour; hotel pickup does not mean a hotel stay is included' if en else 'el alojamiento o pernocte no está documentado para este tour en tren; el recojo del hotel no significa que incluya hospedaje')
-            return unknown(detail)
-        if not eid and fld:
-            for h in reversed(prior):
-                if h['role']=='human':
-                    eid=entity(support.normalize(h['content']))
-                    if eid:break
+            return unknown(detail, entity_id=eid)
         if eid and fld and lang in {'es','en'}:
-            name=tours[eid]['name']; facts=get_facts(eid)
+            tour_obj = active_tours.get(eid, {})
+            name = tour_obj.get('name', eid)
+            facts = get_facts(eid)
             relevant=detect_conflicts(eid, fld)
             if relevant:
                 msg = f'The sources disagree; please confirm the current information with the agency. {name}. {phone}' if en else f'Las fuentes difieren; confirma el dato vigente con la agencia. {name}. {phone}'
-                return finish(msg,'evidence_conflict',True,[f.source_id for f in facts],True)
+                return finish(msg,'evidence_conflict',True,[f.source_id for f in facts],True,entity_id=eid)
             if fld=='price':
+                official_price = str(tour_obj.get("official_price") or "").strip()
+                currency = str(tour_obj.get("currency") or "USD")
+                if not official_price:
+                    for f in facts:
+                        if f.field == 'official_price' and f.value:
+                            official_price = str(f.value).strip()
+                            break
+                if official_price:
+                    price_display = official_price if any(c in official_price for c in ['USD', 'PEN', '$', 'S/']) else f"{official_price} {currency}"
+                    if en:
+                        msg = f"The official published rate for {name} is {price_display}."
+                    else:
+                        msg = f"La tarifa oficial vigente de {name} es de {price_display}."
+                    return finish(msg, 'evidence_confirmed_price', sources=['CATALOGO_OFICIAL'], entity_id=eid)
+
                 subj = f'official price or currency conversion for {name}' if en else f'precio oficial o conversion a soles de {name}'
-                return unknown(subj)
+                return unknown(subj, entity_id=eid)
             if fld=='product':
                 msg = f'Documented in the materials received from the agency: {name}' if en else f'Documentado en los materiales recibidos de la agencia: {name}'
-                return finish(msg,'evidence_product',sources=[f.source_id for f in facts if f.field=='confirmed_product'])
+                return finish(msg,'evidence_product',sources=[f.source_id for f in facts if f.field=='confirmed_product'],entity_id=eid)
             selected=[f for f in facts if f.field==fld and f.value is not False]
             targets={'caballo|horse':'caballo','seguro|insurance':'seguro','entrada|ticket|boleto':'entrada|ingreso|boleto','oxigen|oxygen':'oxigeno','bus':'bus','desayuno|breakfast':'desayuno','almuerzo|lunch':'almuerzo'}
             if fld in {'includes','excludes'}:
@@ -178,11 +269,16 @@ def install(ns, support, original):
                         selected=[f for f in facts if f.field in {'includes','excludes'} and f.item and re.search(item,f.item)]
                         if not selected:
                             subj = f'whether the requested service is included in {name}' if en else f'si el servicio solicitado esta incluido en {name}'
-                            return unknown(subj)
+                            return unknown(subj, entity_id=eid)
                         break
             if not selected:
+                dyn_val = str(tour_obj.get(fld) or "").strip()
+                if dyn_val:
+                    labels={'includes':('Includes' if en else 'Incluye'),'excludes':('Does not include' if en else 'No incluye'),'stops':('Visits' if en else 'Visita'),'schedule':('Published schedule' if en else 'Horario publicado'),'duration':('Published duration' if en else 'Duracion publicada')}
+                    label = labels.get(fld, 'Published' if en else 'Publicado')
+                    return finish(f"{name}\n{label}: {dyn_val}", f'evidence_{fld}', sources=['CATALOGO_OFICIAL'], entity_id=eid)
                 subj = f'undocumented detail for {name}' if en else f'detalle no documentado para {name}'
-                return unknown(subj)
+                return unknown(subj, entity_id=eid)
             lines=[]
             labels={'includes':('Includes' if en else 'Incluye'),'excludes':('Does not include' if en else 'No incluye'),'stops':('Visits' if en else 'Visita'),'schedule':('Published schedule' if en else 'Horario publicado'),'duration':('Published duration' if en else 'Duracion publicada')}
             # Agrupar equivalencias solo en la presentación de este producto.
@@ -224,7 +320,7 @@ def install(ns, support, original):
                 line=f'{label}: {val}'
                 if line not in lines:lines.append(line)
             tour_title = ('Machu Picchu by Train' if eid=='machu-picchu-tren' else name) if en else name
-            return finish(tour_title+'\n'+'\n'.join(lines),'evidence_'+fld,sources=[f.source_id for f in selected])
+            return finish(tour_title+'\n'+'\n'.join(lines),'evidence_'+fld,sources=[f.source_id for f in selected],entity_id=eid)
         # Para otras consultas se conserva el RAG y su proveedor, sin la segunda capa de evidencia.
         with ns.get('suspend_recording', nullcontext)():
             result=original(question,user_id)
