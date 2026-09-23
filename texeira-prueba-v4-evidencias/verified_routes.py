@@ -45,21 +45,21 @@ _SOCIAL_INTENTS = {
 }
 
 _SOCIAL_RESPONSES = {
-    'hola': '¡Hola! Bienvenido a Texeira Travel. ¿En qué puedo ayudarte?',
-    'buenos dias': '¡Buenos días! Bienvenido a Texeira Travel. ¿En qué puedo ayudarte?',
-    'buenas tardes': '¡Buenas tardes! Bienvenido a Texeira Travel. ¿En qué puedo ayudarte?',
-    'buenas noches': '¡Buenas noches! Bienvenido a Texeira Travel. ¿En qué puedo ayudarte?',
-    'hello': 'Hello! Welcome to Texeira Travel. How can I help you?',
-    'hi': 'Hi! Welcome to Texeira Travel. How can I help you?',
-    'buenas': '¡Buenas! Bienvenido a Texeira Travel. ¿En qué puedo ayudarte?',
-    'gracias': '¡De nada! Si tienes más preguntas, con gusto puedo ayudarte.',
-    'thanks': "You're welcome! Feel free to ask anything else.",
-    'adios': '¡Hasta luego! Que tengas un excelente viaje en Cusco.',
-    'bye': 'Goodbye! Have a wonderful trip in Cusco.',
-    'saludo': '¡Hola! Bienvenido a Texeira Travel. ¿En qué puedo ayudarte?',
+    'hola': '¡Hola! 👋 Bienvenido a *Texeira Travel*. ¿En qué te puedo ayudar hoy?',
+    'buenos dias': '¡Buenos días! ☀️ Bienvenido a *Texeira Travel*. ¿En qué te puedo ayudar?',
+    'buenas tardes': '¡Buenas tardes! 🌤️ Bienvenido a *Texeira Travel*. ¿En qué te puedo ayudar?',
+    'buenas noches': '¡Buenas noches! 🌙 Bienvenido a *Texeira Travel*. ¿En qué te puedo ayudar?',
+    'hello': 'Hello! 👋 Welcome to *Texeira Travel*. How can I help you today?',
+    'hi': 'Hi! 👋 Welcome to *Texeira Travel*. How can I help you?',
+    'buenas': '¡Buenas! 👋 Bienvenido a *Texeira Travel*. ¿En qué te puedo ayudar?',
+    'gracias': '¡Con gusto! 😊 Si necesitas algo más, aquí estamos.',
+    'thanks': "You're welcome! 😊 Feel free to ask anything else.",
+    'adios': '¡Hasta pronto! 🙌 Que disfrutes tu visita a Cusco.',
+    'bye': 'Goodbye! 🙌 Enjoy your trip to Cusco!',
+    'saludo': '¡Hola! 👋 Bienvenido a *Texeira Travel*. ¿En qué te puedo ayudar?',
 }
 
-_HELP_RESPONSE = '¡Claro! Puedo ayudarte con tours, recorridos, horarios e información sobre nuestros servicios documentados. ¿Qué necesitas saber?'
+_HELP_RESPONSE = '¡Claro! 😊 Puedo ayudarte con *tours, horarios y servicios* de Texeira Travel.\n¿Qué destino te interesa? O escribe 👉 *asesor*'
 
 def install(ns, support, original):
     catalog = support.CATALOG
@@ -169,8 +169,10 @@ def install(ns, support, original):
                 sources_used=sorted(set(sources)),route=route,response_route=route,entity_id=entity_id)
         def unknown(subject, entity_id=None):
             if en:
-                return finish('This information requires confirmation with the agency: '+subject+'. '+phone,'evidence_unknown',True,entity_id=entity_id)
-            return finish('Este dato requiere confirmacion con la agencia: '+subject+'. '+phone,'evidence_unknown',True,entity_id=entity_id)
+                msg = f"That information is confirmed directly at the agency.\n\nWrite 👉 *advisor* and we'll help you right away 😊"
+                return finish(msg,'evidence_unknown',True,entity_id=entity_id)
+            msg = f"Ese dato lo confirmamos directamente en la agencia. 💬\n\nEscribe 👉 *asesor* y te ayudamos ahora mismo 😊"
+            return finish(msg,'evidence_unknown',True,entity_id=entity_id)
 
         # Catálogo de tours solicitados (antes de evaluar fechas o disponibilidad comercial)
         if (q.strip(' ?¿!.') in {'tour','tours','que tours tienen','que tours ofrecen','lista de tours','what tours do you offer','what tours do you have'} or
@@ -178,18 +180,35 @@ def install(ns, support, original):
             re.search(r'\bdisponibles?\b.*?\b(tours?|viajes?|opciones?|paquetes?)\b', q) or
             re.search(r'\b(muestres?|muestrame|mostrar|ver|dime)\s+(los\s+)?disponibles?\b', q) or
             re.search(r'^\s*(tours?|viajes?)\s*$', q)):
-            title = 'Documented tours (availability to be confirmed):\n' if en else 'Tours documentados por Texeira Travel:\n'
-            return finish(title+'\n'.join('- '+t['name'] for t in active_tours.values() if is_product_confirmed(t['entity_id'])),'evidence_listing',sources=['F1','F2','F3'])
+            if en:
+                title = '🗺️ *Our confirmed tours with Texeira Travel:*\n'
+                footer = '\n\nWrite 👉 *advisor* for dates, prices or to book 😊'
+            else:
+                title = '🗺️ *Nuestros tours confirmados con Texeira Travel:*\n'
+                footer = '\n\nEscribe 👉 *asesor* para fechas, precios o reservar 😊'
+            tour_list = '\n'.join('• ' + t['name'] for t in active_tours.values() if is_product_confirmed(t['entity_id']))
+            return finish(title + tour_list + footer,'evidence_listing',sources=['F1','F2','F3'])
 
         # Operaciones comerciales y disponibilidad para fechas puntuales
         if re.search(r'cancel|reembols|refund|yape|paypal|\bpagar\b|\bpago\b|adelant|deposit|\bpay\b|payment|descuento|discount|reserva|booking|\bbook\b|cupos?|spots?|availability|available|disponib|manana|tomorrow|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}',q):
-            subj = 'payments, cancellations, bookings or availability for the requested date' if en else 'pagos, cancelaciones, reservas o disponibilidad para la fecha solicitada'
-            return unknown(subj)
+            if en:
+                msg = "Payments, bookings and availability are confirmed directly with our team at the agency.\n\nWrite 👉 *advisor* and we'll assist you right away 😊"
+            else:
+                msg = "Pagos, reservas y disponibilidad los coordinamos directamente en la agencia. 📅\n\nEscribe 👉 *asesor* y te atendemos ahora 😊"
+            return finish(msg,'evidence_unknown',True,entity_id=None)
         if re.search(r'7d/6n|paquete.*7|7.day package',q):
-            subj = 'seven-day package not documented in the received sources' if en else 'paquete de siete dias no documentado en las fuentes recibidas'
-            return unknown(subj)
+            if en:
+                msg = "The 7-day package is not documented in our current catalog.\n\nWrite 👉 *advisor* and we'll check what options are available for you 😊"
+            else:
+                msg = "El paquete de 7 días no está en nuestro catálogo actual. 📋\n\nEscribe 👉 *asesor* y revisamos qué opciones tenemos para ti 😊"
+            return finish(msg,'evidence_unknown',True,entity_id=None)
         if re.search(r'contact|telefono|whatsapp|correo|email|direccion|ubicacion',q):
-            a=catalog['agency'];return finish(phone+'\n'+', '.join(a['emails'])+'\n'+a['address'],'evidence_contact',sources=['F1','F2','F3'])
+            a=catalog['agency']
+            if en:
+                msg = f"📞 *Texeira Travel — Contact:*\n{phone}\n✉️ {', '.join(a['emails'])}\n📍 {a['address']}"
+            else:
+                msg = f"📞 *Texeira Travel — Contacto:*\n{phone}\n✉️ {', '.join(a['emails'])}\n📍 {a['address']}"
+            return finish(msg,'evidence_contact',sources=['F1','F2','F3'])
 
         eid=entity(q)
         if not eid:
@@ -238,7 +257,10 @@ def install(ns, support, original):
             facts = get_facts(eid)
             relevant=detect_conflicts(eid, fld)
             if relevant:
-                msg = f'The sources disagree; please confirm the current information with the agency. {name}. {phone}' if en else f'Las fuentes difieren; confirma el dato vigente con la agencia. {name}. {phone}'
+                if en:
+                    msg = f"ℹ️ We have different details for *{name}* in our records.\n\nWrite 👉 *advisor* to get the latest confirmed info 😊"
+                else:
+                    msg = f"ℹ️ Tenemos datos que necesitan verificación para *{name}*.\n\nEscribe 👉 *asesor* y te confirmamos el dato actualizado 😊"
                 return finish(msg,'evidence_conflict',True,[f.source_id for f in facts],True,entity_id=eid)
             if fld=='price':
                 official_price = str(tour_obj.get("official_price") or "").strip()
@@ -251,15 +273,21 @@ def install(ns, support, original):
                 if official_price:
                     price_display = official_price if any(c in official_price for c in ['USD', 'PEN', '$', 'S/']) else f"{official_price} {currency}"
                     if en:
-                        msg = f"The official published rate for {name} is {price_display}."
+                        msg = f"💰 *{name}*\nOfficial rate: *{price_display}* per person\n\nWrite 👉 *advisor* to book or ask about dates 😊"
                     else:
-                        msg = f"La tarifa oficial vigente de {name} es de {price_display}."
+                        msg = f"💰 *{name}*\nTarifa oficial: *{price_display}* por persona\n\nEscribe 👉 *asesor* para reservar o consultar fechas 😊"
                     return finish(msg, 'evidence_confirmed_price', sources=['CATALOGO_OFICIAL'], entity_id=eid)
 
-                subj = f'official price or currency conversion for {name}' if en else f'precio oficial o conversion a soles de {name}'
-                return unknown(subj, entity_id=eid)
+                if en:
+                    msg = f"💬 The price for *{name}* is confirmed directly with our team.\n\nWrite 👉 *advisor* and we'll tell you right away 😊"
+                else:
+                    msg = f"💬 El precio de *{name}* lo confirmamos contigo al instante.\n\nEscribe 👉 *asesor* y te respondemos ahora 😊"
+                return finish(msg,'evidence_unknown',True,entity_id=eid)
             if fld=='product':
-                msg = f'Documented in the materials received from the agency: {name}' if en else f'Documentado en los materiales recibidos de la agencia: {name}'
+                if en:
+                    msg = f"✅ *{name}* is a confirmed tour with Texeira Travel.\n\nWant photos, prices or the itinerary? Just ask!\nOr write 👉 *advisor* to book 😊"
+                else:
+                    msg = f"✅ *{name}* es un tour confirmado con Texeira Travel.\n\n¿Quieres fotos, precio o itinerario? ¡Pregúntame!\nO escribe 👉 *asesor* para reservar 😊"
                 return finish(msg,'evidence_product',sources=[f.source_id for f in facts if f.field=='confirmed_product'],entity_id=eid)
             selected=[f for f in facts if f.field==fld and f.value is not False]
             targets={'caballo|horse':'caballo','seguro|insurance':'seguro','entrada|ticket|boleto':'entrada|ingreso|boleto','oxigen|oxygen':'oxigeno','bus':'bus','desayuno|breakfast':'desayuno','almuerzo|lunch':'almuerzo'}
@@ -274,11 +302,21 @@ def install(ns, support, original):
             if not selected:
                 dyn_val = str(tour_obj.get(fld) or "").strip()
                 if dyn_val:
-                    labels={'includes':('Includes' if en else 'Incluye'),'excludes':('Does not include' if en else 'No incluye'),'stops':('Visits' if en else 'Visita'),'schedule':('Published schedule' if en else 'Horario publicado'),'duration':('Published duration' if en else 'Duracion publicada')}
-                    label = labels.get(fld, 'Published' if en else 'Publicado')
-                    return finish(f"{name}\n{label}: {dyn_val}", f'evidence_{fld}', sources=['CATALOGO_OFICIAL'], entity_id=eid)
-                subj = f'undocumented detail for {name}' if en else f'detalle no documentado para {name}'
-                return unknown(subj, entity_id=eid)
+                    emojis = {'includes': '✅', 'excludes': '🚫', 'stops': '📍', 'schedule': '🕐', 'duration': '⏱️'}
+                    labels_es = {'includes':'Incluye','excludes':'No incluye','stops':'Visita','schedule':'Horario','duration':'Duración'}
+                    labels_en = {'includes':'Includes','excludes':'Does not include','stops':'Visits','schedule':'Schedule','duration':'Duration'}
+                    emoji = emojis.get(fld, 'ℹ️')
+                    label = (labels_en if en else labels_es).get(fld, fld.capitalize())
+                    if en:
+                        msg = f"{emoji} *{name}*\n{label}: {dyn_val}\n\nWrite 👉 *advisor* for more details or to book 😊"
+                    else:
+                        msg = f"{emoji} *{name}*\n{label}: {dyn_val}\n\nEscribe 👉 *asesor* para más detalles o reservar 😊"
+                    return finish(msg, f'evidence_{fld}', sources=['CATALOGO_OFICIAL'], entity_id=eid)
+                if en:
+                    msg = f"💬 That detail for *{name}* is confirmed directly with our team.\n\nWrite 👉 *advisor* and we'll help you 😊"
+                else:
+                    msg = f"💬 Ese detalle de *{name}* lo confirmamos contigo directamente.\n\nEscribe 👉 *asesor* y te ayudamos 😊"
+                return finish(msg,'evidence_unknown',True,entity_id=eid)
             lines=[]
             labels={'includes':('Includes' if en else 'Incluye'),'excludes':('Does not include' if en else 'No incluye'),'stops':('Visits' if en else 'Visita'),'schedule':('Published schedule' if en else 'Horario publicado'),'duration':('Published duration' if en else 'Duracion publicada')}
             # Agrupar equivalencias solo en la presentación de este producto.
@@ -320,7 +358,15 @@ def install(ns, support, original):
                 line=f'{label}: {val}'
                 if line not in lines:lines.append(line)
             tour_title = ('Machu Picchu by Train' if eid=='machu-picchu-tren' else name) if en else name
-            return finish(tour_title+'\n'+'\n'.join(lines),'evidence_'+fld,sources=[f.source_id for f in selected],entity_id=eid)
+            emojis = {'includes': '✅', 'excludes': '🚫', 'stops': '📍', 'schedule': '🕐', 'duration': '⏱️'}
+            emoji = emojis.get(fld, 'ℹ️')
+            header = f"{emoji} *{tour_title}*"
+            body = '\n'.join(f'• {l}' for l in lines)
+            if en:
+                footer = '\n\nWrite 👉 *advisor* for bookings or more info 😊'
+            else:
+                footer = '\n\nEscribe 👉 *asesor* para reservar o más información 😊'
+            return finish(f"{header}\n{body}{footer}",'evidence_'+fld,sources=[f.source_id for f in selected],entity_id=eid)
         # Para otras consultas se conserva el RAG y su proveedor, sin la segunda capa de evidencia.
         with ns.get('suspend_recording', nullcontext)():
             result=original(question,user_id)

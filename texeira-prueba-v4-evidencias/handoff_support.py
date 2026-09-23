@@ -199,10 +199,13 @@ def install(ns):
             if result.get('needs_agency_confirmation'):
                 result=dict(result)
                 lang = ns.get('detect_language', lambda q: 'es')(question)
+                response_text = result.get('response', '')
                 if lang == 'en':
-                    result['response']+='\nTo register a request for human assistance, type: speak to an agent.'
+                    if 'advisor' not in response_text.lower():
+                        result['response'] += '\nWrite \U0001f449 *advisor* to speak with our team at the agency.'
                 else:
-                    result['response']+='\nPara registrar una solicitud de atención humana, escribe: asesor.'
+                    if 'asesor' not in response_text.lower():
+                        result['response'] += '\nEscribe \U0001f449 *asesor* para hablar con nuestro equipo en la agencia.'
                 history=ns['conversation_history'].get(user_id,[])
                 if history and history[-1].get('role')=='ai':
                     if 'update_last_history_response' in ns:
