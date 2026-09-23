@@ -78,59 +78,60 @@ class Fact:
         return d
 
 
-def get_facts(entity_id: str, field: str = None) -> List[Fact]:
+def get_facts(entity_id: str, field: str = None, include_dynamic: bool = True) -> List[Fact]:
     facts = [f for f in _load_facts() if f.evidence_status == 'confirmed']
     result = [f for f in facts if f.entity_id == entity_id]
 
     # Incorporar hechos oficiales vigentes desde el catálogo dinámico
-    try:
-        from catalog_service import get_tour_by_id
-        tour = get_tour_by_id(entity_id)
-        if tour and tour.get("is_active", 1):
-            if tour.get("official_price"):
-                curr = tour.get("currency", "USD")
-                price_val = f"{tour['official_price']} {curr}"
-                price_fact = Fact({
-                    'fact_id': f"dynamic-price-{entity_id}",
-                    'entity_id': entity_id,
-                    'field': 'official_price',
-                    'item': None,
-                    'value': price_val,
-                    'source_id': 'ADMIN_VIGENTE',
-                    'source_page': None,
-                    'evidence_status': 'confirmed',
-                    'note': 'Tarifa oficial vigente configurada en catálogo dinámico.'
-                })
-                result = [f for f in result if f.field != 'official_price'] + [price_fact]
+    if include_dynamic:
+        try:
+            from catalog_service import get_tour_by_id
+            tour = get_tour_by_id(entity_id)
+            if tour and tour.get("is_active", 1):
+                if tour.get("official_price"):
+                    curr = tour.get("currency", "USD")
+                    price_val = f"{tour['official_price']} {curr}"
+                    price_fact = Fact({
+                        'fact_id': f"dynamic-price-{entity_id}",
+                        'entity_id': entity_id,
+                        'field': 'official_price',
+                        'item': None,
+                        'value': price_val,
+                        'source_id': 'ADMIN_VIGENTE',
+                        'source_page': None,
+                        'evidence_status': 'confirmed',
+                        'note': 'Tarifa oficial vigente configurada en catálogo dinámico.'
+                    })
+                    result = [f for f in result if f.field != 'official_price'] + [price_fact]
 
-            if tour.get("schedule") and not any(f.field == 'schedule' for f in result):
-                sched_fact = Fact({
-                    'fact_id': f"dynamic-sched-{entity_id}",
-                    'entity_id': entity_id,
-                    'field': 'schedule',
-                    'item': None,
-                    'value': tour["schedule"],
-                    'source_id': 'ADMIN_VIGENTE',
-                    'source_page': None,
-                    'evidence_status': 'confirmed',
-                    'note': 'Horario oficial vigente configurado en catálogo dinámico.'
-                })
-                result.append(sched_fact)
+                if tour.get("schedule") and not any(f.field == 'schedule' for f in result):
+                    sched_fact = Fact({
+                        'fact_id': f"dynamic-sched-{entity_id}",
+                        'entity_id': entity_id,
+                        'field': 'schedule',
+                        'item': None,
+                        'value': tour["schedule"],
+                        'source_id': 'ADMIN_VIGENTE',
+                        'source_page': None,
+                        'evidence_status': 'confirmed',
+                        'note': 'Horario oficial vigente configurado en catálogo dinámico.'
+                    })
+                    result.append(sched_fact)
 
-            if not any(f.field == 'confirmed_product' for f in result):
-                prod_fact = Fact({
-                    'fact_id': f"dynamic-prod-{entity_id}",
-                    'entity_id': entity_id,
-                    'field': 'confirmed_product',
-                    'item': None,
-                    'value': True,
-                    'source_id': 'ADMIN_VIGENTE',
-                    'source_page': None,
-                    'evidence_status': 'confirmed'
-                })
-                result.append(prod_fact)
-    except Exception:
-        pass
+                if not any(f.field == 'confirmed_product' for f in result):
+                    prod_fact = Fact({
+                        'fact_id': f"dynamic-prod-{entity_id}",
+                        'entity_id': entity_id,
+                        'field': 'confirmed_product',
+                        'item': None,
+                        'value': True,
+                        'source_id': 'ADMIN_VIGENTE',
+                        'source_page': None,
+                        'evidence_status': 'confirmed'
+                    })
+                    result.append(prod_fact)
+        except Exception:
+            pass
 
     if field:
         result = [f for f in result if f.field == field]
@@ -280,11 +281,11 @@ def get_confirmed_products() -> List[dict]:
     return canonical
 
 
-def build_context_for_entity(entity_id: str) -> str:
+def build_context_for_entity(entity_id: str, include_dynamic: bool = True) -> str:
     conflicts = detect_conflicts(entity_id)
     conflict_fields = set(c['field'] for c in conflicts)
 
-    facts = get_facts(entity_id)
+    facts = get_facts(entity_id, include_dynamic=include_dynamic)
     consolidated = {}
     for f in facts:
         key = (f.field, f.item)
