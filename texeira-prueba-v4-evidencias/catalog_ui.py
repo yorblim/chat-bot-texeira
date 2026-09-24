@@ -541,7 +541,7 @@ def get_catalog_html(csrf_token: str) -> str:
             <button class="btn btn-secondary btn-sm" onclick="editTour('${{t.entity_id}}')">✏️ Editar</button>
             <button class="btn btn-secondary btn-sm" onclick="openUploadModal('${{t.entity_id}}', 'photo')">📷 Foto</button>
             <button class="btn btn-secondary btn-sm" onclick="openUploadModal('${{t.entity_id}}', 'brochure')">📄 Folleto</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteTour('${{t.entity_id}}', '${{t.name.replace(\"'\", \"&apos;\")}}')" title="Eliminar o desactivar este tour del bot">🗑️ Eliminar</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteTour('${{t.entity_id}}')" title="Eliminar o desactivar este tour del bot">🗑️ Eliminar</button>
           </div>
         `;
         grid.appendChild(card);
@@ -568,10 +568,10 @@ def get_catalog_html(csrf_token: str) -> str:
       openModal('tourModal');
     }});
 
-    async function deleteTour(entityId, tourName) {{
-      const confirmMsg = tourName
-        ? `¿Eliminar o desactivar el tour "${tourName}" del bot?\n\n• Tours canónicos: quedan desactivados (no visibles en WhatsApp).\n• Tours personalizados: se eliminan definitivamente.\n\nEsta acción se puede revertir volviendo a activarlo.`
-        : `¿Eliminar el tour "${entityId}"?`;
+    async function deleteTour(entityId) {{
+      const t = TOURS_DATA.find(x => x.entity_id === entityId);
+      const tourName = t ? t.name : entityId;
+      const confirmMsg = '¿Eliminar o desactivar el tour "' + tourName + '" del bot?\\n\\n• Tours canónicos: quedan desactivados (no visibles en WhatsApp).\\n• Tours personalizados: se eliminan definitivamente.\\n\\nEsta acción se puede revertir volviendo a activarlo.';
       if (!confirm(confirmMsg)) return;
       try {{
         const r = await fetch(`/api/catalog/tours/${{entityId}}`, {{
