@@ -189,8 +189,8 @@ def install(ns, support, original):
             bool(re.search(r'\b(muestr\w*|meustr\w*|mostr\w*|ver|dime|cuales|que|tienen?|hay)\b.*?\b(tours?|opciones?|paquetes?|destinos?|viajes?|rutas?|circuitos?|paseos?)\b', q) and
                  not re.search(r'\b(precio|precios|cuesta|cuanto|costo|costos|tarifa|tarifas|soles|dolares|\busd\b|\bpen\b|horario|hora|duracion|incluye|itinerario|fotos?|imagen|imagenes|brochure|folleto|cancel|reembols|yape|paypal|pagar|pago|adelant|deposit|descuento|reserva|booking|cupos?|manana|tomorrow|7d|7\s*d[ií]as?|7.day)\b|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}', q) and
                  support.detect_entity_from_question(q) is None) or
-            # Preguntas sobre si es el único o si hay más opciones
-            bool(re.search(r'\b(es el unic\w|es la unic\w|es lo unic\w|hay mas|tienen mas|otros? tours?|otras? opciones?)\b', q) and
+            # Preguntas sobre si es el único o si hay más opciones, u otros lugares/destinos
+            bool(re.search(r'\b(es el unic\w|es la unic\w|es lo unic\w|hay mas|tienen mas|otros? tours?|otras? opciones?|otros? lugares?|otros? destinos?|otros? paquetes?|que m[aá]s tienen|que mas tienen|mas opciones|m[aá]s opciones|other tours?|other options?|more tours?|more options?|anything else)\b', q) and
                  not re.search(r'\b(cancel|reembols|yape|paypal|pagar|pago|manana|tomorrow)\b', q)) or
             # Consultas con la palabra "disponibles" generales
             (bool(re.search(r'\b(tours?|viajes?|opciones?|paquetes?|cuales?|muestr\w*|ver|dime)\b.*?\bdisponibles?\b', q) or
@@ -200,7 +200,7 @@ def install(ns, support, original):
             bool(re.search(r'^\s*(tours?|viajes?|opciones?|destinos?)\s*$', q))
         )
         if is_listing_request:
-            is_asking_unique = bool(re.search(r'\b(es el unic\w|es la unic\w|es lo unic\w|hay mas|tienen mas|otros? tours?|otras? opciones?)\b', q))
+            is_asking_unique = bool(re.search(r'\b(es el unic\w|es la unic\w|es lo unic\w|hay mas|tienen mas|otros? tours?|otras? opciones?|otros? lugares?|otros? destinos?|que m[aá]s tienen|mas opciones|m[aá]s opciones|other tours?|more tours?|more options?|anything else)\b', q))
             if en:
                 if is_asking_unique:
                     title = "Not at all! We have many more confirmed tour options at *Texeira Travel*: 🗺️\n\n"
@@ -295,10 +295,32 @@ def install(ns, support, original):
 
         # Operaciones comerciales y disponibilidad para fechas puntuales
         if re.search(r'cancel|reembols|refund|yape|paypal|\bpagar\b|\bpago\b|adelant|deposit|\bpay\b|payment|descuento|discount|reserva|booking|\bbook\b|cupos?|spots?|availability|available|disponib|manana|tomorrow|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}',q):
+            eid_comercial = entity(q)
+            if not eid_comercial:
+                for h in reversed(prior):
+                    if h.get('role') == 'human':
+                        eid_comercial = entity(support.normalize(h['content']))
+                        if eid_comercial: break
+            if eid_comercial:
+                tour_obj_com = active_tours.get(eid_comercial, {})
+                name_com = tour_obj_com.get('name', eid_comercial)
+                schedule_com = str(tour_obj_com.get('schedule') or '').strip()
+                if not schedule_com:
+                    facts_com = get_facts(eid_comercial)
+                    for f in facts_com:
+                        if f.field == 'schedule' and f.value:
+                            schedule_com = str(f.value).strip()
+                            break
+                if schedule_com:
+                    if en:
+                        msg = (f'⏰ *{name_com}*\n• Published schedule: {schedule_com}\n\nFor price and available dates, our team confirms them directly with you.\n\nWrite 👉 *advisor* and we\'ll assist you right away 😊')
+                    else:
+                        msg = (f'⏰ *{name_com}*\n• Horario publicado: {schedule_com}\n\nEl precio y las fechas disponibles te las confirmamos al instante en la agencia.\n\nEscribe 👉 *asesor* y te atendemos ahora 😊')
+                    return finish(msg, 'evidence_schedule', pending=True, sources=['F1','F2'], entity_id=eid_comercial)
             if en:
-                msg = "Payments, bookings and availability are confirmed directly with our team at the agency.\n\nWrite 👉 *advisor* and we'll assist you right away 😊"
+                msg = 'Payments, bookings and availability are confirmed directly with our team at the agency.\n\nWrite 👉 *advisor* and we\'ll assist you right away 😊'
             else:
-                msg = "Pagos, reservas y disponibilidad los coordinamos directamente en la agencia. 📅\n\nEscribe 👉 *asesor* y te atendemos ahora 😊"
+                msg = 'Pagos, reservas y disponibilidad los coordinamos directamente en la agencia. 📅\n\nEscribe 👉 *asesor* y te atendemos ahora 😊'
             return finish(msg,'evidence_unknown',True,entity_id=None)
         if re.search(r'7d/6n|paquete.*7|7.day package',q):
             if en:

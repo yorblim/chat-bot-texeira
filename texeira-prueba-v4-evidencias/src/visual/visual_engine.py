@@ -35,16 +35,17 @@ def get_tour_image_data(text: str, user_msg: str = "", entity_id: str = ""):
     """
     base_url = os.getenv('APP_BASE_URL', 'https://texeira-whatsapp-1038134693816.us-central1.run.app').rstrip('/')
 
+    # Captions oficiales: solo el nombre del tour según catálogo oficial. Cero textos inventados.
     canonical_images = {
-        'machu-picchu-tren': (f"{base_url}/images/machu_picchu.jpg", '🏔️ *Machu Picchu Mágico* — ¡La Maravilla del Mundo te espera con Texeira Travel Tour! ✨'),
-        'machu-picchu-car': (f"{base_url}/images/machu_picchu.jpg", '🏔️ *Machu Picchu By Car* — Aventura escénica hacia la Maravilla del Mundo con Texeira Travel. ✨'),
-        'montana-7-colores': (f"{base_url}/images/montana_7_colores.jpg", '🌈 *Montaña de 7 Colores (Vinicunca)* — Paisajes andinos únicos a más de 5,000 m.s.n.m.'),
-        'laguna-humantay': (f"{base_url}/images/laguna_humantay.jpg", '💎 *Laguna Humantay* — Espejo de aguas turquesas y nevados sagrados de Cusco.'),
-        'valle-sagrado': (f"{base_url}/images/valle_sagrado.jpg", '🌾 *Valle Sagrado de los Incas* — Tradición viva, fortalezas y paisajes imponentes.'),
-        'valle-sur': (f"{base_url}/images/cusco_general.jpg", '🏺 *Valle Sur Cusco* — Tipón, Pikillacta y la Capilla Sixtina de América en Andahuaylillas.'),
-        'maras-moray': (f"{base_url}/images/maras_moray.jpg", '🧂 *Maras y Moray* — Salineras milenarias y laboratorio agrícola inca.'),
-        'maras-moray-cuatrimoto': (f"{base_url}/images/maras_moray.jpg", '🏍️ *Maras y Moray en Cuatrimoto* — Adrenalina, paisajes y cultura en el Valle Sagrado.'),
-        'city-tour-cusco': (f"{base_url}/images/city_tour_cusco.jpg", '🏛️ *City Tour Cusco* — Plaza de Armas, templos sagrados y centros arqueológicos.'),
+        'machu-picchu-tren': (f"{base_url}/images/machu_picchu.jpg", '🏔️ *Machu Picchu en Tren* — Texeira Travel'),
+        'machu-picchu-car': (f"{base_url}/images/machu_picchu.jpg", '🏔️ *Machu Picchu by Car* — Texeira Travel'),
+        'montana-7-colores': (f"{base_url}/images/montana_7_colores.jpg", '🌈 *Montaña de 7 Colores (Vinicunca)* — Texeira Travel'),
+        'laguna-humantay': (f"{base_url}/images/laguna_humantay.jpg", '💎 *Laguna Humantay* — Texeira Travel'),
+        'valle-sagrado': (f"{base_url}/images/valle_sagrado.jpg", '🌾 *Valle Sagrado* — Texeira Travel'),
+        'valle-sur': (f"{base_url}/images/cusco_general.jpg", '🏺 *Valle Sur* — Texeira Travel'),
+        'maras-moray': (f"{base_url}/images/maras_moray.jpg", '🧂 *Maras y Moray* — Texeira Travel'),
+        'maras-moray-cuatrimoto': (f"{base_url}/images/maras_moray.jpg", '🏍️ *Maras y Moray en Cuatrimoto* — Texeira Travel'),
+        'city-tour-cusco': (f"{base_url}/images/city_tour_cusco.jpg", '🏛️ *City Tour Cusco* — Texeira Travel'),
     }
 
     # 1. Identificar la entidad
@@ -65,7 +66,8 @@ def get_tour_image_data(text: str, user_msg: str = "", entity_id: str = ""):
             tour = catalog_service.get_tour(target_eid)
             if tour and tour.get("photo_filename"):
                 photo_file = tour["photo_filename"]
-                caption = f"📸 *{tour.get('name', target_eid)}* — ¡Descubre esta maravilla con Texeira Travel Tour! ✨"
+                # Caption oficial: solo nombre del tour. Sin texto de marketing.
+                caption = f"📸 *{tour.get('name', target_eid)}* — Texeira Travel"
                 return (f"{base_url}/images/{photo_file}", caption)
         except Exception:
             pass
@@ -76,7 +78,7 @@ def get_tour_image_data(text: str, user_msg: str = "", entity_id: str = ""):
 
     # 3. Si el usuario pidió fotos expresamente y no se detectó un tour particular
     if is_photo_requested(user_msg):
-        return (f"{base_url}/images/cusco_general.jpg", '✨ *Texeira Travel Tour* — Tu mejor experiencia de viaje en el corazón de los Andes. 🇵🇪')
+        return (f"{base_url}/images/cusco_general.jpg", '📸 *Texeira Travel* — Destinos en Cusco y el Perú')
 
     return None
 

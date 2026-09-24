@@ -117,6 +117,15 @@ def get_catalog_html(csrf_token: str) -> str:
       padding: 4px 10px;
       font-size: 12px;
     }}
+    .btn-danger {{
+      background: #fee2e2;
+      border: 1px solid #fca5a5;
+      color: #b91c1c;
+    }}
+    .btn-danger:hover {{
+      background: #fca5a5;
+      color: #7f1d1d;
+    }}
     .toolbar {{
       display: flex;
       justify-content: space-between;
@@ -532,6 +541,7 @@ def get_catalog_html(csrf_token: str) -> str:
             <button class="btn btn-secondary btn-sm" onclick="editTour('${{t.entity_id}}')">✏️ Editar</button>
             <button class="btn btn-secondary btn-sm" onclick="openUploadModal('${{t.entity_id}}', 'photo')">📷 Foto</button>
             <button class="btn btn-secondary btn-sm" onclick="openUploadModal('${{t.entity_id}}', 'brochure')">📄 Folleto</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteTour('${{t.entity_id}}', '${{t.name.replace(\"'\", \"&apos;\")}}')" title="Eliminar o desactivar este tour del bot">🗑️ Eliminar</button>
           </div>
         `;
         grid.appendChild(card);
@@ -557,6 +567,25 @@ def get_catalog_html(csrf_token: str) -> str:
       document.getElementById('modalTourTitle').textContent = 'Registrar Nuevo Tour';
       openModal('tourModal');
     }});
+
+    async function deleteTour(entityId, tourName) {{
+      const confirmMsg = tourName
+        ? `¿Eliminar o desactivar el tour "${tourName}" del bot?\n\n• Tours canónicos: quedan desactivados (no visibles en WhatsApp).\n• Tours personalizados: se eliminan definitivamente.\n\nEsta acción se puede revertir volviendo a activarlo.`
+        : `¿Eliminar el tour "${entityId}"?`;
+      if (!confirm(confirmMsg)) return;
+      try {{
+        const r = await fetch(`/api/catalog/tours/${{entityId}}`, {{
+          method: 'DELETE',
+          headers: {{'X-Requested-With': 'XMLHttpRequest'}}
+        }});
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Error al eliminar');
+        alert(d.message || 'Tour eliminado correctamente.');
+        loadTours();
+      }} catch(e) {{
+        alert('Error: ' + e.message);
+      }}
+    }}
 
     function editTour(entityId) {{
       const t = TOURS_DATA.find(x => x.entity_id === entityId);
