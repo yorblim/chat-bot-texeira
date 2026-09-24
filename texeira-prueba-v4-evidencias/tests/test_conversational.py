@@ -76,6 +76,21 @@ res = r("Cuánto cuesta Salkantay?", "test_ev_4")
 test("Precio: unknown route", 'unknown' in res.get('route', '') or 'unknown' in res.get('response_route', ''), f"route={res.get('route')}, response_route={res.get('response_route')}")
 test("Precio: no disclaimer", 'materiales de Texeira' not in res['response'])
 
+# --- EVIDENCE: TOURS LISTING & OPCIONES ---
+print("\n--- Evidence: Catálogo de Tours ---")
+res = r("¿Qué tours tienen?", "test_listing_1")
+test("Listing: route evidence_listing", res.get('route') == 'evidence_listing' or res.get('response_route') == 'evidence_listing', f"route={res.get('route')}")
+test("Listing: mentions Machu Picchu", 'Machu Picchu' in res['response'])
+test("Listing: categorized emojis", any(e in res['response'] for e in ['🏔️', '🌄', '🚌']))
+test("Listing: CTA asesor", 'asesor' in res['response'].lower())
+
+print("\n--- Evidence: Pregunta si es el único tour ---")
+res = r("¿Es el único tour?", "test_listing_2")
+test("Unico: route evidence_listing", res.get('route') == 'evidence_listing' or res.get('response_route') == 'evidence_listing')
+test("Unico: clarifies not the only one", 'no es el único' in res['response'].lower() or 'no es el unico' in res['response'].lower() or 'para nada' in res['response'].lower())
+test("Unico: CTA asesor", 'asesor' in res['response'].lower())
+
+
 # --- METADATA ---
 print("\n--- Metadata check ---")
 res = r("Hola", "test_meta")

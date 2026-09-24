@@ -175,19 +175,123 @@ def install(ns, support, original):
             return finish(msg,'evidence_unknown',True,entity_id=entity_id)
 
         # Catálogo de tours solicitados (antes de evaluar fechas o disponibilidad comercial)
-        if (q.strip(' ?¿!.') in {'tour','tours','que tours tienen','que tours ofrecen','lista de tours','what tours do you offer','what tours do you have'} or
-            re.search(r'\b(tours?|viajes?|opciones?|paquetes?|cuales?|muestres?|muestrame|mostrar|ver|que|dime)\b.*?\bdisponibles?\b', q) or
-            re.search(r'\bdisponibles?\b.*?\b(tours?|viajes?|opciones?|paquetes?)\b', q) or
-            re.search(r'\b(muestres?|muestrame|mostrar|ver|dime)\s+(los\s+)?disponibles?\b', q) or
-            re.search(r'^\s*(tours?|viajes?)\s*$', q)):
+        listing_keywords = {
+            'tour', 'tours', 'opcion', 'opciones', 'paquetes', 'catalogo',
+            'que tours tienen', 'que tours ofrecen', 'que tours hay', 'lista de tours',
+            'cuales tours tienen', 'cuales son los tours', 'todos los tours',
+            'que opciones tienen', 'que opciones hay', 'todas las opciones',
+            'what tours do you offer', 'what tours do you have', 'all tours',
+            'show me all options', 'list of tours'
+        }
+        is_listing_request = (
+            q.strip(' ?¿!.') in listing_keywords or
+            # Peticiones tipo "me muestras todas las opciones", "muéstrame los tours", "qué opciones tienes", "ver tours", etc.
+            bool(re.search(r'\b(muestr\w*|meustr\w*|mostr\w*|ver|dime|cuales|que|tienen?|hay)\b.*?\b(tours?|opciones?|paquetes?|destinos?|viajes?|rutas?|circuitos?|paseos?)\b', q) and
+                 not re.search(r'\b(precio|precios|cuesta|cuanto|costo|costos|tarifa|tarifas|soles|dolares|\busd\b|\bpen\b|horario|hora|duracion|incluye|itinerario|fotos?|imagen|imagenes|brochure|folleto|cancel|reembols|yape|paypal|pagar|pago|adelant|deposit|descuento|reserva|booking|cupos?|manana|tomorrow|7d|7\s*d[ií]as?|7.day)\b|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}', q) and
+                 support.detect_entity_from_question(q) is None) or
+            # Preguntas sobre si es el único o si hay más opciones
+            bool(re.search(r'\b(es el unic\w|es la unic\w|es lo unic\w|hay mas|tienen mas|otros? tours?|otras? opciones?)\b', q) and
+                 not re.search(r'\b(cancel|reembols|yape|paypal|pagar|pago|manana|tomorrow)\b', q)) or
+            # Consultas con la palabra "disponibles" generales
+            (bool(re.search(r'\b(tours?|viajes?|opciones?|paquetes?|cuales?|muestr\w*|ver|dime)\b.*?\bdisponibles?\b', q) or
+                  re.search(r'\bdisponibles?\b.*?\b(tours?|viajes?|opciones?|paquetes?)\b', q)) and
+             not re.search(r'\b(manana|tomorrow|hoy|today|enero|febrero|marzo|abril|mayo|junio|julio|agosto|setiembre|septiembre|octubre|noviembre|diciembre)\b|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}', q) and
+             support.detect_entity_from_question(q) is None) or
+            bool(re.search(r'^\s*(tours?|viajes?|opciones?|destinos?)\s*$', q))
+        )
+        if is_listing_request:
+            is_asking_unique = bool(re.search(r'\b(es el unic\w|es la unic\w|es lo unic\w|hay mas|tienen mas|otros? tours?|otras? opciones?)\b', q))
             if en:
-                title = '🗺️ *Our confirmed tours with Texeira Travel:*\n'
-                footer = '\n\nWrite 👉 *advisor* for dates, prices or to book 😊'
+                if is_asking_unique:
+                    title = "Not at all! We have many more confirmed tour options at *Texeira Travel*: 🗺️\n\n"
+                else:
+                    title = "🗺️ *Our confirmed tours with Texeira Travel:*\n\n"
+                
+                cat_specs = [
+                    ("🏔️ *Machu Picchu & Treks:*", [
+                        ('machu-picchu-tren', 'Machu Picchu by Train'),
+                        ('machu-picchu-car', 'Machu Picchu by Car'),
+                        ('camino-inka', 'Inca Trail'),
+                        ('salkantay-trek', 'Salkantay Trek'),
+                        ('inka-jungle', 'Inka Jungle to Machu Picchu'),
+                        ('choquequirao', 'Choquequirao Trek')
+                    ]),
+                    ("🌄 *Mountains & Day Tours (Cusco):*", [
+                        ('montana-7-colores', 'Rainbow Mountain (7 Colors)'),
+                        ('laguna-humantay', 'Humantay Lake'),
+                        ('city-tour-cusco', 'City Tour Cusco'),
+                        ('valle-sagrado', 'Sacred Valley'),
+                        ('maras-moray', 'Maras - Moray'),
+                        ('waqra-pukara', 'Waqra Pukara'),
+                        ('valle-sur', 'South Valley'),
+                        ('maras-moray-cuatrimoto', 'Quad Bike ATV Maras-Moray'),
+                        ('puente-qeswachaca', "Q'eswachaca Bridge"),
+                        ('tour-mistico', 'Mystic Tour')
+                    ]),
+                    ("🚌 *Regional Routes:*", [
+                        ('ruta-del-sol', 'Route of the Sun (Cusco - Puno)'),
+                        ('islas-titicaca', 'Lake Titicaca Islands'),
+                        ('canon-colca', 'Colca Canyon')
+                    ])
+                ]
+                footer = "\n\nWhich one would you like to explore? Ask me for photos, prices or itinerary 😊\nOr write 👉 *advisor* to book directly."
             else:
-                title = '🗺️ *Nuestros tours confirmados con Texeira Travel:*\n'
-                footer = '\n\nEscribe 👉 *asesor* para fechas, precios o reservar 😊'
-            tour_list = '\n'.join('• ' + t['name'] for t in active_tours.values() if is_product_confirmed(t['entity_id']))
-            return finish(title + tour_list + footer,'evidence_listing',sources=['F1','F2','F3'])
+                if is_asking_unique:
+                    title = "¡Para nada! No es el único. En *Texeira Travel* tenemos todas estas opciones disponibles: 🗺️\n\n"
+                else:
+                    title = "🗺️ *Nuestros tours confirmados con Texeira Travel:*\n\n"
+
+                cat_specs = [
+                    ("🏔️ *Machu Picchu y Treks:*", [
+                        ('machu-picchu-tren', 'Machu Picchu en Tren'),
+                        ('machu-picchu-car', 'Machu Picchu by Car'),
+                        ('camino-inka', 'Camino Inka'),
+                        ('salkantay-trek', 'Salkantay Trek'),
+                        ('inka-jungle', 'Inka Jungle to Machu Picchu'),
+                        ('choquequirao', 'Choquequirao Trek')
+                    ]),
+                    ("🌄 *Montañas y Clásicos (Cusco):*", [
+                        ('montana-7-colores', 'Montaña de 7 Colores'),
+                        ('laguna-humantay', 'Laguna Humantay'),
+                        ('city-tour-cusco', 'City Tour Cusco'),
+                        ('valle-sagrado', 'Valle Sagrado'),
+                        ('maras-moray', 'Maras - Moray'),
+                        ('waqra-pukara', 'Waqra Pukara'),
+                        ('valle-sur', 'Valle Sur'),
+                        ('maras-moray-cuatrimoto', 'Tour Cuatrimoto / Maras-Moray'),
+                        ('puente-qeswachaca', "Puente de Q’eswachaca"),
+                        ('tour-mistico', 'Tour Místico')
+                    ]),
+                    ("🚌 *Rutas Regionales:*", [
+                        ('ruta-del-sol', 'Ruta del Sol Cusco-Puno'),
+                        ('islas-titicaca', 'Islas del Lago Titicaca'),
+                        ('canon-colca', 'Cañón del Colca / Baños Termales de Chacapi')
+                    ])
+                ]
+                footer = "\n\n¿Cuál de ellos te gustaría conocer? Pregúntame por fotos, precios o detalles 😊\nO escribe 👉 *asesor* para reservar."
+
+            seen = set()
+            blocks = []
+            for cat_title, items in cat_specs:
+                grp = []
+                for eid, default_label in items:
+                    if eid in active_tours and is_product_confirmed(eid):
+                        label = default_label if en else active_tours[eid]['name']
+                        grp.append(f"• {label}")
+                        seen.add(eid)
+                if grp:
+                    blocks.append(f"{cat_title}\n" + "\n".join(grp))
+
+            extras = []
+            for eid, t in active_tours.items():
+                if eid not in seen and is_product_confirmed(eid):
+                    extras.append(f"• {t['name']}")
+            if extras:
+                extra_title = "✨ *More Experiences:*" if en else "✨ *Otras Opciones:*"
+                blocks.append(f"{extra_title}\n" + "\n".join(extras))
+
+            full_body = "\n\n".join(blocks)
+            return finish(title + full_body + footer, 'evidence_listing', sources=['F1','F2','F3'])
 
         # Operaciones comerciales y disponibilidad para fechas puntuales
         if re.search(r'cancel|reembols|refund|yape|paypal|\bpagar\b|\bpago\b|adelant|deposit|\bpay\b|payment|descuento|discount|reserva|booking|\bbook\b|cupos?|spots?|availability|available|disponib|manana|tomorrow|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}',q):

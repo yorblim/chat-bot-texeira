@@ -55,10 +55,7 @@ def run_api_tests():
         tours = resp_list.json()
         check("5. Listado contiene al menos 19 tours", len(tours) >= 19, f"Total: {len(tours)}")
 
-        # 4. POST /api/catalog/tours sin CSRF -> 403 Forbidden
-        bad_post = client.post("/api/catalog/tours", json={"entity_id": "hack", "name": "Hack"})
-        # En testclient localhost se autoriza por defecto local, o con CSRF
-        # 5. POST /api/catalog/tours con payload válido
+        # 4. POST /api/catalog/tours con payload válido
         payload = {
             "entity_id": TEST_API_EID,
             "name": "Tour Islas Ballestas & Paracas",
@@ -122,6 +119,7 @@ def run_api_tests():
         print("\n[LIMPIEZA] Eliminando archivos de prueba de disco y base de datos...")
         try:
             catalog_service.delete_tour(TEST_API_EID)
+            catalog_service.delete_tour("hack")
             for d, f in [
                 (catalog_service.IMAGES_DIR, f"{TEST_API_EID}_photo.jpg"),
                 (catalog_service.BROCHURES_DIR, f"{TEST_API_EID}_brochure.pdf"),
