@@ -127,6 +127,53 @@ def run_all_regressions():
         )
         check("1.10 DELETE /api/catalog/tours con token CSRF válido responde 200 OK", r_del_ok.status_code == 200 and r_del_ok.json().get("ok"))
 
+        # 1.11 Validación con credenciales Basic Auth configuradas
+        old_u = os.environ.get('ADMIN_USER')
+        old_p = os.environ.get('ADMIN_PASSWORD')
+        try:
+            os.environ['ADMIN_USER'] = 'admin_test'
+            os.environ['ADMIN_PASSWORD'] = 'secret_test_456'
+            import base64
+            auth_header = "Basic " + base64.b64encode(b"admin_test:secret_test_456").decode()
+            bad_auth_header = "Basic " + base64.b64encode(b"admin_test:wrong").decode()
+
+            # Sin Basic Auth -> 401
+            r_no_auth = client.post("/api/catalog/tours", json=test_payload, headers={"X-Catalog-CSRF": valid_csrf})
+            check("1.11 POST sin Basic Auth cuando está configurado retorna 401", r_no_auth.status_code == 401)
+
+            # Con Basic Auth erróneo -> 401
+            r_bad_auth = client.post("/api/catalog/tours", json=test_payload, headers={"Authorization": bad_auth_header, "X-Catalog-CSRF": valid_csrf})
+            check("1.12 POST con Basic Auth erróneo retorna 401", r_bad_auth.status_code == 401)
+
+            # Con Basic Auth válido pero sin CSRF -> 403 (Basic Auth no bypassa CSRF)
+            r_auth_no_csrf_req = client.post("/api/catalog/tours", json=test_payload, headers={"Authorization": auth_header})
+            check("1.13 POST con Basic Auth válido pero sin CSRF retorna 403", r_auth_no_csrf_req.status_code == 403)
+
+            # Con Basic Auth válido + CSRF erróneo -> 403
+            r_auth_bad_csrf_req = client.post("/api/catalog/tours", json=test_payload, headers={"Authorization": auth_header, "X-Catalog-CSRF": "token_falso"})
+            check("1.14 POST con Basic Auth válido + CSRF falso retorna 403", r_auth_bad_csrf_req.status_code == 403)
+
+            # Con ambos válidos -> 200 OK
+            r_auth_csrf_ok = client.post("/api/catalog/tours", json=test_payload, headers={"Authorization": auth_header, "X-Catalog-CSRF": valid_csrf})
+            check("1.15 POST con Basic Auth válido y CSRF válido responde 200 OK", r_auth_csrf_ok.status_code == 200 and r_auth_csrf_ok.json().get("ok"))
+
+            # DELETE con Basic Auth y CSRF -> 200 OK
+            r_del_both_ok = client.delete(f"/api/catalog/tours/{test_csrf_eid}", headers={"Authorization": auth_header, "X-Catalog-CSRF": valid_csrf})
+            check("1.16 DELETE con Basic Auth válido y CSRF válido responde 200 OK", r_del_both_ok.status_code == 200 and r_del_both_ok.json().get("ok"))
+
+            # GET /api/catalog/csrf-token sin Basic Auth -> 401
+            r_token_unauth = client.get("/api/catalog/csrf-token")
+            check("1.17 GET /api/catalog/csrf-token sin Basic Auth retorna 401", r_token_unauth.status_code == 401)
+
+            # GET /api/catalog/csrf-token con Basic Auth -> 200 OK
+            r_token_auth = client.get("/api/catalog/csrf-token", headers={"Authorization": auth_header})
+            check("1.18 GET /api/catalog/csrf-token con Basic Auth responde 200 OK", r_token_auth.status_code == 200 and r_token_auth.json().get("ok"))
+        finally:
+            if old_u is not None: os.environ['ADMIN_USER'] = old_u
+            else: os.environ.pop('ADMIN_USER', None)
+            if old_p is not None: os.environ['ADMIN_PASSWORD'] = old_p
+            else: os.environ.pop('ADMIN_PASSWORD', None)
+
     finally:
         try:
             catalog_service.delete_tour(test_csrf_eid)
@@ -303,15 +350,18 @@ def run_all_regressions():
     print("\n--- 5. FOTOS RECHAZADAS Y DESPACHO SIMULADO ---")
     # 5.1 Detección con negaciones y variantes de acentos
     photo_negatives = [
+        "No quiero fotografías",
+        "No quiero imágenes",
+        "Por favor sin fotos",
+        "Don't send pictures",
+        "I do not want photos",
+        "No photos please",
         "No quiero fotografías del City Tour",
         "No quiero images del City Tour",
         "no quiero fotografias del city tour",
         "no quiero imagenes del city tour",
-        "Por favor sin fotos",
         "Sin imágenes del tour",
         "Don't send pictures of City Tour",
-        "I do not want photos",
-        "No photos please",
         "without pictures",
     ]
     for phrase in photo_negatives:
@@ -319,11 +369,13 @@ def run_all_regressions():
 
     # 5.2 Detección afirmativa
     photo_positives = [
+        "Quiero fotografías",
+        "Mándame fotos",
+        "Can you show me pictures?",
+        "Send me photographs please",
         "Quiero fotografías del City Tour",
         "Quiero images del City Tour",
         "Mándame fotos de Machu Picchu",
-        "Can you show me pictures?",
-        "Send me photographs please",
     ]
     for phrase in photo_positives:
         check(f"5.2 Detección afirmativa: '{phrase}' es True", visual_engine.is_photo_requested(phrase))
