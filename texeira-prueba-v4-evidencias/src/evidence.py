@@ -87,7 +87,11 @@ def get_facts(entity_id: str, field: str = None, include_dynamic: bool = True) -
         try:
             from catalog_service import get_tour_by_id
             tour = get_tour_by_id(entity_id)
-            if tour and tour.get("is_active", 1):
+            if tour is not None:
+                if not tour.get("is_active", 1):
+                    # Tour desactivado por la agencia: ningún hecho se ofrece como activo
+                    return []
+
                 if tour.get("official_price"):
                     curr = tour.get("currency", "USD")
                     price_val = f"{tour['official_price']} {curr}"
@@ -104,19 +108,22 @@ def get_facts(entity_id: str, field: str = None, include_dynamic: bool = True) -
                     })
                     result = [f for f in result if f.field != 'official_price'] + [price_fact]
 
-                if tour.get("schedule") and not any(f.field == 'schedule' for f in result):
-                    sched_fact = Fact({
-                        'fact_id': f"dynamic-sched-{entity_id}",
-                        'entity_id': entity_id,
-                        'field': 'schedule',
-                        'item': None,
-                        'value': tour["schedule"],
-                        'source_id': 'ADMIN_VIGENTE',
-                        'source_page': None,
-                        'evidence_status': 'confirmed',
-                        'note': 'Horario oficial vigente configurado en catálogo dinámico.'
-                    })
-                    result.append(sched_fact)
+                if tour.get("schedule"):
+                    sched_val = str(tour["schedule"]).strip()
+                    if sched_val:
+                        sched_fact = Fact({
+                            'fact_id': f"dynamic-sched-{entity_id}",
+                            'entity_id': entity_id,
+                            'field': 'schedule',
+                            'item': None,
+                            'value': sched_val,
+                            'source_id': 'ADMIN_VIGENTE',
+                            'source_page': None,
+                            'evidence_status': 'confirmed',
+                            'note': 'Horario oficial vigente configurado en catálogo dinámico.'
+                        })
+                        # El horario actualizado por la agencia sustituye coherentemente datos históricos
+                        result = [f for f in result if f.field != 'schedule'] + [sched_fact]
 
                 if not any(f.field == 'confirmed_product' for f in result):
                     prod_fact = Fact({
@@ -147,7 +154,14 @@ def detect_conflicts(entity_id: str, field: str = None) -> List[dict]:
     if not facts:
         return []
 
-    existing_conflicts = [c for c in _load_conflicts() if c['entity_id'] == entity_id and c.get('needs_confirmation', True)]
+    # Hechos establecidos en ADMIN_VIGENTE representan la verdad oficial vigente y resuelven conflictos históricos
+    admin_vigente_fields = {f.field for f in facts if f.source_id == 'ADMIN_VIGENTE'}
+    existing_conflicts = [
+        c for c in _load_conflicts()
+        if c['entity_id'] == entity_id
+        and c.get('needs_confirmation', True)
+        and c.get('field') not in admin_vigente_fields
+    ]
     if field:
         existing_conflicts = [c for c in existing_conflicts if c['field'] == field]
 
@@ -249,36 +263,38 @@ def _detect_set_conflict(entity_id: str, field: str) -> Optional[dict]:
 
 
 def is_product_confirmed(entity_id: str) -> bool:
-    facts = get_facts(entity_id, 'confirmed_product')
-    if any(f.value is True for f in facts):
-        return True
     try:
         from catalog_service import get_tour_by_id
         tour = get_tour_by_id(entity_id)
-        return bool(tour and tour.get("is_active", 1))
+        if tour is not None:
+            # Si el tour existe en catalog_service, su estado activo es la única fuente de la verdad
+            return bool(tour.get("is_active", 1))
     except Exception:
-        return False
+        pass
+    facts = [f for f in _load_facts() if f.evidence_status == 'confirmed' and f.entity_id == entity_id and f.field == 'confirmed_product']
+    return any(f.value is True for f in facts)
 
 
 def get_confirmed_products() -> List[dict]:
-    catalog = _load_catalog()
-    canonical = list(t for t in catalog['tours'] if t.get('confirmed_product'))
     try:
         from catalog_service import get_all_tours
-        dynamic_tours = get_all_tours(active_only=True)
-        canonical_ids = {t.get("entity_id") for t in canonical}
-        for dt in dynamic_tours:
-            if dt["entity_id"] not in canonical_ids:
-                canonical.append({
+        active_dynamic = get_all_tours(active_only=True)
+        all_dynamic = get_all_tours(active_only=False)
+        if all_dynamic:
+            return [
+                {
                     "entity_id": dt["entity_id"],
                     "name": dt["name"],
                     "confirmed_product": True,
                     "schedule_status": "confirmed" if dt.get("schedule") else "unknown",
                     "schedule": dt.get("schedule", ""),
-                })
+                }
+                for dt in active_dynamic
+            ]
     except Exception:
         pass
-    return canonical
+    catalog = _load_catalog()
+    return list(t for t in catalog['tours'] if t.get('confirmed_product'))
 
 
 def build_context_for_entity(entity_id: str, include_dynamic: bool = True) -> str:

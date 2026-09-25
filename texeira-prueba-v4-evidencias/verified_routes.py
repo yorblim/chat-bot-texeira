@@ -65,27 +65,42 @@ def install(ns, support, original):
     catalog = support.CATALOG
 
     def get_current_tours():
-        res = {t['entity_id']: dict(t) for t in catalog['tours']}
         try:
             from catalog_service import get_all_tours
-            dynamic = get_all_tours(active_only=True)
-            for dt in dynamic:
-                res[dt['entity_id']] = {
-                    'entity_id': dt['entity_id'],
-                    'name': dt['name'],
-                    'confirmed_product': True,
-                    'official_price': dt.get('official_price', ''),
-                    'currency': dt.get('currency', 'USD'),
-                    'schedule': dt.get('schedule', ''),
-                    'duration': dt.get('duration', ''),
-                    'includes': dt.get('includes', ''),
-                    'excludes': dt.get('excludes', ''),
-                    'photo_filename': dt.get('photo_filename', ''),
-                    'brochure_filename': dt.get('brochure_filename', ''),
-                }
+            dynamic_active = get_all_tours(active_only=True)
+            dynamic_all = get_all_tours(active_only=False)
+            if dynamic_all:
+                res = {}
+                for dt in dynamic_active:
+                    res[dt['entity_id']] = {
+                        'entity_id': dt['entity_id'],
+                        'name': dt['name'],
+                        'confirmed_product': True,
+                        'official_price': dt.get('official_price', ''),
+                        'currency': dt.get('currency', 'USD'),
+                        'schedule': dt.get('schedule', ''),
+                        'duration': dt.get('duration', ''),
+                        'includes': dt.get('includes', ''),
+                        'excludes': dt.get('excludes', ''),
+                        'photo_filename': dt.get('photo_filename', ''),
+                        'brochure_filename': dt.get('brochure_filename', ''),
+                    }
+                return res
         except Exception:
             pass
-        return res
+        return {t['entity_id']: dict(t) for t in catalog['tours']}
+
+    def is_deactivated_tour(eid: str) -> bool:
+        if not eid:
+            return False
+        try:
+            from catalog_service import get_tour_by_id
+            t = get_tour_by_id(eid)
+            if t is not None:
+                return not bool(t.get("is_active", 1))
+        except Exception:
+            pass
+        return False
 
     tours = get_current_tours()
     aliases = {eid:[support.normalize(t['name'])] for eid,t in tours.items()}
@@ -304,6 +319,20 @@ def install(ns, support, original):
                         eid_comercial = entity(support.normalize(h['content']))
                         if eid_comercial: break
             if eid_comercial:
+                if is_deactivated_tour(eid_comercial) or eid_comercial not in active_tours:
+                    tour_info = None
+                    try:
+                        import catalog_service
+                        tour_info = catalog_service.get_tour_by_id(eid_comercial)
+                    except Exception:
+                        pass
+                    name_deact = tour_info.get('name', eid_comercial) if tour_info else eid_comercial
+                    if en:
+                        msg = f"Currently, *{name_deact}* is not available in our active catalog.\n\nWrite 👉 *advisor* to check alternative options 😊"
+                    else:
+                        msg = f"Actualmente *{name_deact}* no se encuentra disponible en nuestro catálogo activo. 📋\n\nEscribe 👉 *asesor* si deseas consultar opciones alternativas 😊"
+                    return finish(msg, 'evidence_inactive_tour', pending=True, entity_id=eid_comercial)
+
                 tour_obj_com = active_tours.get(eid_comercial, {})
                 name_com = tour_obj_com.get('name', eid_comercial)
                 schedule_com = str(tour_obj_com.get('schedule') or '').strip()
@@ -349,6 +378,17 @@ def install(ns, support, original):
         from src.visual.visual_engine import is_photo_requested, is_brochure_requested, get_tour_image_data, get_tour_brochure_data
 
         if is_photo_requested(question):
+            if eid and (is_deactivated_tour(eid) or eid not in active_tours):
+                tour_info = None
+                try:
+                    import catalog_service
+                    tour_info = catalog_service.get_tour_by_id(eid)
+                except Exception:
+                    pass
+                tour_name = tour_info.get('name', eid) if tour_info else eid
+                msg = f"Currently, *{tour_name}* is not available in our active catalog, so photos are not available online.\n\nWrite 👉 *advisor* for assistance 😊" if en else f"Actualmente *{tour_name}* no se encuentra disponible en nuestro catálogo activo. 📋\n\nEscribe 👉 *asesor* y te brindamos más opciones 😊"
+                return finish(msg, 'evidence_inactive_tour', pending=True, sources=[], entity_id=eid)
+
             img_data = get_tour_image_data(question, user_msg=question, entity_id=eid or "")
             tour_obj = active_tours.get(eid) if eid else None
             tour_name = tour_obj['name'] if tour_obj else None
@@ -361,6 +401,17 @@ def install(ns, support, original):
                 return finish(msg, 'evidence_photo', sources=['ASSET_OFICIAL'], entity_id=eid)
 
         if is_brochure_requested(question):
+            if eid and (is_deactivated_tour(eid) or eid not in active_tours):
+                tour_info = None
+                try:
+                    import catalog_service
+                    tour_info = catalog_service.get_tour_by_id(eid)
+                except Exception:
+                    pass
+                tour_name = tour_info.get('name', eid) if tour_info else eid
+                msg = f"Currently, *{tour_name}* is not available in our active catalog, so no brochure is available.\n\nWrite 👉 *advisor* for assistance 😊" if en else f"Actualmente *{tour_name}* no se encuentra disponible en nuestro catálogo activo. 📋\n\nEscribe 👉 *asesor* y te brindamos más opciones 😊"
+                return finish(msg, 'evidence_inactive_tour', pending=True, sources=[], entity_id=eid)
+
             doc_data = get_tour_brochure_data(question, user_msg=question, entity_id=eid or "")
             tour_obj = active_tours.get(eid) if eid else None
             tour_name = tour_obj['name'] if tour_obj else None
@@ -374,6 +425,21 @@ def install(ns, support, original):
                 else:
                     msg = "Which of our tours would you like to receive the PDF brochure or itinerary for?" if en else "¿De cuál de nuestros tours te gustaría recibir el folleto o itinerario en PDF?"
                 return finish(msg, 'evidence_brochure', sources=['CATALOGO_OFICIAL'], entity_id=eid)
+
+        # Consultas directas sobre un tour desactivado: no ofrecer como activo
+        if eid and (is_deactivated_tour(eid) or eid not in active_tours):
+            tour_info = None
+            try:
+                import catalog_service
+                tour_info = catalog_service.get_tour_by_id(eid)
+            except Exception:
+                pass
+            tour_name = tour_info.get('name', eid) if tour_info else eid
+            if en:
+                msg = f"Currently, *{tour_name}* is not available in our active catalog.\n\nWrite 👉 *advisor* if you would like to inquire about special dates or alternative tours 😊"
+            else:
+                msg = f"Actualmente *{tour_name}* no se encuentra disponible en nuestro catálogo activo. 📋\n\nEscribe 👉 *asesor* si deseas consultar fechas especiales o tours alternativos 😊"
+            return finish(msg, 'evidence_inactive_tour', pending=True, sources=[], entity_id=eid)
 
         fld=field(q)
         if eid == 'machu-picchu-tren' and re.search(r'dormir|pernoct|alojamiento|overnight|sleep|accommodation', q):

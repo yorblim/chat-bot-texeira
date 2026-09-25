@@ -11,6 +11,7 @@ import os
 import json
 import time
 import base64
+import hashlib
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
@@ -26,9 +27,10 @@ BROCHURES_DIR = ROOT_DIR / "data" / "brochures"
 IMAGES_DIR.mkdir(parents=True, exist_ok=True)
 BROCHURES_DIR.mkdir(parents=True, exist_ok=True)
 
-# Caché en memoria para respuesta rápida
+# Caché en memoria para respuesta rápida con sincronización de versión
 _CATALOG_CACHE: Optional[Dict[str, Dict[str, Any]]] = None
 _CACHE_TIMESTAMP: float = 0.0
+_CACHE_LAST_DB_UPDATE: str = ""
 
 SCHEMA_SQLITE = """
 CREATE TABLE IF NOT EXISTS catalog_tours (
@@ -133,7 +135,9 @@ def _seed_from_json(conn) -> None:
             aliases = INITIAL_CANONICAL_ALIASES.get(eid, [name.lower()])
             price = str(t.get("official_price", "") or "")
             curr = str(t.get("currency", "USD"))
-            sched = str(t.get("schedule", "") or "")
+            # Los tours canónicos iniciales no tienen sobreescritura de horario administrativo;
+            # se gestionan mediante hechos históricos hasta que la agencia los actualice dinámicamente.
+            sched = ""
             dur = str(t.get("duration", "") or "")
             inc = str(t.get("includes_note", "") or "")
             exc = str(t.get("excludes_note", "") or "")
@@ -166,20 +170,38 @@ def _seed_from_json(conn) -> None:
 
 def invalidate_catalog_cache() -> None:
     """Invalida la caché en memoria para forzar recarga."""
-    global _CATALOG_CACHE, _CACHE_TIMESTAMP
+    global _CATALOG_CACHE, _CACHE_TIMESTAMP, _CACHE_LAST_DB_UPDATE
     _CATALOG_CACHE = None
     _CACHE_TIMESTAMP = 0.0
+    _CACHE_LAST_DB_UPDATE = ""
+
+
+def _get_db_latest_update() -> str:
+    """Consulta la última fecha de actualización registrada en la base de datos."""
+    try:
+        with get_db_session() as conn:
+            cur = conn.execute("SELECT MAX(updated_at) FROM catalog_tours")
+            row = cur.fetchone()
+            if row and row[0]:
+                return str(row[0])
+    except Exception:
+        pass
+    return ""
 
 
 def get_all_tours(active_only: bool = True) -> List[Dict[str, Any]]:
-    """Retorna la lista de tours desde la base de datos con caché ligera."""
-    global _CATALOG_CACHE, _CACHE_TIMESTAMP
+    """Retorna la lista de tours desde la base de datos con invalidación verificable."""
+    global _CATALOG_CACHE, _CACHE_TIMESTAMP, _CACHE_LAST_DB_UPDATE
     now = time.time()
+
+    # Si tenemos caché en memoria, verificar si la versión en DB cambió
+    db_update = _get_db_latest_update()
     if _CATALOG_CACHE is not None and (now - _CACHE_TIMESTAMP) < 60.0:
-        tours = list(_CATALOG_CACHE.values())
-        if active_only:
-            return [t for t in tours if t.get("is_active", 1)]
-        return tours
+        if not db_update or db_update == _CACHE_LAST_DB_UPDATE:
+            tours = list(_CATALOG_CACHE.values())
+            if active_only:
+                return [t for t in tours if t.get("is_active", 1)]
+            return tours
 
     try:
         init_catalog_db()
@@ -224,6 +246,7 @@ def get_all_tours(active_only: bool = True) -> List[Dict[str, Any]]:
 
         _CATALOG_CACHE = cache
         _CACHE_TIMESTAMP = now
+        _CACHE_LAST_DB_UPDATE = db_update or max((item["updated_at"] for item in cache.values()), default="")
 
         tours = list(cache.values())
         if active_only:
@@ -325,6 +348,9 @@ def upsert_tour(data: Dict[str, Any]) -> Tuple[bool, str]:
         return False, str(e)
 
 
+save_tour = upsert_tour
+
+
 def save_asset(
     entity_id: str,
     asset_type: str,
@@ -333,6 +359,8 @@ def save_asset(
 ) -> Tuple[bool, str]:
     """
     Guarda una imagen o folleto tanto en disco como en PostgreSQL/SQLite (BLOB/BYTEA).
+    Aplica versionado verificable por hash de contenido para prevenir que réplicas
+    o instancias independientes sirvan copias multimedia obsoletas.
     Retorna (éxito, nombre_del_archivo_guardado).
     """
     if asset_type not in ("photo", "brochure"):
@@ -346,18 +374,32 @@ def save_asset(
     if asset_type == "brochure" and ext != ".pdf":
         return False, "El folleto debe ser un archivo PDF."
 
-    safe_filename = f"{entity_id}_{asset_type}{ext}"
+    # Versionado determinista e inmutable basado en el hash del contenido
+    content_hash = hashlib.sha256(content_bytes).hexdigest()[:10]
+    safe_filename = f"{entity_id}_{asset_type}_{content_hash}{ext}"
 
     # 1. Guardar en disco para acceso estático inmediato
     target_dir = IMAGES_DIR if asset_type == "photo" else BROCHURES_DIR
     target_path = target_dir / safe_filename
+
+    # Eliminar versiones locales obsoletas del mismo tour y tipo de asset
+    try:
+        for old_file in target_dir.glob(f"{entity_id}_{asset_type}_*{ext}"):
+            if old_file.name != safe_filename:
+                try:
+                    old_file.unlink()
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
     try:
         with open(target_path, "wb") as f:
             f.write(content_bytes)
     except Exception as e:
         print(f"[CATALOG ASSET ERROR] No se pudo guardar en disco: {e}")
 
-    # 2. Guardar en Base de Datos para durabilidad permanente en Cloud Run
+    # 2. Guardar en Base de Datos para durabilidad permanente en Cloud Run y sincronización multi-instancia
     now = datetime.utcnow().isoformat()
     try:
         init_catalog_db()
@@ -388,11 +430,14 @@ def save_asset(
         return False, str(e)
 
 
+save_tour_asset = save_asset
+
+
 def get_asset_bytes(filename: str, asset_type: str) -> Optional[Tuple[bytes, str]]:
     """
     Recupera los bytes de una foto o folleto.
-    Primero busca en disco; si no existe (ej. nueva réplica en Cloud Run),
-    lo descarga de la base de datos y lo almacena en disco.
+    Primero busca en disco; si no existe (ej. nueva réplica en Cloud Run o actualización
+    desde otra instancia), lo descarga de la base de datos y lo almacena en disco.
     """
     target_dir = IMAGES_DIR if asset_type == "photo" else BROCHURES_DIR
     local_path = target_dir / filename
@@ -407,16 +452,16 @@ def get_asset_bytes(filename: str, asset_type: str) -> Optional[Tuple[bytes, str
     ext = os.path.splitext(filename)[1].lower()
     content_type = mime_types.get(ext, "application/octet-stream")
 
+    col_name = "photo_filename" if asset_type == "photo" else "brochure_filename"
+    col_data = "photo_data" if asset_type == "photo" else "brochure_data"
+
     if local_path.exists():
         try:
             return local_path.read_bytes(), content_type
         except Exception:
             pass
 
-    # Si no está en disco, consultar en la Base de Datos
-    col_name = "photo_filename" if asset_type == "photo" else "brochure_filename"
-    col_data = "photo_data" if asset_type == "photo" else "brochure_data"
-
+    # Si no está en disco (ej. otra réplica), consultar en la Base de Datos
     try:
         with get_db_session() as conn:
             cur = conn.execute(
@@ -428,7 +473,7 @@ def get_asset_bytes(filename: str, asset_type: str) -> Optional[Tuple[bytes, str
                 data = row[0]
                 if isinstance(data, memoryview):
                     data = data.tobytes()
-                # Cachear en disco para próximas consultas
+                # Cachear en disco para próximas consultas de esta réplica
                 try:
                     local_path.write_bytes(data)
                 except Exception:
@@ -465,23 +510,16 @@ def delete_tour(entity_id: str) -> Tuple[bool, str]:
                 invalidate_catalog_cache()
                 return True, "Tour canónico desactivado."
             else:
-                row_files = conn.execute(
-                    "SELECT photo_filename, brochure_filename FROM catalog_tours WHERE entity_id = ?",
-                    (entity_id,)
-                ).fetchone()
-                if row_files:
-                    p_file = row_files["photo_filename"] if hasattr(row_files, "__getitem__") else row_files[0]
-                    b_file = row_files["brochure_filename"] if hasattr(row_files, "__getitem__") else row_files[1]
-                    if p_file and (IMAGES_DIR / p_file).exists():
-                        try:
-                            (IMAGES_DIR / p_file).unlink()
-                        except Exception:
-                            pass
-                    if b_file and (BROCHURES_DIR / b_file).exists():
-                        try:
-                            (BROCHURES_DIR / b_file).unlink()
-                        except Exception:
-                            pass
+                for p in IMAGES_DIR.glob(f"{entity_id}_*"):
+                    try:
+                        p.unlink()
+                    except Exception:
+                        pass
+                for b in BROCHURES_DIR.glob(f"{entity_id}_*"):
+                    try:
+                        b.unlink()
+                    except Exception:
+                        pass
                 conn.execute("DELETE FROM catalog_tours WHERE entity_id = ?", (entity_id,))
                 invalidate_catalog_cache()
                 return True, "Tour personalizado eliminado."
@@ -491,12 +529,17 @@ def delete_tour(entity_id: str) -> Tuple[bool, str]:
 
 def get_active_entity_keywords() -> Dict[str, List[str]]:
     """
-    Retorna un diccionario de {entity_id: [keywords]} con todos los tours activos.
+    Retorna un diccionario de {entity_id: [keywords]} ÚNICAMENTE con los tours activos.
+    Si un tour canónico o dinámico está desactivado, sus palabras clave NO se devuelven.
     Se utiliza en detect_entity_from_question() para soporte RAG en vivo.
     """
-    tours = get_all_tours(active_only=True)
-    keywords_map = dict(INITIAL_CANONICAL_ALIASES)
-    for t in tours:
+    active_tours = get_all_tours(active_only=True)
+    active_eids = {t["entity_id"] for t in active_tours}
+    keywords_map = {}
+    for eid, initial_kw in INITIAL_CANONICAL_ALIASES.items():
+        if eid in active_eids:
+            keywords_map[eid] = list(initial_kw)
+    for t in active_tours:
         eid = t["entity_id"]
         aliases = t.get("aliases", [])
         if aliases:
