@@ -1,0 +1,162 @@
+{
+  "metadata": {
+    "fecha_ejecucion": "2026-09-25T23:32:40.195528",
+    "ambiente": "simulacion_local_sin_tokens_api",
+    "canal": "whatsapp",
+    "modelo_mock": "MockTourLLM (cero costo)",
+    "archivo_salida": "test_calidad_whatsapp_20260925.json"
+  },
+  "resumen_ejecutivo": {
+    "total_preguntas_evaluadas": 13,
+    "total_escenarios": 5,
+    "latencia_promedio_ms": 1611.61,
+    "tasa_fallback_pct": 7.69,
+    "solicitudes_asesor_detectadas": 2,
+    "respuestas_autonomas": 10
+  },
+  "resultados_detallados": [
+    {
+      "escenario_id": 1,
+      "categoria": "Preguntas con errores ortográficos típicos",
+      "pregunta_enviada": "cuanto cuesta machu pichu",
+      "respuesta_recibida": "El tour a Machu Picchu Clásico tiene un precio referencial de $120 USD por persona. Incluye transporte en tren turístico, bus de subida y bajada a la ciudadela, boleto de ingreso y guiado profesional.",
+      "hubo_fallback": false,
+      "latencia_ms": 19788.26,
+      "ruta_asignada": "rag_llm",
+      "solicitud_asesor": false,
+      "resuelto_autonomamente": true
+    },
+    {
+      "escenario_id": 1,
+      "categoria": "Preguntas con errores ortográficos típicos",
+      "pregunta_enviada": "q incluye el tour del valle sagrao",
+      "respuesta_recibida": "El tour al Valle Sagrado de los Incas incluye transporte turístico y guía profesional bilingüe. Visita los sitios arqueológicos de Pisac y Ollantaytambo. No incluye el Boleto Turístico del Cusco (BTC).",
+      "hubo_fallback": false,
+      "latencia_ms": 56.83,
+      "ruta_asignada": "rag_llm",
+      "solicitud_asesor": false,
+      "resuelto_autonomamente": true
+    },
+    {
+      "escenario_id": 1,
+      "categoria": "Preguntas con errores ortográficos típicos",
+      "pregunta_enviada": "a ke hora sale el city tour",
+      "respuesta_recibida": "🕐 *City Tour Cusco*\n• Published schedule: 10:00-14:00 / 13:30-18:30\n\nWrite 👉 *advisor* for bookings or more info 😊",
+      "hubo_fallback": false,
+      "latencia_ms": 620.17,
+      "ruta_asignada": "evidence_schedule",
+      "solicitud_asesor": false,
+      "resuelto_autonomamente": true
+    },
+    {
+      "escenario_id": 1,
+      "categoria": "Preguntas con errores ortográficos típicos",
+      "pregunta_enviada": "kiero ir a la montaña de colores cuanto es",
+      "respuesta_recibida": "El tour a la Montaña de 7 Colores (Vinicunca) tiene un precio de $85 USD por persona. Incluye transporte turístico ida y vuelta, guía profesional, desayuno buffet, almuerzo y equipo de primeros auxilios.",
+      "hubo_fallback": false,
+      "latencia_ms": 62.24,
+      "ruta_asignada": "rag_llm",
+      "solicitud_asesor": false,
+      "resuelto_autonomamente": true
+    },
+    {
+      "escenario_id": 2,
+      "categoria": "Preguntas ambiguas",
+      "pregunta_enviada": "cuanto cuesta",
+      "respuesta_recibida": "En Texeira Travel ofrecemos diversos tours en Cusco: Machu Picchu ($120 USD), Valle Sagrado ($65 USD), Montaña de 7 Colores ($85 USD) y City Tour ($35 USD). ¿Sobre cuál de ellos te gustaría recibir información detallada?",
+      "hubo_fallback": false,
+      "latencia_ms": 48.72,
+      "ruta_asignada": "rag_llm",
+      "solicitud_asesor": false,
+      "resuelto_autonomamente": true
+    },
+    {
+      "escenario_id": 2,
+      "categoria": "Preguntas ambiguas",
+      "pregunta_enviada": "que incluye",
+      "respuesta_recibida": "Nuestros tours incluyen diferentes servicios según el itinerario (transporte, guía oficial, entradas o alimentación). ¿Qué tour en específico deseas consultar?",
+      "hubo_fallback": false,
+      "latencia_ms": 44.94,
+      "ruta_asignada": "rag_llm",
+      "solicitud_asesor": false,
+      "resuelto_autonomamente": true
+    },
+    {
+      "escenario_id": 2,
+      "categoria": "Preguntas ambiguas",
+      "pregunta_enviada": "quiero ir mañana",
+      "respuesta_recibida": "Pagos, reservas y disponibilidad los coordinamos directamente en la agencia. 📅\n\nEscribe 👉 *asesor* y te atendemos ahora 😊",
+      "hubo_fallback": false,
+      "latencia_ms": 23.86,
+      "ruta_asignada": "evidence_unknown",
+      "solicitud_asesor": false,
+      "resuelto_autonomamente": true
+    },
+    {
+      "escenario_id": 3,
+      "categoria": "Preguntas en inglés con errores",
+      "pregunta_enviada": "how much is machu pichu tour",
+      "respuesta_recibida": "The classic Machu Picchu tour starts at $120 USD per person. It includes round-trip tourist train, bus tickets up and down to the citadel, entrance fee, and a certified bilingual guide.",
+      "hubo_fallback": false,
+      "latencia_ms": 52.92,
+      "ruta_asignada": "rag_llm",
+      "solicitud_asesor": false,
+      "resuelto_autonomamente": true
+    },
+    {
+      "escenario_id": 3,
+      "categoria": "Preguntas en inglés con errores",
+      "pregunta_enviada": "wat time does the tour start",
+      "respuesta_recibida": "Our tours have different departure times in Cusco: City Tour departs at 10:00 AM or 1:30 PM, Sacred Valley at 7:00 AM, and Machu Picchu depends on your selected train schedule. Which tour would you like to check?",
+      "hubo_fallback": false,
+      "latencia_ms": 55.4,
+      "ruta_asignada": "rag_llm",
+      "solicitud_asesor": false,
+      "resuelto_autonomamente": true
+    },
+    {
+      "escenario_id": 4,
+      "categoria": "Preguntas fuera del catálogo",
+      "pregunta_enviada": "tienen tours a Lima",
+      "respuesta_recibida": "🗺️ *Nuestros tours confirmados con Texeira Travel:*\n\n🏔️ *Machu Picchu y Treks:*\n• Machu Picchu en Tren\n• Machu Picchu by Car\n• Camino Inka\n• Salkantay Trek\n• Inka Jungle to Machu Picchu\n• Choquequirao Trek\n\n🌄 *Montañas y Clásicos (Cusco):*\n• Montaña de 7 Colores\n• Laguna Humantay\n• City Tour Cusco\n• Valle Sagrado\n• Maras - Moray\n• Waqra Pukara\n• Valle Sur\n• Tour Cuatrimoto / Maras-Moray\n• Puente de Q’eswachaca\n• Tour Místico\n\n🚌 *Rutas Regionales:*\n• Ruta del Sol Cusco-Puno\n• Islas del Lago Titicaca\n• Cañón del Colca / Baños Termales de Chacapi\n\n¿Cuál de ellos te gustaría conocer? Pregúntame por fotos, precios o detalles 😊\nO escribe 👉 *asesor* para reservar.",
+      "hubo_fallback": false,
+      "latencia_ms": 43.25,
+      "ruta_asignada": "evidence_listing",
+      "solicitud_asesor": false,
+      "resuelto_autonomamente": true
+    },
+    {
+      "escenario_id": 4,
+      "categoria": "Preguntas fuera del catálogo",
+      "pregunta_enviada": "hacen tours al lago titicaca desde Lima",
+      "respuesta_recibida": "No dispongo de información sobre tours a ese destino en los materiales oficiales de Texeira Travel. Por favor, contacta a un asesor humano de la agencia para verificar si disponen de opciones personalizadas.\n\n📞 *Contacto Oficial — Texeira Travel Tour:*\n• 📱 WhatsApp / Teléfono: +51 953 767 860 / +51 984 679 715\n• 📍 Oficina: Calle Carmen Quicllu N° 250, Cusco 🇵🇪",
+      "hubo_fallback": true,
+      "latencia_ms": 71.39,
+      "ruta_asignada": "rag_llm",
+      "solicitud_asesor": false,
+      "resuelto_autonomamente": false
+    },
+    {
+      "escenario_id": 5,
+      "categoria": "Solicitudes de asesor",
+      "pregunta_enviada": "quiero hablar con alguien",
+      "respuesta_recibida": "Tu solicitud bc27c2b5d1b2 está registrada y pendiente de atención humana. Aún no ha sido atendida. Puedes seguir haciendo consultas al bot.",
+      "hubo_fallback": false,
+      "latencia_ms": 35.35,
+      "ruta_asignada": "human_request",
+      "solicitud_asesor": true,
+      "resuelto_autonomamente": false
+    },
+    {
+      "escenario_id": 5,
+      "categoria": "Solicitudes de asesor",
+      "pregunta_enviada": "necesito un asesor",
+      "respuesta_recibida": "Tu solicitud bf31321e29e7 está registrada y pendiente de atención humana. Aún no ha sido atendida. Puedes seguir haciendo consultas al bot.",
+      "hubo_fallback": false,
+      "latencia_ms": 47.55,
+      "ruta_asignada": "human_request",
+      "solicitud_asesor": true,
+      "resuelto_autonomamente": false
+    }
+  ]
+}
