@@ -121,8 +121,8 @@ def install(ns):
     def language(text):
         words = set(re.findall(r'\b\w+\b', normalize(text)))
         markers = {
-            'es': set('que cual cuanto cuesta incluye incluidas entradas puedo cancelar manana gracias hola precio precios'.split()),
-            'en': set('what which how does the include includes included tickets can cancel tomorrow thanks price'.split()),
+            'es': set('que cual cuanto cuesta incluye incluidas entradas puedo cancelar manana gracias hola precio precios como donde cuando salir salida horario hora boleto boletos llegar quiero necesito visita ruinas arqueologico arqueologica caminata trekking montana colores sagrao waqrapukara waqra pukara queswachaca puente mistico'.split()),
+            'en': set('what which how does the include includes included tickets can cancel tomorrow thanks price where when want need is are do offer available'.split()),
             'pt': set('quais quanto custa preco passeios voce quero ola obrigado'.split()),
             'fr': set('quels quelle combien bonjour prix je avec merci'.split()),
         }
@@ -130,7 +130,7 @@ def install(ns):
         best = max(scores, key=scores.get)
         if scores[best]:
             return best
-        if words <= {'tour', 'tours', 'machu', 'picchu', 'humantay', 'salkantay', 'valle', 'sagrado'}:
+        if words <= {'tour', 'tours', 'machu', 'picchu', 'pichu', 'humantay', 'salkantay', 'valle', 'sagrado', 'wayna', 'waynapicchu', 'huayna', 'huaynapicchu', 'colca', 'vinicunca', 'choquequirao', 'waqrapukara', 'waqra', 'pukara', 'queswachaca', 'qeswachaca', 'arqueologico', 'arqueologica', 'mistico', 'maras', 'moray', 'montana'}:
             return 'es'
         try:
             return ns['LANG_MAP'].get(ns['detect'](text), 'es')
