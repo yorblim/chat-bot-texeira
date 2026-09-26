@@ -473,12 +473,14 @@ def detect_language(text: str) -> str:
         "ya", "todavia", "todavía", "puedo", "puede", "hay",
         "excelente", "muy", "bien", "mal", "rapido", "rápido",
         "cuanto", "informacion", "información", "detalles",
+        "arqueologico", "arqueológico", "waqrapukara", "waqra", "pukara",
+        "choquequirao", "vinicunca", "wayna", "huayna", "colca", "visita", "caminata",
     ]
     en_words = [
         "what", "which", "how", "hello", "hi", "price", "tour", "tours",
-        "available", "offer", "includes", "do you", "can you",
-        "i want", "i need", "looking for", "tell me",
-        "how much", "what is", "where", "when",
+        "available", "offer", "includes", "included", "do you", "can you",
+        "i want", "i need", "looking for", "tell me", "tickets", "ticket", "book",
+        "how much", "what is", "where", "when", "does",
     ]
     pt_words = [
         "quais", "quanto", "custa", "preco", "preço", "passeios", "passeio",
@@ -518,6 +520,105 @@ def detect_language(text: str) -> str:
         return LANG_MAP.get(detected, "es")
     except LangDetectException:
         return "es"
+
+
+# ============================================================
+# NORMALIZACIÓN DE CONSULTAS PARA EL RETRIEVER
+# ============================================================
+
+def normalize_query(text: str, lang: Optional[str] = None) -> str:
+    """
+    Normaliza la consulta antes de pasarla al retriever:
+    1. Corrige tildes faltantes y errores en palabras clave de tours
+       (machu pichu -> machu picchu, montaña colores -> montaña de colores).
+    2. Normaliza variantes comunes:
+       (wayna picchu, waynapicchu -> wayna picchu; salkantay, salkantai -> salkantay).
+    3. Elimina caracteres especiales innecesarios.
+    4. NO modifica preguntas en inglés (las retorna intactas).
+    """
+    if not text:
+        return ""
+
+    if lang is None:
+        try:
+            lang = detect_language(text)
+        except Exception:
+            lang = "es"
+
+    # Regla 4: NO modificar preguntas en inglés
+    if lang == "en":
+        return text
+
+    # Regla 3: Eliminar caracteres especiales innecesarios (conservando letras con acentos, ñ, números y espacios)
+    cleaned = re.sub(r"[¿?¡!*~_#$%^&@+=<>[\]{}|\\/\"`()]+", " ", text)
+    cleaned = re.sub(r"[,;.:]+(?=\s|$)", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+
+    # Reglas 1 y 2: Corrección de tildes faltantes y variantes comunes de tours
+    replacements = [
+        # Montaña de Colores / 7 Colores / Vinicunca
+        (r"\bmonta[nñ]a\s+de\s+(?:7|siete)\s+colores\b", "montaña de 7 colores"),
+        (r"\bmonta[nñ]a\s+(?:7|siete)\s+colores\b", "montaña de 7 colores"),
+        (r"\bmonta[nñ]a\s+colores\b", "montaña de colores"),
+        (r"\bmontana\s+de\s+colores\b", "montaña de colores"),
+        (r"\bmontana\b", "montaña"),
+
+        # Wayna Picchu / Huayna Picchu
+        (r"\b(?:wayna|huayna)\s*picchu\b", "wayna picchu"),
+        (r"\b(?:wayna|huayna)\s*pichu\b", "wayna picchu"),
+        (r"\b(?:waynapicchu|huaynapicchu|waynapichu|huaynapichu)\b", "wayna picchu"),
+
+        # Machu Picchu
+        (r"\bmachupicchu\b", "machu picchu"),
+        (r"\bmachupichu\b", "machu picchu"),
+        (r"\bmachu\s+pichu\b", "machu picchu"),
+        (r"\bmacchu\s+picchu\b", "machu picchu"),
+        (r"\bmacchu\s+pichu\b", "machu picchu"),
+
+        # Salkantay
+        (r"\bsalkantai\b", "salkantay"),
+        (r"\bsalcantai\b", "salkantay"),
+        (r"\bsalcantay\b", "salkantay"),
+
+        # Valle Sagrado
+        (r"\bvalle\s+sagrao\b", "valle sagrado"),
+
+        # Humantay
+        (r"\blaguna\s+umantay\b", "laguna humantay"),
+        (r"\bumantay\b", "humantay"),
+
+        # Vinicunca
+        (r"\bwinicunca\b", "vinicunca"),
+        (r"\bwinikunka\b", "vinicunca"),
+        (r"\bvinikunka\b", "vinicunca"),
+
+        # Waqra Pukara
+        (r"\bhuaccra\s*pukara\b", "waqra pukara"),
+        (r"\bhuaccrapukara\b", "waqra pukara"),
+        (r"\bwaqrapukara\b", "waqra pukara"),
+        (r"\bwaqra\s*pucara\b", "waqra pukara"),
+
+        # Choquequirao
+        (r"\bchoquekirao\b", "choquequirao"),
+        (r"\bchoquequiraw\b", "choquequirao"),
+
+        # Cañón del Colca
+        (r"\bcanon\s+del\s+colca\b", "cañón del colca"),
+        (r"\bcanon\s+colca\b", "cañón del colca"),
+
+        # Tour Místico
+        (r"\btour\s+mistico\b", "tour místico"),
+
+        # Q'eswachaca
+        (r"\bqueswachaca\b", "q'eswachaca"),
+        (r"\bqeswachaca\b", "q'eswachaca"),
+    ]
+
+    result = cleaned
+    for pattern, repl in replacements:
+        result = re.sub(pattern, repl, result, flags=re.IGNORECASE)
+
+    return re.sub(r"\s+", " ", result).strip()
 
 
 # ============================================================
@@ -1244,7 +1345,8 @@ def rag_chain(question: str, user_id: str = "default") -> dict:
         return result
 
     try:
-        docs = retriever.invoke(question)
+        normalized_query_text = normalize_query(question)
+        docs = retriever.invoke(normalized_query_text)
 
         # Formatear contexto con metadata + imágenes incluidas
         context_parts = []
