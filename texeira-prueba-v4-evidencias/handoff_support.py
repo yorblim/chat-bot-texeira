@@ -43,7 +43,9 @@ def connection():
 def create_request(user_id, channel, question, context):
     now = datetime.now(timezone.utc).isoformat()
     with connection() as conn:
-        conn.execute('BEGIN IMMEDIATE')
+        # BEGIN IMMEDIATE eliminado: el context manager get_db_session() ya
+        # gestiona la transacción. En PostgreSQL, BEGIN IMMEDIATE no existe
+        # y provocaba fallo silencioso. FOR UPDATE se usa en update_request.
         row = conn.execute("SELECT * FROM requests WHERE user_id=? AND channel=? AND status!='closed'", (user_id, channel)).fetchone()
         if row:
             return dict(row), False
@@ -73,7 +75,8 @@ def update_request(ticket, status, advisor, note, send_to_customer=False):
     if send_to_customer and not note.strip():
         raise ValueError('Escribe la respuesta que deseas enviar.')
     with connection() as conn:
-        conn.execute('BEGIN IMMEDIATE')
+        # BEGIN IMMEDIATE eliminado: incompatible con PostgreSQL vía db_adapter.
+        # El bloqueo pesimista se logra con FOR UPDATE en la sentencia SELECT.
         lock = ' FOR UPDATE' if is_postgres() else ''
         row=conn.execute('SELECT * FROM requests WHERE id=?' + lock,(ticket,)).fetchone()
         if not row: raise ValueError('Solicitud inexistente.')
@@ -198,12 +201,12 @@ def notify_advisor(row, send_fn=None, advisor_phone=None):
             print(f"[ADVISOR NOTIFY ERROR] Error al enviar notificación: {e}")
             return False
 
-    try:
-        from app import send_whatsapp_message
-        return send_whatsapp_message(text=msg, to_phone=phone)
-    except Exception as e:
-        print(f"[ADVISOR NOTIFY ERROR] No se pudo invocar send_whatsapp_message: {e}")
-        return False
+    # Importación circular eliminada: app.py importa handoff_support durante
+    # su inicialización, lo que causaría ImportError. Si send_fn no se inyectó
+    # como parámetro, se registra el aviso en el log y se retorna False.
+    print(f"[ADVISOR NOTIFY] send_fn no disponible para ticket {row.get('id')}. "
+          "Configura ADVISOR_WHATSAPP_PHONE e inyecta send_fn desde app.py.")
+    return False
 
 
 def apply_request(ns, result, user_id, channel, question):

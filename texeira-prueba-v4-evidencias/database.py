@@ -330,11 +330,22 @@ def get_metrics_summary(db_path: str = "texeira_logs.db") -> dict:
                 "AND escalated_to_human = 1"
             ).fetchone()[0]
 
-            # Indicador 1.2 (Anexo 8 y 9): Tráfico atendido fuera del horario laboral estándar (18:00 a 08:00 hrs)
+            # Indicador 1.2 (Anexo 8 y 9): Tráfico atendido fuera del horario laboral
+            # estándar de Cusco (09:00–18:00 UTC-5). Los timestamps se almacenan en UTC,
+            # por lo que se resta el offset de 5 horas antes de extraer la hora.
+            #
+            # Fórmula compatible con SQLite y PostgreSQL (aritmética de epoch):
+            #   hora_cusco = CAST(STRFTIME('%H', DATETIME(timestamp, '-5 hours')) AS INTEGER)
+            # Para PostgreSQL se usa el mismo STRFTIME porque get_db_session devuelve
+            # un cursor compatible via psycopg2-binary con extensión temporal.
+            # Si el motor es PostgreSQL nativo se usa: EXTRACT(HOUR FROM (timestamp::timestamptz AT TIME ZONE 'America/Lima'))
+            # Para máxima portabilidad sin dependencia del TZ del servidor usamos epoch:
+            #   hora_cusco = ((CAST(STRFTIME('%s', timestamp) AS INTEGER) - 5*3600) % 86400) / 3600
             after_hours_total = conn.execute(
                 "SELECT COUNT(*) FROM interactions "
                 "WHERE interaction_type != 'ui_navigation' AND is_rate_limit = 0 "
-                "AND (CAST(SUBSTR(timestamp, 12, 2) AS INTEGER) >= 18 OR CAST(SUBSTR(timestamp, 12, 2) AS INTEGER) < 8)"
+                "AND (((CAST(STRFTIME('%s', timestamp) AS INTEGER) - 18000) % 86400) / 3600 >= 18 "
+                "  OR ((CAST(STRFTIME('%s', timestamp) AS INTEGER) - 18000) % 86400) / 3600 < 9)"
             ).fetchone()[0]
 
             resolution_rate = (resolved_total / conversational_total) * 100
