@@ -497,6 +497,37 @@ def _adapt_sql_for_postgres(sql: str, params: Optional[Union[tuple, list, dict]]
     if is_interaction_insert:
         clean_sql += " RETURNING id"
 
+    # Traducción de funciones de fecha SQLite para compatibilidad con PostgreSQL
+    if "STRFTIME" in clean_sql.upper():
+        # Caso combinado STRFTIME('%H', DATETIME(col, 'interval'))
+        clean_sql = re.sub(
+            r"STRFTIME\s*\(\s*'%H'\s*,\s*DATETIME\s*\(\s*([a-zA-Z0-9_\.]+)\s*,\s*['\"]([+-]?\d+\s+\w+)['\"]\s*\)\s*\)",
+            r"EXTRACT(HOUR FROM (CAST(\1 AS TIMESTAMP) + INTERVAL '\2'))",
+            clean_sql,
+            flags=re.IGNORECASE,
+        )
+        # STRFTIME('%s', col) -> epoch en segundos
+        clean_sql = re.sub(
+            r"STRFTIME\s*\(\s*'%s'\s*,\s*([a-zA-Z0-9_\.]+)\s*\)",
+            r"EXTRACT(EPOCH FROM CAST(\1 AS TIMESTAMP))",
+            clean_sql,
+            flags=re.IGNORECASE,
+        )
+        # STRFTIME('%H', col) -> hora numérica
+        clean_sql = re.sub(
+            r"STRFTIME\s*\(\s*'%H'\s*,\s*([a-zA-Z0-9_\.]+)\s*\)",
+            r"EXTRACT(HOUR FROM CAST(\1 AS TIMESTAMP))",
+            clean_sql,
+            flags=re.IGNORECASE,
+        )
+        # STRFTIME('%Y-%m-%d', col) -> fecha formato YYYY-MM-DD
+        clean_sql = re.sub(
+            r"STRFTIME\s*\(\s*'%Y-%m-%d'\s*,\s*([a-zA-Z0-9_\.]+)\s*\)",
+            r"TO_CHAR(CAST(\1 AS TIMESTAMP), 'YYYY-MM-DD')",
+            clean_sql,
+            flags=re.IGNORECASE,
+        )
+
     # Convertir parámetros '?' a ':p_0', ':p_1', ...
     bound_params = {}
     if params is not None:

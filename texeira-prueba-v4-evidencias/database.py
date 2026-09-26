@@ -333,20 +333,21 @@ def get_metrics_summary(db_path: str = "texeira_logs.db") -> dict:
             # Indicador 1.2 (Anexo 8 y 9): Tráfico atendido fuera del horario laboral
             # estándar de Cusco (09:00–18:00 UTC-5). Los timestamps se almacenan en UTC,
             # por lo que se resta el offset de 5 horas antes de extraer la hora.
-            #
-            # Fórmula compatible con SQLite y PostgreSQL (aritmética de epoch):
-            #   hora_cusco = CAST(STRFTIME('%H', DATETIME(timestamp, '-5 hours')) AS INTEGER)
-            # Para PostgreSQL se usa el mismo STRFTIME porque get_db_session devuelve
-            # un cursor compatible via psycopg2-binary con extensión temporal.
-            # Si el motor es PostgreSQL nativo se usa: EXTRACT(HOUR FROM (timestamp::timestamptz AT TIME ZONE 'America/Lima'))
-            # Para máxima portabilidad sin dependencia del TZ del servidor usamos epoch:
-            #   hora_cusco = ((CAST(STRFTIME('%s', timestamp) AS INTEGER) - 5*3600) % 86400) / 3600
-            after_hours_total = conn.execute(
-                "SELECT COUNT(*) FROM interactions "
-                "WHERE interaction_type != 'ui_navigation' AND is_rate_limit = 0 "
-                "AND (((CAST(STRFTIME('%s', timestamp) AS INTEGER) - 18000) % 86400) / 3600 >= 18 "
-                "  OR ((CAST(STRFTIME('%s', timestamp) AS INTEGER) - 18000) % 86400) / 3600 < 9)"
-            ).fetchone()[0]
+            # Compatible con SQLite y PostgreSQL sin depender de extensiones no estándar.
+            if is_postgres():
+                after_hours_total = conn.execute(
+                    "SELECT COUNT(*) FROM interactions "
+                    "WHERE interaction_type != 'ui_navigation' AND is_rate_limit = 0 "
+                    "AND (EXTRACT(HOUR FROM (CAST(timestamp AS TIMESTAMP) - INTERVAL '5 hours')) >= 18 "
+                    "  OR EXTRACT(HOUR FROM (CAST(timestamp AS TIMESTAMP) - INTERVAL '5 hours')) < 9)"
+                ).fetchone()[0]
+            else:
+                after_hours_total = conn.execute(
+                    "SELECT COUNT(*) FROM interactions "
+                    "WHERE interaction_type != 'ui_navigation' AND is_rate_limit = 0 "
+                    "AND (CAST(STRFTIME('%H', DATETIME(timestamp, '-5 hours')) AS INTEGER) >= 18 "
+                    "  OR CAST(STRFTIME('%H', DATETIME(timestamp, '-5 hours')) AS INTEGER) < 9)"
+                ).fetchone()[0]
 
             resolution_rate = (resolved_total / conversational_total) * 100
             escalation_rate = (escalated_total / conversational_total) * 100
