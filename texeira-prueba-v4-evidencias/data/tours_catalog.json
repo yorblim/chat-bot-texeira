@@ -59,8 +59,13 @@
       "includes_status": "confirmed",
       "excludes_status": "unknown",
       "route_status": "confirmed",
-      "schedule": "10:00-14:00 / 13:30-18:30",
-      "schedule_source": "F1"
+      "schedule": "",
+      "schedule_source": "F1",
+      "official_price": "",
+      "currency": "USD",
+      "duration": "",
+      "includes_note": "",
+      "excludes_note": ""
     },
     {
       "entity_id": "valle-sagrado",
@@ -161,7 +166,7 @@
     },
     {
       "entity_id": "camino-inka",
-      "name": "Camino Inka",
+      "name": "Camino Inca Clásico 4D/3N",
       "confirmed_product": true,
       "product_sources": [
         "F2"
@@ -169,7 +174,13 @@
       "schedule_status": "unknown",
       "includes_status": "unknown",
       "excludes_status": "unknown",
-      "route_status": "unknown"
+      "route_status": "unknown",
+      "official_price": "790",
+      "currency": "USD",
+      "schedule": "Recojo 4:30 a. m. – 5:00 a. m.",
+      "duration": "4 días / 3 noches",
+      "includes_note": "",
+      "excludes_note": ""
     },
     {
       "entity_id": "salkantay-trek",

@@ -576,7 +576,7 @@ def get_catalog_html(csrf_token: str) -> str:
       try {{
         const r = await fetch(`/api/catalog/tours/${{entityId}}`, {{
           method: 'DELETE',
-          headers: {{'X-Requested-With': 'XMLHttpRequest'}}
+          headers: {{'X-Requested-With': 'XMLHttpRequest', 'X-Catalog-CSRF': CSRF_TOKEN}}
         }});
         const d = await r.json();
         if (!r.ok) throw new Error(d.error || 'Error al eliminar');

@@ -121,12 +121,22 @@ def install(ns, support, original):
         try:
             from catalog_service import get_active_entity_keywords
             active_kw = get_active_entity_keywords()
-            hits = [(len(k), eid) for eid, kws in active_kw.items() for k in kws if k in q]
+            hits = []
+            for eid, kws in active_kw.items():
+                for k in kws:
+                    k_norm = support.normalize(k)
+                    if k_norm and k_norm in q:
+                        hits.append((len(k_norm), eid))
             if hits:
                 return max(hits)[1]
         except Exception:
             pass
-        hits=[(len(a),eid) for eid,aa in aliases.items() for a in aa if a in q]
+        hits = []
+        for eid, aa in aliases.items():
+            for a in aa:
+                a_norm = support.normalize(a)
+                if a_norm and a_norm in q:
+                    hits.append((len(a_norm), eid))
         return max(hits)[1] if hits else None
     def field(q):
         for key,pattern in [
@@ -445,6 +455,56 @@ def install(ns, support, original):
         if eid == 'machu-picchu-tren' and re.search(r'dormir|pernoct|alojamiento|overnight|sleep|accommodation', q):
             detail = ('overnight accommodation is not documented for this train tour; hotel pickup does not mean a hotel stay is included' if en else 'el alojamiento o pernocte no está documentado para este tour en tren; el recojo del hotel no significa que incluya hospedaje')
             return unknown(detail, entity_id=eid)
+
+        # Tour directo o ficha técnica (ej. "camino inka", "· Camino Inca Clásico 4D/3N")
+        if eid and fld is None and lang in {'es', 'en'}:
+            tour_obj = active_tours.get(eid, {})
+            name = tour_obj.get('name', eid)
+            official_price = str(tour_obj.get("official_price") or "").strip()
+            currency = str(tour_obj.get("currency") or "USD")
+            schedule = str(tour_obj.get("schedule") or "").strip()
+            duration = str(tour_obj.get("duration") or "").strip()
+            includes = str(tour_obj.get("includes") or "").strip()
+            excludes = str(tour_obj.get("excludes") or "").strip()
+
+            if not official_price or not schedule or not duration:
+                facts = get_facts(eid)
+                for f in facts:
+                    if not official_price and f.field == 'official_price' and f.value:
+                        official_price = str(f.value).strip()
+                    if not schedule and f.field == 'schedule' and f.value:
+                        schedule = str(f.value).strip()
+                    if not duration and f.field == 'duration' and f.value:
+                        duration = str(f.value).strip()
+
+            if official_price or schedule or duration or includes:
+                tour_emojis = {
+                    'camino-inka': '🥾', 'salkantay-trek': '🥾', 'inka-jungle': '🥾', 'choquequirao': '🏕️',
+                    'machu-picchu-tren': '🏔️', 'machu-picchu-car': '🏔️',
+                    'city-tour-cusco': '🏛️', 'valle-sagrado': '🌾', 'montana-7-colores': '🌈',
+                    'laguna-humantay': '💎', 'maras-moray': '🧂', 'maras-moray-cuatrimoto': '🏎️',
+                    'waqra-pukara': '🏰', 'valle-sur': '🌄', 'puente-qeswachaca': '🌉',
+                    'tour-mistico': '🔮', 'islas-titicaca': '⛵', 'canon-colca': '🦅', 'ruta-del-sol': '☀️'
+                }
+                icon = tour_emojis.get(eid, '📍')
+                lines = [f"{icon} *{name}*"]
+                if official_price:
+                    price_display = official_price if any(c in official_price for c in ['USD', 'PEN', '$', 'S/']) else f"{official_price} {currency}"
+                    lines.append(f"• Tarifa oficial: *{price_display}* por persona" if not en else f"• Official rate: *{price_display}* per person")
+                if schedule:
+                    lines.append(f"• Horario: {schedule}" if not en else f"• Schedule: {schedule}")
+                if duration:
+                    lines.append(f"• Duración: {duration}" if not en else f"• Duration: {english_duration(duration)}")
+                if includes:
+                    inc_short = includes if len(includes) <= 180 else includes[:177] + "..."
+                    lines.append(f"• Incluye: {inc_short}" if not en else f"• Includes: {inc_short}")
+                if excludes:
+                    exc_short = excludes if len(excludes) <= 140 else excludes[:137] + "..."
+                    lines.append(f"• No incluye: {exc_short}" if not en else f"• Does not include: {exc_short}")
+
+                footer = '\n\nEscribe 👉 *asesor* para reservar o más información 😊' if not en else '\n\nWrite 👉 *advisor* for bookings or more info 😊'
+                return finish("\n".join(lines) + footer, 'evidence_tour_overview', sources=['CATALOGO_OFICIAL'], entity_id=eid)
+
         if eid and fld and lang in {'es','en'}:
             tour_obj = active_tours.get(eid, {})
             name = tour_obj.get('name', eid)

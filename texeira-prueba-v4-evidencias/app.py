@@ -1398,6 +1398,27 @@ def rag_chain(question: str, user_id: str = "default") -> dict:
         entity_detected = detect_entity_from_question(question)
         if entity_detected:
             context = _filter_conflicting_facts_from_context(context, entity_detected)
+            try:
+                from catalog_service import get_tour_by_id
+                dyn_tour = get_tour_by_id(entity_detected)
+                if dyn_tour and dyn_tour.get("is_active", 1):
+                    dyn_lines = [
+                        f"[DATOS OFICIALES Y TARIFAS VIGENTES DE LA AGENCIA PARA {dyn_tour.get('name', entity_detected).upper()}]",
+                        f"Tour: {dyn_tour.get('name')}",
+                    ]
+                    if dyn_tour.get("official_price"):
+                        dyn_lines.append(f"Tarifa Oficial: {dyn_tour.get('official_price')} {dyn_tour.get('currency', 'USD')} por persona")
+                    if dyn_tour.get("schedule"):
+                        dyn_lines.append(f"Horario Oficial: {dyn_tour.get('schedule')}")
+                    if dyn_tour.get("duration"):
+                        dyn_lines.append(f"Duración: {dyn_tour.get('duration')}")
+                    if dyn_tour.get("includes"):
+                        dyn_lines.append(f"Incluye: {dyn_tour.get('includes')}")
+                    if dyn_tour.get("excludes"):
+                        dyn_lines.append(f"No incluye: {dyn_tour.get('excludes')}")
+                    context = "\n".join(dyn_lines) + "\n\n" + context
+            except Exception:
+                pass
 
         # PASO 5: Construir prompt con historial (CORRECCIÓN #4)
         system_msg = SYSTEM_PROMPT.format(

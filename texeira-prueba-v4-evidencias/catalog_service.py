@@ -196,8 +196,8 @@ def get_all_tours(active_only: bool = True) -> List[Dict[str, Any]]:
 
     # Si tenemos caché en memoria, verificar si la versión en DB cambió
     db_update = _get_db_latest_update()
-    if _CATALOG_CACHE is not None and (now - _CACHE_TIMESTAMP) < 60.0:
-        if not db_update or db_update == _CACHE_LAST_DB_UPDATE:
+    if _CATALOG_CACHE is not None and (now - _CACHE_TIMESTAMP) < 1.0:
+        if db_update and db_update == _CACHE_LAST_DB_UPDATE:
             tours = list(_CATALOG_CACHE.values())
             if active_only:
                 return [t for t in tours if t.get("is_active", 1)]
@@ -342,6 +342,32 @@ def upsert_tour(data: Dict[str, Any]) -> Tuple[bool, str]:
                 )
 
         invalidate_catalog_cache()
+
+        # Respaldo persistente en tours_catalog.json solo para tours canónicos existentes
+        try:
+            if CATALOG_JSON_PATH.exists():
+                with open(CATALOG_JSON_PATH, "r", encoding="utf-8") as jf:
+                    cat_json = json.load(jf)
+                t_list = cat_json.get("tours", [])
+                updated = False
+                for tj in t_list:
+                    if tj.get("entity_id") == clean_id:
+                        tj["name"] = name
+                        tj["official_price"] = price
+                        tj["currency"] = currency
+                        tj["schedule"] = schedule
+                        tj["duration"] = duration
+                        tj["includes_note"] = includes
+                        tj["excludes_note"] = excludes
+                        updated = True
+                        break
+                if updated:
+                    cat_json["tours"] = t_list
+                    with open(CATALOG_JSON_PATH, "w", encoding="utf-8") as jf:
+                        json.dump(cat_json, jf, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"[CATALOG JSON BACKUP WARNING] {e}")
+
         return True, clean_id
     except Exception as e:
         print(f"[CATALOG SERVICE ERROR] Error guardando tour {clean_id}: {e}")
@@ -542,8 +568,11 @@ def get_active_entity_keywords() -> Dict[str, List[str]]:
     for t in active_tours:
         eid = t["entity_id"]
         aliases = t.get("aliases", [])
-        if aliases:
-            existing = keywords_map.get(eid, [])
-            combined = list(dict.fromkeys(existing + aliases))
-            keywords_map[eid] = combined
+        name = t.get("name", "")
+        existing = keywords_map.get(eid, [])
+        all_kw = list(existing) + list(aliases)
+        if name and name not in all_kw:
+            all_kw.append(name)
+        combined = list(dict.fromkeys(all_kw))
+        keywords_map[eid] = combined
     return keywords_map
