@@ -54,6 +54,15 @@ def test_db_adapter_utilities():
     assert binds == {"p_0": "user1", "p_1": "msg123"}
     assert is_insert is True
 
+    # Traducción de STRFTIME para PostgreSQL
+    sql_epoch = "SELECT ((CAST(STRFTIME('%s', timestamp) AS INTEGER) - 18000) % 86400) / 3600 FROM interactions"
+    adapted_epoch, _, _ = db_adapter._adapt_sql_for_postgres(sql_epoch)
+    assert "EXTRACT(EPOCH FROM CAST(timestamp AS TIMESTAMP))" in adapted_epoch
+
+    sql_hour_dt = "SELECT CAST(STRFTIME('%H', DATETIME(timestamp, '-5 hours')) AS INTEGER) FROM interactions"
+    adapted_hour_dt, _, _ = db_adapter._adapt_sql_for_postgres(sql_hour_dt)
+    assert "EXTRACT(HOUR FROM (CAST(timestamp AS TIMESTAMP) + INTERVAL '-5 hours'))" in adapted_hour_dt
+
     # 3. RowProxy
     mock_dict = {"id": 42, "user_id": "51999999999", "status": "pending"}
     row = db_adapter.RowProxy(mock_dict)
