@@ -12,10 +12,12 @@ def is_photo_requested(user_msg: str) -> bool:
     if not user_msg:
         return False
     u = user_msg.lower()
-    # Descartar si el usuario especifica una negación hacia las fotos
-    if re.search(r"\b(no|sin|without|don't|do not)\b.*?\b(fotos?|im[aá]genes?|photos?|pictures?)\b", u):
+    photo_terms = r"(fotos?|im[aá]genes?|fotograf[ií]as?|photos?|pictures?|images?|photographs?)"
+    negations = r"(no|sin|without|don't|do\s+not|never|tampoco)"
+    # Descartar si el usuario especifica una negación hacia las fotos/imágenes
+    if re.search(rf"\b{negations}\b.*?\b{photo_terms}\b", u):
         return False
-    return bool(re.search(r"\b(fotos?|im[aá]genes?|fotograf[ií]as?|photos?|pictures?|images?)\b", u))
+    return bool(re.search(rf"\b{photo_terms}\b", u))
 
 
 def is_brochure_requested(user_msg: str) -> bool:
@@ -23,15 +25,18 @@ def is_brochure_requested(user_msg: str) -> bool:
     if not user_msg:
         return False
     u = user_msg.lower()
+    brochure_terms = r"(folletos?|brochures?|pdfs?|documentos?|itinerario\s+en\s+pdf|gu[ií]a\s+en\s+pdf)"
+    negations = r"(no|sin|without|don't|do\s+not|never|tampoco)"
     # Descartar si el usuario especifica una negación hacia los folletos
-    if re.search(r"\b(no|sin|without|don't|do not)\b.*?\b(folletos?|brochures?|pdfs?|documentos?)\b", u):
+    if re.search(rf"\b{negations}\b.*?\b{brochure_terms}\b", u):
         return False
-    return bool(re.search(r"\b(folletos?|brochures?|pdfs?|documentos?|itinerario\s+en\s+pdf|gu[ií]a\s+en\s+pdf)\b", u))
+    return bool(re.search(rf"\b{brochure_terms}\b", u))
 
 
 def get_tour_image_data(text: str, user_msg: str = "", entity_id: str = ""):
     """Detecta tours o intención en la conversación y retorna (url_imagen, caption_elegante).
     Usa tanto las imágenes cargadas dinámicamente en el catálogo como las canónicas verificadas.
+    No ofrece imágenes para tours desactivados.
     """
     base_url = os.getenv('APP_BASE_URL', 'https://texeira-whatsapp-1038134693816.us-central1.run.app').rstrip('/')
 
@@ -59,21 +64,30 @@ def get_tour_image_data(text: str, user_msg: str = "", entity_id: str = ""):
         except Exception:
             pass
 
-    # 2. Consultar si hay foto dinámica registrada en catalog_service
+    # 2. Consultar si hay foto dinámica registrada en catalog_service y verificar si está activo
     if target_eid:
         try:
             import catalog_service
             tour = catalog_service.get_tour(target_eid)
-            if tour and tour.get("photo_filename"):
-                photo_file = tour["photo_filename"]
-                # Caption oficial: solo nombre del tour. Sin texto de marketing.
-                caption = f"📸 *{tour.get('name', target_eid)}* — Texeira Travel"
-                return (f"{base_url}/images/{photo_file}", caption)
+            if tour:
+                if not tour.get("is_active", 1):
+                    return None  # Tour desactivado: no ofrecer imagen
+                if tour.get("photo_filename"):
+                    photo_file = tour["photo_filename"]
+                    caption = f"📸 *{tour.get('name', target_eid)}* — Texeira Travel"
+                    return (f"{base_url}/images/{photo_file}", caption)
         except Exception:
             pass
 
-        # Si no hay foto dinámica cargada, usar el asset canónico si existe
+        # Si no hay foto dinámica cargada, usar el asset canónico si existe y no está desactivado
         if target_eid in canonical_images:
+            try:
+                import catalog_service
+                tour = catalog_service.get_tour(target_eid)
+                if tour and not tour.get("is_active", 1):
+                    return None  # Tour canónico desactivado: no ofrecer imagen
+            except Exception:
+                pass
             return canonical_images[target_eid]
 
     # 3. Si el usuario pidió fotos expresamente y no se detectó un tour particular
@@ -103,13 +117,16 @@ def get_tour_brochure_data(text: str, user_msg: str = "", entity_id: str = ""):
     try:
         import catalog_service
         tour = catalog_service.get_tour(target_eid)
-        if tour and tour.get("brochure_filename"):
-            pdf_file = tour["brochure_filename"]
-            tour_name = tour.get("name", target_eid)
-            safe_name = re.sub(r"[^\w\s\-]", "", tour_name).strip().replace(" ", "_")
-            display_name = f"Folleto_{safe_name}.pdf"
-            caption = f"📄 *Folleto Informativo Oficial: {tour_name}*\n_Texeira Travel Tour Agency E.I.R.L._"
-            return (f"{base_url}/brochures/{pdf_file}", display_name, caption)
+        if tour:
+            if not tour.get("is_active", 1):
+                return None  # Tour desactivado: no ofrecer folleto
+            if tour.get("brochure_filename"):
+                pdf_file = tour["brochure_filename"]
+                tour_name = tour.get("name", target_eid)
+                safe_name = re.sub(r"[^\w\s\-]", "", tour_name).strip().replace(" ", "_")
+                display_name = f"Folleto_{safe_name}.pdf"
+                caption = f"📄 *Folleto Informativo Oficial: {tour_name}*\n_Texeira Travel Tour Agency E.I.R.L._"
+                return (f"{base_url}/brochures/{pdf_file}", display_name, caption)
     except Exception as e:
         print(f"[VISUAL BROCHURE RESOLVE ERROR] {e}")
 

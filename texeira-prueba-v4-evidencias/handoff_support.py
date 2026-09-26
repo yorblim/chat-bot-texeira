@@ -104,8 +104,26 @@ def update_request(ticket, status, advisor, note, send_to_customer=False):
 def requested(text):
     normalized = ''.join(c for c in unicodedata.normalize('NFKD', text.lower()) if not unicodedata.combining(c))
     q = normalized.strip(' .!¿?¡\'"')
+
+    # 1. Comprobar negación explícita hacia la atención humana:
+    # "no quiero hablar con un asesor", "no deseo asesor", "no me llamen", "i don't want to speak to an advisor", etc.
+    negation_patterns = [
+        r'\b(no|tampoco|nunca|jamas)\s+(quiero|deseo|necesito|quisiera|busco|voy\s+a|pienso)\s+(hablar|conversar|comunicar|contactar|llamar)?.*?\b(asesor\w*|agente\w*|persona\w*|humano\w*|operador\w*|alguien|advisor\w*)\b',
+        r'\b(no|tampoco|nunca|jamas)\s+(quiero|deseo|necesito|quisiera)\s+(un\s+|una\s+|algun\s+|alguna\s+)?(asesor\w*|agente\w*|persona\w*|humano\w*|advisor\w*)\b',
+        r'\b(no|sin|tampoco|nunca|jamas)\s+(hablar|conversar|comunicar|comunicarme|contactar|contactarme|llamar|transferir|derivar|pasar|pasarme|conectar|conectarme)\s+(con\s+|a\s+)?.*?\b(asesor\w*|agente\w*|persona\w*|humano\w*|operador\w*|advisor\w*)\b',
+        r'\b(no|tampoco)\s+(me\s+)?(llamen|contacten|comuniquen|transfieran|deriven|pasen)\b',
+        r'\b(no|sin)\s+(un\s+|una\s+)?(asesor\w*|agente\w*|advisor\w*)\b',
+        r'\b(do\s+not|don\'?t|never)\s+(want|need|wish)\s+(to\s+)?(speak|talk|chat|contact|call)?.*?\b(agent\w*|advisor\w*|human\w*|person\w*|representative\w*)\b',
+        r'\b(do\s+not|don\'?t)\s+(call|contact|transfer|connect)\s+me\b',
+        r'\b(without\s+an?\s+(agent|advisor|human))\b',
+    ]
+    for neg_pat in negation_patterns:
+        if re.search(neg_pat, q):
+            return False
+
     exact_phrases = {
         'asesor', 'asesora', 'asesores',
+        'advisor', 'advisors', 'agent', 'agents', 'human agent', 'human advisor',
         'hablar con un asesor', 'hablar con una asesora', 'hablar con un agente',
         'hablar con una persona', 'hablar con un humano', 'hablar con alguien',
         'quiero hablar con un asesor', 'quiero hablar con una asesora',
@@ -113,25 +131,31 @@ def requested(text):
         'necesito un asesor', 'necesito una asesora', 'necesito un agente',
         'necesito hablar con un asesor', 'necesito hablar con una persona',
         'solicitar asesor', 'solicitar agente', 'atencion humana', 'ayuda humana',
-        'human agent', 'speak to an agent', 'i want to speak to an agent',
-        'talk to an agent', 'talk to a human', 'speak to a human', 'speak to a person',
-        'human support', 'human help', 'i need human help',
+        'atencion de una persona', 'ayuda de una persona',
+        'comunicame con un asesor', 'comunicarme con un asesor',
+        'deseo contactar a un asesor', 'contactar a un asesor',
+        'speak to an agent', 'i want to speak to an agent',
+        'speak to an advisor', 'i want to speak to an advisor',
+        'talk to an agent', 'talk to an advisor', 'talk to a human', 'speak to a human', 'speak to a person',
+        'talk to a person', 'i want to talk to a person',
+        'human support', 'human help', 'i need human help', 'i need an advisor',
     }
     if q in exact_phrases:
         return True
 
     patterns = [
-        # Hablar / comunicarse con asesor / persona / humano / agente
-        r'\b(quiero|quisiera|deseo|necesito|puedo|busco)\s+(hablar|conversar|comunicarme|contactar|contactarme)\s+(con\s+)?(un\s+|una\s+|algun\s+|alguna\s+)?(asesor\w*|persona\w*|humano\w*|agente\w*|operador\w*|alguien)\b',
+        # Hablar / comunicarse / contactar con/a asesor / persona / humano / agente / advisor
+        r'\b(quiero|quisiera|deseo|necesito|puedo|busco|favor\s+de|por\s+favor)?\s*(hablar|conversar|comunicarme|comunicame|contactar|contactarme|conectar|conectame|pasarme|pasame)\s+(con\s+|a\s+)?(un\s+|una\s+|algun\s+|alguna\s+)?(asesor\w*|persona\w*|humano\w*|agente\w*|operador\w*|advisor\w*|alguien)\b',
         # Solicitar que le llamen o contacten directamente
         r'\b(quiero\s+que\s+me\s+llamen|pueden\s+llamarme|me\s+pueden\s+llamar|favor\s+de\s+llamarme|llamenme)\b',
         r'\b(pueden\s+contactarme|me\s+pueden\s+contactar|quiero\s+que\s+me\s+contacten|contactenme)\b',
         # Ayuda / atención humana
-        r'\b(ayuda|atencion|soporte|asistencia)\s+humana?\b',
+        r'\b(ayuda|atencion|soporte|asistencia)\s+(humana?|de\s+una\s+persona|personalizada)\b',
         # En inglés
         r'\b(human\s+support|human\s+help|human\s+assistance)\b',
-        r'\b(i\s+want\s+to|i\s+need\s+to|can\s+i|i\s+need)\s+(speak|talk|chat|contact)?\s*(to|with)?\s*(a\s+|an\s+)?(human|person|agent|advisor|representative)\b',
+        r'\b(i\s+want\s+to|i\s+need\s+to|can\s+i|i\s+need|please|i\s+would\s+like\s+to)?\s*(speak|talk|chat|contact)\s*(to|with)?\s*(a\s+|an\s+)?(human|person|agent|advisor|representative)\b',
         r'\b(call\s+me|please\s+call\s+me|can\s+you\s+call\s+me)\b',
+        r'\b(connect\s+me\s+(with|to)\s+(an?\s+)?(agent|advisor|human|representative))\b',
     ]
     for pat in patterns:
         if re.search(pat, q):

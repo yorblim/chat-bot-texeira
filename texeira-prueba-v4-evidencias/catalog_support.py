@@ -17,26 +17,35 @@ IMAGES_DIR = catalog_service.IMAGES_DIR
 BROCHURES_DIR = catalog_service.BROCHURES_DIR
 
 
+import hmac
+from auth_middleware import _check_credentials
+
 def install(app):
     """Instala las rutas del catálogo dinámico y endpoints multimedia en FastAPI."""
     csrf_token = secrets.token_urlsafe(24)
+    app.state.catalog_csrf_token = csrf_token
 
     # Inicializar base de datos y sembrar catálogo canónico en startup
     catalog_service.init_catalog_db()
 
-    def _authorized(request: Request) -> bool:
-        # En Cloud Run o local, verificar token CSRF en mutaciones
+    def _validate_csrf(request: Request) -> bool:
+        """Verifica que el header X-Catalog-CSRF coincida de forma segura con el token activo."""
         client_csrf = request.headers.get("X-Catalog-CSRF", "")
-        if client_csrf == csrf_token:
-            return True
-        # Si no viene CSRF, verificar si viene autenticado por Basic Auth
-        auth = request.headers.get("Authorization", "")
-        if auth.startswith("Basic "):
-            return True
-        # En entorno local/test sin auth
-        if request.client and request.client.host in {"127.0.0.1", "::1", "testclient"}:
-            return True
-        return False
+        if not client_csrf:
+            return False
+        return hmac.compare_digest(client_csrf, csrf_token)
+
+    def _authorized_mutation(request: Request) -> tuple:
+        """
+        Exige autenticación y token CSRF válido en todas las mutaciones del catálogo.
+        Basic Auth y una dirección local NO deben saltarse esta validación.
+        Retorna (autorizado: bool, status_code: int, mensaje_error: str).
+        """
+        if not _check_credentials(request):
+            return False, 401, "No autenticado. Credenciales inválidas o ausentes."
+        if not _validate_csrf(request):
+            return False, 403, "Token CSRF inválido o faltante."
+        return True, 200, ""
 
     @app.get("/catalogo", response_class=HTMLResponse)
     async def catalog_page(request: Request):
@@ -44,7 +53,10 @@ def install(app):
 
     @app.get("/api/catalog/tours")
     async def list_catalog_tours(request: Request):
-        tours = catalog_service.get_all_tours(active_only=False)
+        all_param = request.query_params.get("all", "0").lower() in ("1", "true", "yes")
+        active_param = request.query_params.get("active_only", "1" if not all_param else "0").lower()
+        active_only = active_param not in ("false", "0", "no") and not all_param
+        tours = catalog_service.get_all_tours(active_only=active_only)
         return JSONResponse(tours)
 
     @app.get("/api/catalog/tours/{entity_id}")
@@ -54,10 +66,17 @@ def install(app):
             return JSONResponse({"error": "Tour no encontrado"}, status_code=404)
         return JSONResponse(tour)
 
+    @app.get("/api/catalog/csrf-token")
+    async def get_catalog_csrf_token(request: Request):
+        if not _check_credentials(request):
+            return JSONResponse({"ok": False, "error": "No autorizado"}, status_code=401)
+        return JSONResponse({"ok": True, "csrf_token": csrf_token})
+
     @app.post("/api/catalog/tours")
     async def create_or_update_tour(request: Request):
-        if not _authorized(request):
-            return JSONResponse({"error": "No autorizado"}, status_code=403)
+        ok_auth, status, err = _authorized_mutation(request)
+        if not ok_auth:
+            return JSONResponse({"ok": False, "error": err}, status_code=status)
         try:
             data = await request.json()
             ok, msg = catalog_service.upsert_tour(data)
@@ -74,8 +93,9 @@ def install(app):
         file: UploadFile = File(...),
         asset_type: str = Form("photo")
     ):
-        if not _authorized(request):
-            return JSONResponse({"error": "No autorizado"}, status_code=403)
+        ok_auth, status, err = _authorized_mutation(request)
+        if not ok_auth:
+            return JSONResponse({"ok": False, "error": err}, status_code=status)
         try:
             content = await file.read()
             if len(content) > 15 * 1024 * 1024:
@@ -95,8 +115,9 @@ def install(app):
 
     @app.delete("/api/catalog/tours/{entity_id}")
     async def remove_tour(entity_id: str, request: Request):
-        if not _authorized(request):
-            return JSONResponse({"error": "No autorizado"}, status_code=403)
+        ok_auth, status, err = _authorized_mutation(request)
+        if not ok_auth:
+            return JSONResponse({"ok": False, "error": err}, status_code=status)
         ok, msg = catalog_service.delete_tour(entity_id)
         if not ok:
             return JSONResponse({"ok": False, "error": msg}, status_code=400)

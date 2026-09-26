@@ -1713,7 +1713,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
 
                     # Evaluar solicitud de folleto previo al envío de texto para incorporar nota si no existe PDF
                     route = rag_result.get('response_route') or rag_result.get('route') or ''
-                    no_multimedia_routes = {'social', 'help', 'evidence_unknown', 'evidence_conflict', 'evidence_contact', 'evidence_listing'}
+                    no_multimedia_routes = {'social', 'help', 'evidence_unknown', 'evidence_conflict', 'evidence_contact', 'evidence_listing', 'evidence_inactive_tour'}
                     detected_eid = rag_result.get('entity_id') or ''
 
                     tour_doc_info = None
@@ -1871,7 +1871,7 @@ async def test_chat(request: TestChatRequest):
         from src.visual.visual_engine import is_photo_requested, is_brochure_requested, get_tour_image_data, get_tour_brochure_data
         detected_eid = rag_result.get('entity_id') or ''
         route = rag_result.get('response_route') or rag_result.get('route') or ''
-        no_multimedia_routes = {'social', 'help', 'evidence_unknown', 'evidence_conflict', 'evidence_contact', 'evidence_listing'}
+        no_multimedia_routes = {'social', 'help', 'evidence_unknown', 'evidence_conflict', 'evidence_contact', 'evidence_listing', 'evidence_inactive_tour'}
 
         if is_photo_requested(request.message) and route not in no_multimedia_routes:
             tour_img_info = get_tour_image_data(request.message + " " + bot_response, user_msg=request.message, entity_id=detected_eid)
