@@ -76,14 +76,49 @@ async def serve_image(filename: str):
     if not re.match(r"^[\w\-\.]+\.(jpg|jpeg|png|webp)$", filename, re.IGNORECASE):
         return Response(status_code=400)
     file_path = os.path.join(IMAGES_DIR, filename)
+    if not os.path.exists(file_path) and filename.lower().endswith(('.jpg', '.jpeg')):
+        base_stem = filename.rsplit('.', 1)[0]
+        webp_candidate = os.path.join(IMAGES_DIR, base_stem + '.webp')
+        if os.path.exists(webp_candidate):
+            file_path = webp_candidate
+
     if os.path.exists(file_path):
-        mime = "image/png" if filename.lower().endswith(".png") else "image/webp" if filename.lower().endswith(".webp") else "image/jpeg"
+        if file_path.lower().endswith('.webp') and filename.lower().endswith(('.jpg', '.jpeg')):
+            from PIL import Image
+            import io
+            try:
+                img = Image.open(file_path)
+                if img.mode in ("RGBA", "P"):
+                    img = img.convert("RGB")
+                out = io.BytesIO()
+                img.save(out, format="JPEG", quality=90)
+                return Response(content=out.getvalue(), media_type="image/jpeg")
+            except Exception:
+                pass
+        mime = "image/png" if file_path.lower().endswith(".png") else "image/webp" if file_path.lower().endswith(".webp") else "image/jpeg"
         return FileResponse(file_path, media_type=mime)
     try:
         import catalog_service
         asset = catalog_service.get_asset_bytes(filename, "photo")
+        if not asset and filename.lower().endswith(('.jpg', '.jpeg')):
+            base_stem = filename.rsplit('.', 1)[0]
+            asset = catalog_service.get_asset_bytes(base_stem + '.webp', "photo")
+
         if asset:
             content_bytes, media_type = asset
+            if media_type == "image/webp" or (len(content_bytes) > 12 and content_bytes[8:12] == b'WEBP'):
+                if filename.lower().endswith(('.jpg', '.jpeg')):
+                    from PIL import Image
+                    import io
+                    try:
+                        img = Image.open(io.BytesIO(content_bytes))
+                        if img.mode in ("RGBA", "P"):
+                            img = img.convert("RGB")
+                        out = io.BytesIO()
+                        img.save(out, format="JPEG", quality=90)
+                        return Response(content=out.getvalue(), media_type="image/jpeg")
+                    except Exception:
+                        pass
             return Response(content=content_bytes, media_type=media_type)
     except Exception:
         pass

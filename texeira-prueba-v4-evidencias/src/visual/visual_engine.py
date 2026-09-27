@@ -74,6 +74,8 @@ def get_tour_image_data(text: str, user_msg: str = "", entity_id: str = ""):
                     return None  # Tour desactivado: no ofrecer imagen
                 if tour.get("photo_filename"):
                     photo_file = tour["photo_filename"]
+                    if photo_file.lower().endswith('.webp'):
+                        photo_file = photo_file.rsplit('.', 1)[0] + '.jpg'
                     caption = f"📸 *{tour.get('name', target_eid)}* — Texeira Travel"
                     return (f"{base_url}/images/{photo_file}", caption)
         except Exception:
