@@ -946,8 +946,8 @@ def get_catalog_html(csrf_token: str) -> str:
       document.getElementById('assetFileInput').value = '';
       if (assetType === 'photo') {{
         document.getElementById('modalAssetTitle').textContent = '📷 Subir Foto del Tour';
-        document.getElementById('assetFileLabel').textContent = 'Seleccionar Imagen (JPG, PNG, WebP):';
-        document.getElementById('assetFileInput').accept = 'image/jpeg,image/png,image/webp';
+        document.getElementById('assetFileLabel').textContent = 'Seleccionar Imagen (JPG, PNG):';
+        document.getElementById('assetFileInput').accept = 'image/jpeg,image/png';
       }} else {{
         document.getElementById('modalAssetTitle').textContent = '📄 Subir Folleto Oficial';
         document.getElementById('assetFileLabel').textContent = 'Seleccionar Folleto en PDF:';

@@ -439,6 +439,21 @@ def save_asset(
     if asset_type == "brochure" and ext != ".pdf":
         return False, "El folleto debe ser un archivo PDF."
 
+    # Si es imagen WebP, convertir automáticamente a JPEG para compatibilidad nativa con WhatsApp Cloud API
+    if asset_type == "photo" and ext == ".webp":
+        try:
+            from PIL import Image
+            import io
+            img = Image.open(io.BytesIO(content_bytes))
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            out_io = io.BytesIO()
+            img.save(out_io, format="JPEG", quality=92)
+            content_bytes = out_io.getvalue()
+            ext = ".jpg"
+        except Exception as e:
+            print(f"[CATALOG CONVERT ERROR] {e}")
+
     # Versionado determinista e inmutable basado en el hash del contenido
     content_hash = hashlib.sha256(content_bytes).hexdigest()[:10]
     safe_filename = f"{entity_id}_{asset_type}_{content_hash}{ext}"
