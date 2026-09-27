@@ -88,9 +88,19 @@ def get_facts(entity_id: str, field: str = None, include_dynamic: bool = True) -
             from catalog_service import get_tour_by_id
             tour = get_tour_by_id(entity_id)
             if tour is not None:
+                overrides = tour.get('overridden_fields', [])
+                result = [f for f in result if f.field not in overrides]
                 if not tour.get("is_active", 1):
                     # Tour desactivado por la agencia: ningún hecho se ofrece como activo
                     return []
+
+                for edited_field in ('includes', 'excludes', 'duration'):
+                    value = str(tour.get(edited_field) or '').strip()
+                    if edited_field in overrides and value:
+                        result.append(Fact(dict(
+                            fact_id=f'dynamic-{edited_field}-{entity_id}',
+                            entity_id=entity_id, field=edited_field, item=None,
+                            value=value, source_id='ADMIN_VIGENTE', evidence_status='confirmed')))
 
                 if tour.get("official_price"):
                     curr = tour.get("currency", "USD")

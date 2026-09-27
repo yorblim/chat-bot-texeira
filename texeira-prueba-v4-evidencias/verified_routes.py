@@ -67,9 +67,9 @@ def install(ns, support, original):
     def get_current_tours():
         try:
             from catalog_service import get_all_tours
-            dynamic_active = get_all_tours(active_only=True)
-            dynamic_all = get_all_tours(active_only=False)
-            if dynamic_all:
+            dynamic_all = get_all_tours(active_only=False, strict=True)
+            dynamic_active = [t for t in dynamic_all if t.get('is_active')]
+            if dynamic_all is not None:
                 res = {}
                 for dt in dynamic_active:
                     res[dt['entity_id']] = {
@@ -84,11 +84,13 @@ def install(ns, support, original):
                         'excludes': dt.get('excludes', ''),
                         'photo_filename': dt.get('photo_filename', ''),
                         'brochure_filename': dt.get('brochure_filename', ''),
+                        'overridden_fields': dt.get('overridden_fields', []),
                     }
                 return res
         except Exception:
             pass
-        return {t['entity_id']: dict(t) for t in catalog['tours']}
+        # No volver a ofrecer el catálogo estático si falla la fuente vigente.
+        return {}
 
     def is_deactivated_tour(eid: str) -> bool:
         if not eid:
@@ -198,6 +200,11 @@ def install(ns, support, original):
                 return finish(msg,'evidence_unknown',True,entity_id=entity_id)
             msg = f"Ese dato lo confirmamos directamente en la agencia. 💬\n\nEscribe 👉 *asesor* y te ayudamos ahora mismo 😊"
             return finish(msg,'evidence_unknown',True,entity_id=entity_id)
+
+        if not active_tours:
+            msg = ('The active catalog is unavailable. Please ask an advisor.' if en else
+                   'El catálogo activo no está disponible ahora. Escribe asesor para consultar con la agencia.')
+            return finish(msg, 'catalog_unavailable', pending=True)
 
         # Catálogo de tours solicitados (antes de evaluar fechas o disponibilidad comercial)
         listing_keywords = {
@@ -319,6 +326,117 @@ def install(ns, support, original):
 
             full_body = "\n\n".join(blocks)
             return finish(title + full_body + footer, 'evidence_listing', sources=['F1','F2','F3'])
+
+        # --- TARIFAS ESPECIALES (Estudiantes, Menores/Niños, Promociones) ---
+        def detect_rate_category(query_norm):
+            if re.search(r'\b(estudiante\w*|student\w*|universitari\w*|carnet\w*|isic|sunedu)\b', query_norm):
+                return 'student'
+            if re.search(r'\b(ni[nñ]o\w*|child\w*|kid\w*|menor\w*|infantil\w*|hijo\w*|bebe\w*)\b', query_norm):
+                return 'child'
+            if re.search(r'\b(promo\w*|promoci[oó]n\w*|oferta\w*|descuento\w*|discount\w*)\b', query_norm):
+                return 'promo'
+            return None
+
+        rate_cat = detect_rate_category(q)
+        if re.search(r'\b(segur\w*|safe\w*|wheelchair|silla de ruedas|embaraz\w*|pregnan\w*)\b', q):
+            return unknown('condiciones de seguridad o accesibilidad', entity_id=entity(q))
+        rate_question = (field(q) == 'price' or
+                         re.search(r'\b(tarifa\w*|descuent\w*|promo\w*|discount\w*|rate\w*)\b', q) or
+                         re.fullmatch(r'(y |and )?(para |for )?(los |las )?(estudiantes?|students?|ninos?|children|kids)\??', q))
+        if rate_cat and rate_question:
+            eid_rate = entity(q)
+            if not eid_rate:
+                for h in reversed(prior):
+                    if h.get('role') == 'human':
+                        eid_rate = entity(support.normalize(h['content']))
+                        if eid_rate:
+                            break
+
+            if eid_rate and eid_rate in active_tours:
+                if re.search(r'\b(manana|tomorrow)\b|\d{4}-\d{2}-\d{2}|\d{1,2}\s+de\s+\w+', q):
+                    return unknown('tarifa para la fecha solicitada', entity_id=eid_rate)
+                tour_obj = active_tours.get(eid_rate, {})
+                name = tour_obj.get('name', eid_rate)
+                base_price = str(tour_obj.get('official_price') or '').strip()
+                base_curr = str(tour_obj.get('currency') or 'USD').strip()
+                if not base_price:
+                    for f in get_facts(eid_rate):
+                        if f.field == 'official_price' and f.value:
+                            base_price = str(f.value).strip()
+                            break
+
+                rates = []
+                try:
+                    from catalog_service import get_tour_rates
+                    rates = get_tour_rates(eid_rate, active_only=True)
+                except Exception:
+                    pass
+
+                # Buscar tarifa coincidente por categoría o texto
+                matching = [
+                    r for r in rates
+                    if r.get('rate_category') == rate_cat or rate_cat in support.normalize(r.get('rate_name', ''))
+                ]
+
+                cat_labels_es = {
+                    'student': 'estudiantes',
+                    'child': 'menores / niños',
+                    'promo': 'promociones o descuentos'
+                }
+                cat_labels_en = {
+                    'student': 'students',
+                    'child': 'children / kids',
+                    'promo': 'promotions or discounts'
+                }
+
+                if len(matching) > 1:
+                    options = '\n'.join(
+                        f"• {r['rate_name']}: {r['price']} {r['currency']} — {r.get('conditions') or ('Confirm requirements' if en else 'Confirmar requisitos')}"
+                        for r in matching)
+                    prompt = 'Which rate applies to your case?' if en else '¿Qué tarifa corresponde a tu caso?'
+                    return finish(f"*{name}*\n{options}\n\n{prompt}", 'evidence_rate_options',
+                                  pending=True, sources=['CATALOGO_OFICIAL'], entity_id=eid_rate)
+                if matching:
+                    r = matching[0]
+                    r_name = r.get('rate_name', 'Tarifa Especial')
+                    r_price = r.get('price', '')
+                    r_curr = r.get('currency', base_curr)
+                    r_cond = str(r.get('conditions') or '').strip()
+                    r_valid_to = str(r.get('valid_to') or '').strip()
+
+                    cat_emojis = {'student': '🎓', 'child': '🧒', 'promo': '🏷️'}
+                    icon = cat_emojis.get(rate_cat, '💰')
+
+                    lines = [f"{icon} *{name} — {r_name}*"]
+                    lines.append(f"• Tarifa especial: *{r_price} {r_curr}* por persona" if not en else f"• Special rate: *{r_price} {r_curr}* per person")
+                    if r_cond:
+                        lines.append(f"• Requisitos: {r_cond}" if not en else f"• Requirements: {r_cond}")
+                    if r_valid_to:
+                        lines.append(f"• Válido hasta: {r_valid_to}" if not en else f"• Valid until: {r_valid_to}")
+                    if base_price:
+                        base_disp = base_price if any(c in base_price for c in ['USD', 'PEN', '$', 'S/']) else f"{base_price} {base_curr}"
+                        lines.append(f"• Tarifa general publicada: {base_disp}" if not en else f"• Published general rate: {base_disp}")
+
+                    footer = '\n\nEscribe 👉 *asesor* para coordinar tu reserva 😊' if not en else '\n\nWrite 👉 *advisor* to complete your booking 😊'
+                    return finish("\n".join(lines) + footer, 'evidence_special_rate', sources=['CATALOGO_OFICIAL'], entity_id=eid_rate)
+                else:
+                    # NO INVENTAR DESCUENTO: Indicar claramente que no existe tarifa especial registrada
+                    cat_txt = cat_labels_en.get(rate_cat, 'special') if en else cat_labels_es.get(rate_cat, 'especial')
+                    lines = [f"ℹ️ *{name}*"]
+                    if en:
+                        lines.append(f"Currently we do not have a registered special rate for *{cat_txt}* for this tour.")
+                        if base_price:
+                            base_disp = base_price if any(c in base_price for c in ['USD', 'PEN', '$', 'S/']) else f"{base_price} {base_curr}"
+                            lines.append(f"The official published rate is *{base_disp}* per person.")
+                        lines.append("\nWrite 👉 *advisor* if you would like to inquire about group conditions 😊")
+                    else:
+                        lines.append(f"Actualmente no disponemos de una tarifa especial para *{cat_txt}* registrada en nuestro catálogo oficial.")
+                        if base_price:
+                            base_disp = base_price if any(c in base_price for c in ['USD', 'PEN', '$', 'S/']) else f"{base_price} {base_curr}"
+                            lines.append(f"La tarifa oficial vigente es de *{base_disp}* por persona.")
+                        lines.append("\nEscribe 👉 *asesor* si deseas consultar condiciones especiales para grupos o delegaciones 😊")
+
+                    return finish("\n".join(lines), 'evidence_no_special_rate', pending=True, sources=['CATALOGO_OFICIAL'], entity_id=eid_rate)
 
         # Operaciones comerciales y disponibilidad para fechas puntuales
         if re.search(r'cancel|reembols|refund|yape|paypal|\bpagar\b|\bpago\b|adelant|deposit|\bpay\b|payment|descuento|discount|reserva|booking|\bbook\b|cupos?|spots?|availability|available|disponib|manana|tomorrow|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}',q):
@@ -501,6 +619,14 @@ def install(ns, support, original):
                 if excludes:
                     exc_short = excludes if len(excludes) <= 140 else excludes[:137] + "..."
                     lines.append(f"• No incluye: {exc_short}" if not en else f"• Does not include: {exc_short}")
+                try:
+                    from catalog_service import get_tour_rates
+                    rates_ov = get_tour_rates(eid, active_only=True)
+                    if rates_ov:
+                        r_str = ", ".join(f"*{r['rate_name']}* ({r['price']} {r['currency']})" for r in rates_ov)
+                        lines.append(f"• Tarifas especiales disponibles: {r_str}" if not en else f"• Special rates available: {r_str}")
+                except Exception:
+                    pass
 
                 footer = '\n\nEscribe 👉 *asesor* para reservar o más información 😊' if not en else '\n\nWrite 👉 *advisor* for bookings or more info 😊'
                 return finish("\n".join(lines) + footer, 'evidence_tour_overview', sources=['CATALOGO_OFICIAL'], entity_id=eid)
@@ -509,6 +635,23 @@ def install(ns, support, original):
             tour_obj = active_tours.get(eid, {})
             name = tour_obj.get('name', eid)
             facts = get_facts(eid)
+            # Las ediciones explícitas del panel son la fuente vigente para
+            # estos campos; no mezclar inclusiones antiguas con las actuales.
+            dynamic_value = str(tour_obj.get(fld) or '').strip()
+            overrides = tour_obj.get('overridden_fields', [])
+            if fld in overrides and not dynamic_value and fld in {'schedule', 'duration', 'includes', 'excludes'}:
+                return unknown(fld, entity_id=eid)
+            if dynamic_value and fld in overrides and fld in {'schedule', 'duration', 'includes', 'excludes'}:
+                label = ({'schedule': 'Horario', 'duration': 'Duración', 'includes': 'Incluye', 'excludes': 'No incluye'}
+                         if not en else {'schedule': 'Schedule', 'duration': 'Duration', 'includes': 'Includes', 'excludes': 'Does not include'})[fld]
+                text = f"*{name}*\n{label}: {dynamic_value}"
+                if fld in {'includes', 'excludes'}:
+                    other = 'excludes' if fld == 'includes' else 'includes'
+                    other_value = str(tour_obj.get(other) or '').strip()
+                    if other_value:
+                        other_label = ('No incluye' if other == 'excludes' else 'Incluye') if not en else ('Does not include' if other == 'excludes' else 'Includes')
+                        text += f"\n{other_label}: {other_value}"
+                return finish(text, f'evidence_{fld}', sources=['CATALOGO_OFICIAL'], entity_id=eid)
             relevant=detect_conflicts(eid, fld)
             if relevant:
                 if en:
@@ -526,10 +669,19 @@ def install(ns, support, original):
                             break
                 if official_price:
                     price_display = official_price if any(c in official_price for c in ['USD', 'PEN', '$', 'S/']) else f"{official_price} {currency}"
+                    special_hint = ""
+                    try:
+                        from catalog_service import get_tour_rates
+                        rates_pr = get_tour_rates(eid, active_only=True)
+                        if rates_pr:
+                            names_str = ", ".join(f"*{r['rate_name']}* ({r['price']} {r['currency']})" for r in rates_pr)
+                            special_hint = f"\n💡 Tarifas especiales disponibles: {names_str}." if not en else f"\n💡 Special rates available: {names_str}."
+                    except Exception:
+                        pass
                     if en:
-                        msg = f"💰 *{name}*\nOfficial rate: *{price_display}* per person\n\nWrite 👉 *advisor* to book or ask about dates 😊"
+                        msg = f"💰 *{name}*\nOfficial rate: *{price_display}* per person{special_hint}\n\nWrite 👉 *advisor* to book or ask about dates 😊"
                     else:
-                        msg = f"💰 *{name}*\nTarifa oficial: *{price_display}* por persona\n\nEscribe 👉 *asesor* para reservar o consultar fechas 😊"
+                        msg = f"💰 *{name}*\nTarifa oficial: *{price_display}* por persona{special_hint}\n\nEscribe 👉 *asesor* para reservar o consultar fechas 😊"
                     return finish(msg, 'evidence_confirmed_price', sources=['CATALOGO_OFICIAL'], entity_id=eid)
 
                 if en:

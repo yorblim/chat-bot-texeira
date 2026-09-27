@@ -493,7 +493,7 @@ def _adapt_sql_for_postgres(sql: str, params: Optional[Union[tuple, list, dict]]
             clean_sql += " ON CONFLICT (client_message_id) WHERE client_message_id IS NOT NULL DO NOTHING"
 
     # En Postgres necesitamos RETURNING id para emular cursor.lastrowid
-    is_interaction_insert = "INSERT INTO interactions" in clean_sql and "RETURNING" not in clean_sql.upper()
+    is_interaction_insert = ("INSERT INTO interactions" in clean_sql or "INSERT INTO catalog_tour_rates" in clean_sql) and "RETURNING" not in clean_sql.upper()
     if is_interaction_insert:
         clean_sql += " RETURNING id"
 
@@ -707,6 +707,28 @@ def ensure_postgres_schema():
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
+        """))
+
+        # 6. Tarifas flexibles y especiales por tour (estudiantes, niños, promociones)
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS catalog_tour_rates (
+                id SERIAL PRIMARY KEY,
+                entity_id TEXT NOT NULL,
+                rate_category TEXT NOT NULL DEFAULT 'custom',
+                rate_name TEXT NOT NULL,
+                price TEXT NOT NULL,
+                currency TEXT NOT NULL DEFAULT 'USD',
+                conditions TEXT DEFAULT '',
+                valid_from TEXT DEFAULT '',
+                valid_to TEXT DEFAULT '',
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+        """))
+        conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS idx_tour_rates_entity
+            ON catalog_tour_rates(entity_id);
         """))
     _PG_INITIALIZED = True
     logger.info("[DB_ADAPTER] Esquema PostgreSQL verificado e inicializado.")

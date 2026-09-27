@@ -276,12 +276,36 @@ def get_catalog_html(csrf_token: str) -> str:
       background: white;
       border-radius: var(--radius);
       width: 100%;
-      max-width: 540px;
+      max-width: 620px;
       max-height: 90vh;
       overflow-y: auto;
       padding: 24px;
       box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
     }}
+    .rate-card {{
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }}
+    .rate-badge {{
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }}
+    .rate-badge-student {{ background: #e0e7ff; color: #3730a3; }}
+    .rate-badge-child {{ background: #fef3c7; color: #92400e; }}
+    .rate-badge-promo {{ background: #fee2e2; color: #991b1b; }}
+    .rate-badge-adult {{ background: #f1f5f9; color: #475569; }}
+    .rate-badge-custom {{ background: #f3e8ff; color: #6b21a8; }}
     .modal-header {{
       display: flex;
       justify-content: space-between;
@@ -426,6 +450,77 @@ def get_catalog_html(csrf_token: str) -> str:
           <button type="submit" class="btn btn-primary">Guardar Tour</button>
         </div>
       </form>
+
+      <!-- Sección de Tarifas Especiales / Flexibles -->
+      <div id="ratesSection" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div>
+            <h4 style="margin: 0; font-size: 15px; color: #0369a1;">Tarifas Especiales / Flexibles</h4>
+            <p style="margin: 2px 0 0; font-size: 12px; color: var(--muted);">Precios para estudiantes, menores, promociones o tarifas personalizadas.</p>
+          </div>
+          <button type="button" id="btnAddRate" class="btn btn-secondary btn-sm" onclick="showRateForm()">+ Nueva Tarifa</button>
+        </div>
+
+        <div id="rateFormBox" style="display: none; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px;">
+          <h5 id="rateFormTitle" style="margin: 0 0 10px; font-size: 13px; color: var(--text); font-weight: 700;">Agregar Tarifa Especial</h5>
+          <input type="hidden" id="rateId" value="">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Categoría</label>
+              <select id="rateCategory">
+                <option value="student">Estudiante</option>
+                <option value="child">Menor / Niño</option>
+                <option value="promo">Promoción</option>
+                <option value="adult">Adulto</option>
+                <option value="custom">Otra personalizada</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Nombre de la Tarifa</label>
+              <input type="text" id="rateName" placeholder="ej: Tarifa Estudiante Universitario">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Precio</label>
+              <input type="text" id="ratePrice" placeholder="ej: 25.00">
+            </div>
+            <div class="form-group">
+              <label>Moneda</label>
+              <select id="rateCurrency">
+                <option value="USD">USD ($)</option>
+                <option value="PEN">PEN (S/)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Condiciones / Requisitos</label>
+            <input type="text" id="rateConditions" placeholder="ej: Carnet universitario vigente o menores de 17 años">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Vigencia Desde (opcional)</label>
+              <input type="date" id="rateValidFrom">
+            </div>
+            <div class="form-group">
+              <label>Vigencia Hasta (opcional)</label>
+              <input type="date" id="rateValidTo">
+            </div>
+          </div>
+          <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="rateIsActive" checked style="width: auto; margin: 0;">
+            <label for="rateIsActive" style="margin: 0; font-weight: normal; cursor: pointer;">Tarifa activa (disponible para el bot)</label>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="hideRateForm()">Cancelar</button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="saveRate()">Guardar Tarifa</button>
+          </div>
+        </div>
+
+        <div id="tourRatesList">
+          <!-- Cargado dinámicamente -->
+        </div>
+      </div>
     </div>
   </div>
 
@@ -560,11 +655,15 @@ def get_catalog_html(csrf_token: str) -> str:
 
     document.getElementById('btnRefresh').addEventListener('click', loadTours);
 
+    let CURRENT_TOUR_RATES = [];
+
     document.getElementById('btnNewTour').addEventListener('click', () => {{
       document.getElementById('tourForm').reset();
       document.getElementById('formIsEdit').value = '0';
       document.getElementById('formEntityId').disabled = false;
       document.getElementById('modalTourTitle').textContent = 'Registrar Nuevo Tour';
+      hideRateForm();
+      loadTourRates(null);
       openModal('tourModal');
     }});
 
@@ -602,7 +701,201 @@ def get_catalog_html(csrf_token: str) -> str:
       document.getElementById('formIncludes').value = t.includes || '';
       document.getElementById('formExcludes').value = t.excludes || '';
       document.getElementById('modalTourTitle').textContent = 'Editar Tour: ' + t.name;
+      hideRateForm();
+      loadTourRates(t.entity_id);
       openModal('tourModal');
+    }}
+
+    function showRateForm(rateData = null) {{
+      document.getElementById('rateFormBox').style.display = 'block';
+      if (rateData) {{
+        document.getElementById('rateFormTitle').textContent = 'Editar Tarifa Especial';
+        document.getElementById('rateId').value = rateData.id || '';
+        document.getElementById('rateCategory').value = rateData.rate_category || 'custom';
+        document.getElementById('rateName').value = rateData.rate_name || '';
+        document.getElementById('ratePrice').value = rateData.price != null ? rateData.price : '';
+        document.getElementById('rateCurrency').value = rateData.currency || 'USD';
+        document.getElementById('rateConditions').value = rateData.conditions || '';
+        document.getElementById('rateValidFrom').value = rateData.valid_from || '';
+        document.getElementById('rateValidTo').value = rateData.valid_to || '';
+        document.getElementById('rateIsActive').checked = rateData.is_active !== 0 && rateData.is_active !== false;
+      }} else {{
+        document.getElementById('rateFormTitle').textContent = 'Agregar Tarifa Especial';
+        document.getElementById('rateId').value = '';
+        document.getElementById('rateCategory').value = 'student';
+        document.getElementById('rateName').value = '';
+        document.getElementById('ratePrice').value = '';
+        document.getElementById('rateCurrency').value = document.getElementById('formCurrency').value || 'USD';
+        document.getElementById('rateConditions').value = '';
+        document.getElementById('rateValidFrom').value = '';
+        document.getElementById('rateValidTo').value = '';
+        document.getElementById('rateIsActive').checked = true;
+      }}
+    }}
+
+    function hideRateForm() {{
+      document.getElementById('rateFormBox').style.display = 'none';
+      document.getElementById('rateId').value = '';
+    }}
+
+    async function loadTourRates(entityId) {{
+      const listEl = document.getElementById('tourRatesList');
+      if (!entityId) {{
+        listEl.innerHTML = '<p style="color:var(--muted); font-size: 13px; margin: 4px 0;">Guarda el tour primero para asociar tarifas especiales.</p>';
+        document.getElementById('btnAddRate').style.display = 'none';
+        return;
+      }}
+      document.getElementById('btnAddRate').style.display = 'inline-flex';
+      listEl.innerHTML = '<p style="color:var(--muted); font-size: 12px; margin: 4px 0;">Cargando tarifas...</p>';
+      try {{
+        const r = await fetch('/api/catalog/tours/' + encodeURIComponent(entityId) + '/rates?all=1');
+        if (!r.ok) throw new Error('Error al cargar tarifas');
+        const data = await r.json();
+        CURRENT_TOUR_RATES = Array.isArray(data) ? data : data.rates;
+        if (!Array.isArray(CURRENT_TOUR_RATES)) throw new Error('Respuesta de tarifas inválida');
+        renderTourRates(CURRENT_TOUR_RATES);
+      }} catch (err) {{
+        listEl.innerHTML = '<p style="color:var(--danger); font-size: 12px; margin: 4px 0;">No se pudieron cargar las tarifas especiales.</p>';
+      }}
+    }}
+
+    function escapeRateText(value) {{
+      const node = document.createElement('span');
+      node.textContent = String(value ?? '');
+      return node.innerHTML;
+    }}
+
+    function renderTourRates(rates) {{
+      const listEl = document.getElementById('tourRatesList');
+      listEl.innerHTML = '';
+      if (!rates || !rates.length) {{
+        listEl.innerHTML = '<p style="color:var(--muted); font-size: 13px; margin: 4px 0;">No hay tarifas especiales registradas para este tour.</p>';
+        return;
+      }}
+
+      const catBadges = {{
+        student: {{ label: '🎓 Estudiante', cls: 'rate-badge-student' }},
+        child: {{ label: '👶 Menor', cls: 'rate-badge-child' }},
+        promo: {{ label: '🏷️ Promo', cls: 'rate-badge-promo' }},
+        adult: {{ label: '👤 Adulto', cls: 'rate-badge-adult' }},
+        custom: {{ label: '⭐ Especial', cls: 'rate-badge-custom' }}
+      }};
+
+      rates.forEach(rate => {{
+        const item = document.createElement('div');
+        item.className = 'rate-card';
+        const b = catBadges[rate.rate_category] || catBadges.custom;
+        const activeText = rate.is_active ? '<span style="color:var(--success); font-size: 11px; font-weight:600;">● Activa</span>' : '<span style="color:var(--muted); font-size: 11px; font-weight:600;">○ Inactiva</span>';
+        const dateRange = (rate.valid_from || rate.valid_to)
+          ? `<div style="font-size: 11px; color: var(--muted); margin-top: 2px;">📅 Vigencia: ${{escapeRateText(rate.valid_from || 'Inicio')}} al ${{escapeRateText(rate.valid_to || 'Siempre')}}</div>`
+          : '';
+        const condText = rate.conditions
+          ? `<div style="font-size: 12px; color: #475569; margin-top: 2px;">ℹ️ ${{escapeRateText(rate.conditions)}}</div>`
+          : '';
+
+        item.innerHTML = `
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span class="rate-badge ${{b.cls}}">${{b.label}}</span>
+              <strong style="font-size: 13px;">${{escapeRateText(rate.rate_name)}}</strong>
+              <span class="price-tag" style="font-size: 13px;">${{escapeRateText(rate.currency)}} ${{escapeRateText(rate.price)}}</span>
+              ${{activeText}}
+            </div>
+            ${{condText}}
+            ${{dateRange}}
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="editRateById(${{rate.id}})">✏️</button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="deleteRateById(${{rate.id}})">🗑️</button>
+          </div>
+        `;
+        listEl.appendChild(item);
+      }});
+    }}
+
+    function editRateById(rateId) {{
+      const r = CURRENT_TOUR_RATES.find(x => x.id === rateId);
+      if (r) {{
+        showRateForm(r);
+      }}
+    }}
+
+    async function saveRate() {{
+      const entityId = document.getElementById('formEntityId').value.trim();
+      if (!entityId) {{
+        showToast('Debe guardar el tour primero', 'error');
+        return;
+      }}
+      const rateIdVal = document.getElementById('rateId').value;
+      const category = document.getElementById('rateCategory').value;
+      const name = document.getElementById('rateName').value.trim();
+      const priceVal = document.getElementById('ratePrice').value.trim();
+      const currency = document.getElementById('rateCurrency').value;
+      const conditions = document.getElementById('rateConditions').value.trim();
+      const valid_from = document.getElementById('rateValidFrom').value || null;
+      const valid_to = document.getElementById('rateValidTo').value || null;
+      const is_active = document.getElementById('rateIsActive').checked ? 1 : 0;
+
+      if (!name) {{
+        showToast('Ingrese un nombre para la tarifa', 'error');
+        return;
+      }}
+      const price = Number(priceVal);
+      if (!priceVal || !Number.isFinite(price) || price < 0) {{
+        showToast('Ingrese un precio numérico válido', 'error');
+        return;
+      }}
+
+      const payload = {{
+        rate_category: category, rate_name: name, price, currency, conditions,
+        valid_from, valid_to, is_active
+      }};
+      if (rateIdVal) {{
+        payload.id = parseInt(rateIdVal, 10);
+      }}
+
+      try {{
+        const r = await fetch('/api/catalog/tours/' + encodeURIComponent(entityId) + '/rates', {{
+          method: 'POST',
+          headers: {{
+            'Content-Type': 'application/json',
+            'X-Catalog-CSRF': CSRF_TOKEN
+          }},
+          body: JSON.stringify(payload)
+        }});
+        const res = await r.json();
+        if (r.ok && res.ok) {{
+          showToast('Tarifa guardada correctamente');
+          hideRateForm();
+          loadTourRates(entityId);
+        }} else {{
+          showToast(res.error || 'Error al guardar tarifa', 'error');
+        }}
+      }} catch (err) {{
+        showToast('Error de conexión', 'error');
+      }}
+    }}
+
+    async function deleteRateById(rateId) {{
+      if (!confirm('¿Eliminar esta tarifa especial?')) return;
+      try {{
+        const r = await fetch('/api/catalog/rates/' + rateId, {{
+          method: 'DELETE',
+          headers: {{
+            'X-Catalog-CSRF': CSRF_TOKEN
+          }}
+        }});
+        const res = await r.json();
+        if (r.ok && res.ok) {{
+          showToast('Tarifa eliminada');
+          const entityId = document.getElementById('formEntityId').value.trim();
+          loadTourRates(entityId);
+        }} else {{
+          showToast(res.error || 'Error al eliminar tarifa', 'error');
+        }}
+      }} catch (err) {{
+        showToast('Error de conexión', 'error');
+      }}
     }}
 
     document.getElementById('tourForm').addEventListener('submit', async (e) => {{

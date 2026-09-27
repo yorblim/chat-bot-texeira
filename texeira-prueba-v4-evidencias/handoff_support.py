@@ -108,6 +108,12 @@ def requested(text):
     normalized = ''.join(c for c in unicodedata.normalize('NFKD', text.lower()) if not unicodedata.combining(c))
     q = normalized.strip(' .!¿?¡\'"')
 
+    # Una recomendación citada no es una solicitud de transferencia.
+    if re.search(r'\b(te recomiendo|i recommend|we recommend)\b', q):
+        return False
+    if re.search(r'^(talk|speak) to (an? )?(agent|advisor).*\bfor (details|information|info)\b', q):
+        return False
+
     # 1. Comprobar negación explícita hacia la atención humana:
     # "no quiero hablar con un asesor", "no deseo asesor", "no me llamen", "i don't want to speak to an advisor", etc.
     negation_patterns = [
@@ -280,7 +286,8 @@ def install(ns):
                     handoff_requested=True,handoff_language=ns['detect_language'](question),
                     response_route='human_request',route='human_request')
     ns['rag_chain']=chain
-    csrf=secrets.token_urlsafe(24)
+    from auth_middleware import panel_csrf_token
+    csrf=panel_csrf_token('handoff')
     app=ns['app']
 
     def local(request):
@@ -291,7 +298,7 @@ def install(ns):
     @app.get('/handoffs',response_class=HTMLResponse)
     async def panel(request:Request):
         if not local(request): return HTMLResponse('Acceso local requerido',status_code=403)
-        return HTMLResponse(PANEL.replace('__CSRF__',csrf))
+        return HTMLResponse(PANEL.replace('__CSRF__',csrf), headers={'Cache-Control': 'no-store'})
 
     @app.get('/handoffs/data')
     async def data(request:Request):
