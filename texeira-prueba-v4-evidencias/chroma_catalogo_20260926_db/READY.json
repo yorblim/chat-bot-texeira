@@ -1,0 +1,11 @@
+{
+  "version": "catalogo-20260926",
+  "documents": 20,
+  "inputs": {
+    "tours_catalog.json": "4156abd9d75154961d0846766265614d3b57edcede658ddce13573a84f15a607",
+    "evidence_facts.json": "1a1e6d064a56931a16de321b13bafe684ce06ab8373ce6c32d552774bf33cec4",
+    "conflicts.json": "1cf8b23f17bdfdabff2a44972d1a226b22af5ae2759822b616a180534eb01b13",
+    "source_registry.json": "d7bbfa5c690ff7695de0951f041e972240355a030a91ae995e076510c8618e16",
+    "documents": "e742f9e24094fda6eff374ccb8dbc860ec6db1735b43eedb3d124d4a144dc9ca"
+  }
+}

@@ -84,6 +84,7 @@ yarn-debug.log*
 *.db
 *.sqlite
 *.sqlite3
+!texeira-prueba-v4-evidencias/chroma_catalogo_20260926_db/**
 state/
 **/state/
 

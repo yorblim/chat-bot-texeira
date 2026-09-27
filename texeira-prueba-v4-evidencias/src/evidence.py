@@ -159,8 +159,8 @@ def get_facts_by_source(entity_id: str, source_id: str) -> List[Fact]:
     return [f for f in _load_facts() if f.entity_id == entity_id and f.source_id == source_id and f.evidence_status == 'confirmed']
 
 
-def detect_conflicts(entity_id: str, field: str = None) -> List[dict]:
-    facts = get_facts(entity_id, field)
+def detect_conflicts(entity_id: str, field: str = None, include_dynamic: bool = True) -> List[dict]:
+    facts = get_facts(entity_id, field, include_dynamic=include_dynamic)
     if not facts:
         return []
 
@@ -190,7 +190,7 @@ def detect_conflicts(entity_id: str, field: str = None) -> List[dict]:
                 auto_conflicts.append(conflict)
 
         elif policy == 'additive_set':
-            conflict = _detect_set_conflict(entity_id, fld)
+            conflict = _detect_set_conflict(entity_id, fld, include_dynamic=include_dynamic)
             if conflict:
                 auto_conflicts.append(conflict)
 
@@ -251,9 +251,9 @@ def _detect_scalar_conflict(field: str, facts: List[Fact]) -> Optional[dict]:
     return None
 
 
-def _detect_set_conflict(entity_id: str, field: str) -> Optional[dict]:
-    includes = {(f.item, f.source_id) for f in get_facts(entity_id, 'includes') if f.value is True}
-    excludes = {(f.item, f.source_id) for f in get_facts(entity_id, 'excludes') if f.value is True}
+def _detect_set_conflict(entity_id: str, field: str, include_dynamic: bool = True) -> Optional[dict]:
+    includes = {(f.item, f.source_id) for f in get_facts(entity_id, 'includes', include_dynamic=include_dynamic) if f.value is True}
+    excludes = {(f.item, f.source_id) for f in get_facts(entity_id, 'excludes', include_dynamic=include_dynamic) if f.value is True}
 
     if field in {'includes', 'excludes'}:
         for item, src_ex in excludes:
@@ -308,7 +308,7 @@ def get_confirmed_products() -> List[dict]:
 
 
 def build_context_for_entity(entity_id: str, include_dynamic: bool = True) -> str:
-    conflicts = detect_conflicts(entity_id)
+    conflicts = detect_conflicts(entity_id, include_dynamic=include_dynamic)
     conflict_fields = set(c['field'] for c in conflicts)
 
     facts = get_facts(entity_id, include_dynamic=include_dynamic)

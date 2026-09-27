@@ -31,7 +31,7 @@ def configure(env=None, values=None):
     state=Path(env.get('TEXEIRA_STATE_DIR',str(ROOT/'state')))
     state.mkdir(parents=True,exist_ok=True)
     env.setdefault('SQLITE_DB_PATH',str(state/'trial_logs.db'))
-    env.setdefault('CHROMA_HYBRID_DIR',str(ROOT/'chroma_f1_confirmado_20260915_db'))
+    env.setdefault('CHROMA_HYBRID_DIR',str(ROOT/'chroma_catalogo_20260926_db'))
     return wa,fb
 
 def state_file(name):

@@ -35,5 +35,5 @@ src/**/*.pyc
 !data/images/**
 !data/brochures/
 !data/brochures/**
-!chroma_f1_confirmado_20260915_db/
-!chroma_f1_confirmado_20260915_db/**
+!chroma_catalogo_20260926_db/
+!chroma_catalogo_20260926_db/**
