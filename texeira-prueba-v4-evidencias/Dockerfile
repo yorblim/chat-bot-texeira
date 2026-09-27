@@ -36,7 +36,7 @@ ENV HF_HUB_OFFLINE=1 \
 # Copiar código fuente
 COPY src/ ./src/
 COPY data/ ./data/
-COPY chroma_f1_confirmado_20260915_db/ ./chroma_f1_confirmado_20260915_db/
+COPY chroma_catalogo_20260926_db/ ./chroma_catalogo_20260926_db/
 COPY app.py .
 COPY runtime_settings.py .
 COPY verified_routes.py .

@@ -8,7 +8,7 @@ from functools import lru_cache
 
 ROOT = Path(__file__).resolve().parent
 CATALOG = json.loads((ROOT / 'data/tours_catalog.json').read_text(encoding='utf-8'))
-INDEX = ROOT / 'chroma_f1_confirmado_20260915_db'
+INDEX = ROOT / 'chroma_catalogo_20260926_db'
 
 NAMES = [
     'City Tour Cusco', 'Valle Sagrado completo', 'Machu Picchu en tren',
@@ -448,12 +448,13 @@ def retriever():
         mismatches = [k for k in expected if expected.get(k) != actual.get(k)]
         raise RuntimeError(f'Las fuentes o documentos cambiaron ({", ".join(mismatches)}): crear otro índice versionado.')
     from src.retriever import build_hybrid_retriever
-    return build_hybrid_retriever(documents=documents(include_dynamic=True), persist_directory=str(INDEX))
+    return build_hybrid_retriever(documents=documents(include_dynamic=False), persist_directory=str(INDEX))
 
 def input_hashes():
     import hashlib
     names=['tours_catalog.json','evidence_facts.json','conflicts.json','source_registry.json']
-    values={name:hashlib.sha256((ROOT/'data'/name).read_bytes()).hexdigest() for name in names}
+    # JSON canónico: el contenido importa, no CRLF/LF de Windows/Linux.
+    values={name:hashlib.sha256(json.dumps(json.loads((ROOT/'data'/name).read_text(encoding='utf-8')),ensure_ascii=False,sort_keys=True).encode()).hexdigest() for name in names}
     values['documents']=hashlib.sha256(json.dumps(documents(include_dynamic=False),ensure_ascii=False,sort_keys=True).encode()).hexdigest()
     return values
 
@@ -475,7 +476,7 @@ def _build_evidence_documents(splitter, include_dynamic: bool = True):
         if not context:
             continue
         for i, chunk in enumerate(splitter.split_text(NOTICES['es'] + '\n' + tour['name'] + '\n' + context)):
-            conflict_status = 'has_conflict' if detect_conflicts(entity_id) else 'no_conflict'
+            conflict_status = 'has_conflict' if detect_conflicts(entity_id, include_dynamic=include_dynamic) else 'no_conflict'
             rows.append({
                 'page_content': chunk,
                 'metadata': {
