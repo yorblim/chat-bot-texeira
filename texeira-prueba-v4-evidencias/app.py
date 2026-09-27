@@ -1603,6 +1603,131 @@ SHOW_MORE_INTRO = {
 }
 
 
+def get_quick_buttons(
+    route: str = "",
+    user_message: str = "",
+    detected_eid: str = "",
+    lang: str = "es",
+) -> List[dict]:
+    """Genera hasta 3 botones contextuales según la intención y tour detectado.
+
+    Todos los títulos están estrictamente acotados a <= 20 caracteres según la API de Meta.
+    """
+    is_en = (lang == "en")
+    u_lower = (user_message or "").lower()
+
+    # 1. Si se solicitó o envió foto recientemente
+    if route == "evidence_photo" or is_photo_requested(user_message):
+        if is_en:
+            return [
+                {"id": "btn_rates", "title": "💰 Rates"},
+                {"id": "btn_inc", "title": "📄 What's included"},
+                {"id": "btn_advisor", "title": "🙋‍♂️ Advisor"},
+            ]
+        else:
+            return [
+                {"id": "btn_rates", "title": "💰 Tarifas"},
+                {"id": "btn_inc", "title": "📄 Qué incluye"},
+                {"id": "btn_advisor", "title": "🙋‍♂️ Asesor"},
+            ]
+
+    # 2. Si se trata de precios / tarifas
+    if route in ("evidence_confirmed_price", "evidence_special_rate") or _is_price_question(u_lower):
+        if is_en:
+            return [
+                {"id": "btn_photo", "title": "📸 View Photos"},
+                {"id": "btn_inc", "title": "📄 What's included"},
+                {"id": "btn_advisor", "title": "🙋‍♂️ Book Now"},
+            ]
+        else:
+            return [
+                {"id": "btn_photo", "title": "📸 Ver Fotos"},
+                {"id": "btn_inc", "title": "📄 Qué incluye"},
+                {"id": "btn_advisor", "title": "🙋‍♂️ Reservar"},
+            ]
+
+    # 3. Si es saludo o ayuda
+    if route in ("social", "help", "predefined"):
+        if is_en:
+            return [
+                {"id": "btn_tours", "title": "🗺️ View Tours"},
+                {"id": "btn_advisor", "title": "🙋‍♂️ Advisor"},
+            ]
+        else:
+            return [
+                {"id": "btn_tours", "title": "🗺️ Ver Tours"},
+                {"id": "btn_advisor", "title": "🙋‍♂️ Asesor"},
+            ]
+
+    # 4. Si es listado de tours
+    if route in ("evidence_listing", "tour_intent") or _is_listing_question(u_lower):
+        if is_en:
+            return [
+                {"id": "btn_ci", "title": "🥾 Inca Trail"},
+                {"id": "btn_mp", "title": "🏔️ Machu Picchu"},
+                {"id": "btn_advisor", "title": "🙋‍♂️ Advisor"},
+            ]
+        else:
+            return [
+                {"id": "btn_ci", "title": "🥾 Camino Inca"},
+                {"id": "btn_mp", "title": "🏔️ Machu Picchu"},
+                {"id": "btn_advisor", "title": "🙋‍♂️ Asesor"},
+            ]
+
+    # 5. Si es consulta sobre qué incluye
+    if route in ("evidence_confirmed_includes",) or _is_includes_question(u_lower):
+        if is_en:
+            return [
+                {"id": "btn_rates", "title": "💰 Rates"},
+                {"id": "btn_photo", "title": "📸 View Photos"},
+                {"id": "btn_advisor", "title": "🙋‍♂️ Advisor"},
+            ]
+        else:
+            return [
+                {"id": "btn_rates", "title": "💰 Tarifas"},
+                {"id": "btn_photo", "title": "📸 Ver Fotos"},
+                {"id": "btn_advisor", "title": "🙋‍♂️ Asesor"},
+            ]
+
+    # 6. Si hay un tour detectado (información general, itinerario, detalles)
+    if detected_eid:
+        if is_en:
+            return [
+                {"id": "btn_photo", "title": "📸 View Photos"},
+                {"id": "btn_rates", "title": "💰 Rates"},
+                {"id": "btn_advisor", "title": "🙋‍♂️ Advisor"},
+            ]
+        else:
+            return [
+                {"id": "btn_photo", "title": "📸 Ver Fotos"},
+                {"id": "btn_rates", "title": "💰 Tarifas"},
+                {"id": "btn_advisor", "title": "🙋‍♂️ Asesor"},
+            ]
+
+    # 7. Si es escalamiento / contacto / handoff
+    if route in ("evidence_contact", "evidence_human_escalation"):
+        if is_en:
+            return [
+                {"id": "btn_tours", "title": "🗺️ View Tours"},
+            ]
+        else:
+            return [
+                {"id": "btn_tours", "title": "🗺️ Ver Tours"},
+            ]
+
+    # 8. Por defecto
+    if is_en:
+        return [
+            {"id": "btn_tours", "title": "🗺️ View Tours"},
+            {"id": "btn_advisor", "title": "🙋‍♂️ Advisor"},
+        ]
+    else:
+        return [
+            {"id": "btn_tours", "title": "🗺️ Ver Tours"},
+            {"id": "btn_advisor", "title": "🙋‍♂️ Asesor"},
+        ]
+
+
 # ============================================================
 # ENDPOINTS
 # ============================================================
@@ -1733,6 +1858,39 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                     msg_type = msg.get("type", "")
                     phone_number_id = value.get("metadata", {}).get("phone_number_id")
 
+                    # Soporte para respuestas de botones y listas interactivas de WhatsApp
+                    if msg_type == "interactive":
+                        interactive_obj = msg.get("interactive", {})
+                        itype = interactive_obj.get("type", "")
+                        btn_id = ""
+                        btn_title = ""
+                        if itype == "button_reply":
+                            reply_data = interactive_obj.get("button_reply", {})
+                            btn_id = reply_data.get("id", "")
+                            btn_title = reply_data.get("title", "")
+                        elif itype == "list_reply":
+                            reply_data = interactive_obj.get("list_reply", {})
+                            btn_id = reply_data.get("id", "")
+                            btn_title = reply_data.get("title", "")
+
+                        # Mapeo semántico de botones interactivos
+                        if btn_id == "btn_photo":
+                            user_message = "fotos"
+                        elif btn_id in ("btn_rates", "btn_price"):
+                            user_message = "tarifas y precios"
+                        elif btn_id == "btn_inc":
+                            user_message = "que incluye"
+                        elif btn_id in ("btn_advisor", "btn_book"):
+                            user_message = "asesor"
+                        elif btn_id == "btn_tours":
+                            user_message = "que tours tienen disponibles"
+                        elif btn_id == "btn_ci":
+                            user_message = "informacion de Camino Inca"
+                        elif btn_id == "btn_mp":
+                            user_message = "informacion de Machu Picchu en tren"
+                        else:
+                            user_message = btn_title or btn_id
+
                     # Extract identifiers from contacts
                     contact_wa_id = contact.get("wa_id", "")
                     contact_user_id = contact.get("user_id", "")
@@ -1845,11 +2003,20 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         if not tour_doc_info:
                             bot_response_clean += "\n\n📄 _Nota: Actualmente este tour no cuenta con folleto en PDF en línea, pero nuestro asesor te facilitará el itinerario completo._"
 
+                    # Botones de respuesta rápida interactivos (Meta WhatsApp Cloud API)
+                    quick_buttons = get_quick_buttons(
+                        route=route,
+                        user_message=user_message,
+                        detected_eid=detected_eid,
+                        lang=detect_language(user_message),
+                    )
+
                     accepted = user_id != 'unknown' and send_whatsapp_message(
                         text=bot_response_clean,
                         to_phone=phone_number if phone_number else None,
                         recipient_bsuid=bsuid if bsuid else None,
                         phone_number_id=phone_number_id,
+                        buttons=quick_buttons,
                     )
 
                     # Despacho de Assets Multimedia (Fotos y Folletos PDF) SOLO bajo solicitud válida
@@ -1918,6 +2085,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
         })
 
     except Exception as e:
+        print(f"[WEBHOOK INTERNAL ERROR] {e}")
         latency_ms = (time.time() - start_time) * 1000
         return JSONResponse(status_code=500, content={"error": "Error interno; vuelve a intentar"})
 
@@ -2035,9 +2203,17 @@ async def test_chat(request: TestChatRequest):
             db_path=SQLITE_DB_PATH,
         )
 
+        quick_buttons = get_quick_buttons(
+            route=route,
+            user_message=request.message,
+            detected_eid=detected_eid,
+            lang=detected_lang,
+        )
+
         return JSONResponse(status_code=200, content={
             "status": "ok",
             "response": bot_response,
+            "quick_buttons": quick_buttons,
             "resolved_autonomously": resolved_autonomously,
             "escalated_to_human": escalated_to_human,
             "detected_language": detected_lang,

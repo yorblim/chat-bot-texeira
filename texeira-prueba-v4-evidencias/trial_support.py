@@ -96,7 +96,7 @@ def detect_field_from_question(question: str) -> str:
         'includes': ['incluye', 'incluid', 'que incluye', 'que lleva', 'include', 'includes', 'what include'],
         'excludes': ['no incluye', 'excluye', 'exclu', 'does not include'],
         'stops': ['lugares', 'paradas', 'recorrido', 'ruta', 'stops', 'places', 'route', 'itinerary'],
-        'official_price': ['precio', 'cuesta', 'cuanto cuesta', 'price', 'cost', 'how much'],
+        'official_price': ['precio', 'cuesta', 'cuanto cuesta', 'price', 'cost', 'how much', 'tarifa', 'tarifas', 'rate', 'rates'],
         'duration': ['duracion', 'cuanto dura', 'duration', 'how long'],
         'confirmed_product': ['tienen', 'ofrecen', 'existe', 'disponible', 'do you have', 'do you offer'],
     }
