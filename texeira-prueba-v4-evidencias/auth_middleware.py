@@ -6,6 +6,7 @@ permite uso local por loopback, nunca cuando se configura un despliegue cloud.
 import base64
 import hmac
 import os
+import secrets
 from fastapi import Request
 from fastapi.responses import Response
 
@@ -19,6 +20,15 @@ PROTECTED_PREFIXES = (
     '/operational-metrics',
     '/history', '/metrics', '/test-chat', '/chat', '/docs', '/redoc', '/openapi.json',
 )
+
+
+def panel_csrf_token(panel: str) -> str:
+    """Consistente entre réplicas; separado por panel y renovado con el secreto."""
+    password = os.getenv('ADMIN_PASSWORD', '')
+    if not password:
+        return secrets.token_urlsafe(32)
+    domain = f'texeira:{panel}:csrf:v1'.encode('utf-8')
+    return hmac.new(password.encode('utf-8'), domain, 'sha256').hexdigest()
 
 
 def _is_protected(path: str) -> bool:

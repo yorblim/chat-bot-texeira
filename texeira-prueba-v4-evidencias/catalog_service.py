@@ -12,9 +12,10 @@ import json
 import time
 import base64
 import hashlib
-from datetime import datetime
+from datetime import datetime, date, timezone, timedelta
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, Union
 
 from db_adapter import get_db_session, is_postgres
 
@@ -76,6 +77,40 @@ CREATE TABLE IF NOT EXISTS catalog_tours (
 );
 """
 
+SCHEMA_RATES_SQLITE = """
+CREATE TABLE IF NOT EXISTS catalog_tour_rates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_id TEXT NOT NULL,
+    rate_category TEXT NOT NULL DEFAULT 'custom',
+    rate_name TEXT NOT NULL,
+    price TEXT NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'USD',
+    conditions TEXT DEFAULT '',
+    valid_from TEXT DEFAULT '',
+    valid_to TEXT DEFAULT '',
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+"""
+
+SCHEMA_RATES_POSTGRES = """
+CREATE TABLE IF NOT EXISTS catalog_tour_rates (
+    id SERIAL PRIMARY KEY,
+    entity_id TEXT NOT NULL,
+    rate_category TEXT NOT NULL DEFAULT 'custom',
+    rate_name TEXT NOT NULL,
+    price TEXT NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'USD',
+    conditions TEXT DEFAULT '',
+    valid_from TEXT DEFAULT '',
+    valid_to TEXT DEFAULT '',
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+"""
+
 # Alias iniciales de tours canónicos de Texeira Travel
 INITIAL_CANONICAL_ALIASES = {
     'city-tour-cusco': ['city tour', 'citytour', 'city-tour', 'tour cusco', 'tour de cusco'],
@@ -101,10 +136,17 @@ INITIAL_CANONICAL_ALIASES = {
 
 
 def init_catalog_db() -> None:
-    """Crea la tabla catalog_tours y migra los tours canónicos si está vacía."""
+    """Crea las tablas catalog_tours y catalog_tour_rates y migra los tours canónicos si está vacía."""
     schema = SCHEMA_POSTGRES if is_postgres() else SCHEMA_SQLITE
+    schema_rates = SCHEMA_RATES_POSTGRES if is_postgres() else SCHEMA_RATES_SQLITE
     with get_db_session() as conn:
         conn.execute(schema)
+        conn.execute(schema_rates)
+        conn.execute("""CREATE TABLE IF NOT EXISTS catalog_field_overrides (
+            entity_id TEXT NOT NULL, field TEXT NOT NULL,
+            PRIMARY KEY (entity_id, field)
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_tour_rates_entity ON catalog_tour_rates(entity_id)")
         # Verificar si ya existen tours
         cur = conn.execute("SELECT COUNT(*) FROM catalog_tours")
         row = cur.fetchone()
@@ -189,7 +231,7 @@ def _get_db_latest_update() -> str:
     return ""
 
 
-def get_all_tours(active_only: bool = True) -> List[Dict[str, Any]]:
+def get_all_tours(active_only: bool = True, strict: bool = False) -> List[Dict[str, Any]]:
     """Retorna la lista de tours desde la base de datos con invalidación verificable."""
     global _CATALOG_CACHE, _CACHE_TIMESTAMP, _CACHE_LAST_DB_UPDATE
     now = time.time()
@@ -217,6 +259,10 @@ def get_all_tours(active_only: bool = True) -> List[Dict[str, Any]]:
             )
             rows = cur.fetchall()
 
+            overrides = {}
+            for row in conn.execute("SELECT entity_id, field FROM catalog_field_overrides").fetchall():
+                overrides.setdefault(row[0], []).append(row[1])
+
         cache = {}
         for r in rows:
             aliases_raw = r["aliases"] if isinstance(r, dict) or hasattr(r, "__getitem__") else r[2]
@@ -241,6 +287,7 @@ def get_all_tours(active_only: bool = True) -> List[Dict[str, Any]]:
                 "is_active": bool(r["is_active"]),
                 "created_at": r["created_at"],
                 "updated_at": r["updated_at"],
+                "overridden_fields": overrides.get(r["entity_id"], []),
             }
             cache[item["entity_id"]] = item
 
@@ -254,6 +301,8 @@ def get_all_tours(active_only: bool = True) -> List[Dict[str, Any]]:
         return tours
     except Exception as e:
         print(f"[CATALOG SERVICE ERROR] Error consultando tours: {e}")
+        if strict:
+            raise
         return []
 
 
@@ -286,9 +335,16 @@ def upsert_tour(data: Dict[str, Any]) -> Tuple[bool, str]:
     if not clean_id:
         return False, "Identificador de tour inválido."
 
+    supplied_fields = set(data)
+    previous = get_tour_by_id(clean_id)
+    if previous:
+        data = {**previous, **data}
+
     aliases = data.get("aliases", [])
     if isinstance(aliases, str):
         aliases = [a.strip() for a in aliases.split(",") if a.strip()]
+    else:
+        aliases = list(aliases)
     if name.lower() not in [a.lower() for a in aliases]:
         aliases.append(name.lower())
 
@@ -341,32 +397,15 @@ def upsert_tour(data: Dict[str, Any]) -> Tuple[bool, str]:
                     )
                 )
 
-        invalidate_catalog_cache()
+            # Registrar una edición explícita, incluso cuando la agencia borra
+            # el valor. Un vacío administrativo no debe resucitar el folleto.
+            for field in ('official_price', 'schedule', 'duration', 'includes', 'excludes'):
+                if field in supplied_fields:
+                    conn.execute("""INSERT INTO catalog_field_overrides (entity_id, field)
+                                    VALUES (?, ?) ON CONFLICT (entity_id, field) DO NOTHING""",
+                                 (clean_id, field))
 
-        # Respaldo persistente en tours_catalog.json solo para tours canónicos existentes
-        try:
-            if CATALOG_JSON_PATH.exists():
-                with open(CATALOG_JSON_PATH, "r", encoding="utf-8") as jf:
-                    cat_json = json.load(jf)
-                t_list = cat_json.get("tours", [])
-                updated = False
-                for tj in t_list:
-                    if tj.get("entity_id") == clean_id:
-                        tj["name"] = name
-                        tj["official_price"] = price
-                        tj["currency"] = currency
-                        tj["schedule"] = schedule
-                        tj["duration"] = duration
-                        tj["includes_note"] = includes
-                        tj["excludes_note"] = excludes
-                        updated = True
-                        break
-                if updated:
-                    cat_json["tours"] = t_list
-                    with open(CATALOG_JSON_PATH, "w", encoding="utf-8") as jf:
-                        json.dump(cat_json, jf, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"[CATALOG JSON BACKUP WARNING] {e}")
+        invalidate_catalog_cache()
 
         return True, clean_id
     except Exception as e:
@@ -546,6 +585,8 @@ def delete_tour(entity_id: str) -> Tuple[bool, str]:
                         b.unlink()
                     except Exception:
                         pass
+                conn.execute("DELETE FROM catalog_tour_rates WHERE entity_id = ?", (entity_id,))
+                conn.execute("DELETE FROM catalog_field_overrides WHERE entity_id = ?", (entity_id,))
                 conn.execute("DELETE FROM catalog_tours WHERE entity_id = ?", (entity_id,))
                 invalidate_catalog_cache()
                 return True, "Tour personalizado eliminado."
@@ -576,3 +617,207 @@ def get_active_entity_keywords() -> Dict[str, List[str]]:
         combined = list(dict.fromkeys(all_kw))
         keywords_map[eid] = combined
     return keywords_map
+
+
+# ============================================================
+# GESTIÓN DE TARIFAS ESPECIALES Y FLEXIBLES (Tour hasMany Rates)
+# ============================================================
+
+def get_tour_rates(
+    entity_id: str,
+    active_only: bool = True,
+    date_str: Optional[str] = None
+) -> List[Dict[str, Any]]:
+    """
+    Retorna las tarifas especiales asociadas a un tour (entity_id).
+    Permite filtrar por activas y por ventana de vigencia (valid_from / valid_to).
+    Si date_str es None, se toma la fecha actual UTC en formato YYYY-MM-DD.
+    """
+    try:
+        init_catalog_db()
+        with get_db_session() as conn:
+            cur = conn.execute(
+                """
+                SELECT id, entity_id, rate_category, rate_name, price, currency,
+                       conditions, valid_from, valid_to, is_active, created_at, updated_at
+                FROM catalog_tour_rates
+                WHERE entity_id = ?
+                ORDER BY id ASC
+                """,
+                (entity_id,)
+            )
+            rows = cur.fetchall()
+
+        if date_str is None:
+            date_str = datetime.now(timezone(timedelta(hours=-5))).date().isoformat()
+
+        rates = []
+        for r in rows:
+            is_act = bool(r["is_active"] if hasattr(r, "__getitem__") else r[9])
+            if active_only and not is_act:
+                continue
+
+            v_from = str((r["valid_from"] if hasattr(r, "__getitem__") else r[7]) or "").strip()
+            v_to = str((r["valid_to"] if hasattr(r, "__getitem__") else r[8]) or "").strip()
+
+            # Validación de ventana de vigencia si está activa y se solicita filtrado por fecha
+            if active_only:
+                if v_from and date_str < v_from:
+                    continue  # Aún no entra en vigencia
+                if v_to and date_str > v_to:
+                    continue  # Ya venció
+
+            item = {
+                "id": r["id"] if hasattr(r, "__getitem__") else r[0],
+                "entity_id": r["entity_id"] if hasattr(r, "__getitem__") else r[1],
+                "rate_category": r["rate_category"] if hasattr(r, "__getitem__") else r[2],
+                "rate_name": r["rate_name"] if hasattr(r, "__getitem__") else r[3],
+                "price": str(r["price"] if hasattr(r, "__getitem__") else r[4]),
+                "currency": r["currency"] if hasattr(r, "__getitem__") else r[5],
+                "conditions": (r["conditions"] if hasattr(r, "__getitem__") else r[6]) or "",
+                "valid_from": v_from,
+                "valid_to": v_to,
+                "is_active": is_act,
+                "created_at": r["created_at"] if hasattr(r, "__getitem__") else r[10],
+                "updated_at": r["updated_at"] if hasattr(r, "__getitem__") else r[11],
+            }
+            rates.append(item)
+        return rates
+    except Exception as e:
+        print(f"[CATALOG SERVICE ERROR] Error consultando tarifas de {entity_id}: {e}")
+        return []
+
+
+def upsert_tour_rate(data: Dict[str, Any]) -> Tuple[bool, Union[int, str]]:
+    """
+    Crea o actualiza una tarifa especial para un tour.
+    Retorna (ok: bool, rate_id_o_mensaje: Union[int, str]).
+    """
+    if not isinstance(data, dict):
+        return False, "La tarifa debe ser un objeto."
+    entity_id = str(data.get("entity_id") or "").strip().lower()
+    rate_name = str(data.get("rate_name") or data.get("name") or "").strip()
+    price = str(data.get("price", "")).strip()
+
+    if not entity_id or not rate_name or not price:
+        return False, "El entity_id, nombre de tarifa y precio son obligatorios."
+
+    rate_category = str(data.get("rate_category") or data.get("category") or "custom").strip().lower()
+    allowed_categories = {"adult", "student", "child", "promo", "custom"}
+    if rate_category not in allowed_categories:
+        return False, "Categoría de tarifa inválida."
+
+    currency = str(data.get("currency", "USD")).strip().upper()
+    conditions = str(data.get("conditions", "") or "").strip()
+    valid_from = str(data.get("valid_from", "") or "").strip()
+    valid_to = str(data.get("valid_to", "") or "").strip()
+    active = data.get("is_active", True)
+    if type(active) not in (bool, int) or active not in (0, 1):
+        return False, "is_active debe ser booleano o 0/1."
+    is_active = int(active)
+    if currency not in {"USD", "PEN"}:
+        return False, "Moneda inválida; use USD o PEN."
+    try:
+        amount = Decimal(price)
+        if not amount.is_finite() or amount < 0:
+            return False, "El precio debe ser un número finito no negativo."
+        for value in (valid_from, valid_to):
+            if value and date.fromisoformat(value).isoformat() != value:
+                return False, "Fecha inválida; use YYYY-MM-DD."
+        if valid_from and valid_to and valid_from > valid_to:
+            return False, "El inicio de vigencia no puede ser posterior al final."
+    except (InvalidOperation, ValueError):
+        return False, "Precio o fecha inválidos."
+
+    rate_id = data.get("id")
+    now = datetime.utcnow().isoformat()
+
+    try:
+        init_catalog_db()
+        with get_db_session() as conn:
+            if rate_id:
+                rate_id_int = int(rate_id)
+                if not conn.execute("SELECT id FROM catalog_tour_rates WHERE id = ? AND entity_id = ?",
+                                    (rate_id_int, entity_id)).fetchone():
+                    return False, "Tarifa no encontrada para este tour."
+                conn.execute(
+                    """
+                    UPDATE catalog_tour_rates
+                    SET rate_category = ?, rate_name = ?, price = ?, currency = ?,
+                        conditions = ?, valid_from = ?, valid_to = ?, is_active = ?, updated_at = ?
+                    WHERE id = ? AND entity_id = ?
+                    """,
+                    (
+                        rate_category, rate_name, price, currency,
+                        conditions, valid_from, valid_to, is_active, now,
+                        rate_id_int, entity_id
+                    )
+                )
+                final_id = rate_id_int
+            else:
+                if not conn.execute("SELECT entity_id FROM catalog_tours WHERE entity_id = ?", (entity_id,)).fetchone():
+                    return False, "Tour no encontrado."
+                cur = conn.execute(
+                    """
+                    INSERT INTO catalog_tour_rates (
+                        entity_id, rate_category, rate_name, price, currency,
+                        conditions, valid_from, valid_to, is_active, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        entity_id, rate_category, rate_name, price, currency,
+                        conditions, valid_from, valid_to, is_active, now, now
+                    )
+                )
+                final_id = cur.lastrowid
+                if final_id is None:
+                    raise RuntimeError("La base de datos no devolvió el ID de la tarifa.")
+
+            # Tocar updated_at del tour padre para forzar sincronización instantánea de caché
+            conn.execute(
+                "UPDATE catalog_tours SET updated_at = ? WHERE entity_id = ?",
+                (now, entity_id)
+            )
+
+        invalidate_catalog_cache()
+        return True, final_id
+    except Exception as e:
+        print(f"[CATALOG SERVICE ERROR] Error guardando tarifa para {entity_id}: {e}")
+        return False, str(e)
+
+
+def delete_tour_rate(rate_id: int, entity_id: Optional[str] = None) -> Tuple[bool, str]:
+    """Elimina una tarifa especial por su ID."""
+    try:
+        init_catalog_db()
+        now = datetime.utcnow().isoformat()
+        with get_db_session() as conn:
+            existing = conn.execute("SELECT entity_id FROM catalog_tour_rates WHERE id = ?", (rate_id,)).fetchone()
+            if not existing or (entity_id and existing[0] != entity_id):
+                return False, "Tarifa no encontrada para este tour."
+            if entity_id:
+                conn.execute(
+                    "DELETE FROM catalog_tour_rates WHERE id = ? AND entity_id = ?",
+                    (rate_id, entity_id)
+                )
+                conn.execute(
+                    "UPDATE catalog_tours SET updated_at = ? WHERE entity_id = ?",
+                    (now, entity_id)
+                )
+            else:
+                row = conn.execute(
+                    "SELECT entity_id FROM catalog_tour_rates WHERE id = ?",
+                    (rate_id,)
+                ).fetchone()
+                eid = row[0] if row else ""
+                conn.execute("DELETE FROM catalog_tour_rates WHERE id = ?", (rate_id,))
+                if eid:
+                    conn.execute(
+                        "UPDATE catalog_tours SET updated_at = ? WHERE entity_id = ?",
+                        (now, eid)
+                    )
+
+        invalidate_catalog_cache()
+        return True, "Tarifa eliminada exitosamente."
+    except Exception as e:
+        return False, str(e)

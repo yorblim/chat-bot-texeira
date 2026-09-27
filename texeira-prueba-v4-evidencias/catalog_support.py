@@ -18,11 +18,14 @@ BROCHURES_DIR = catalog_service.BROCHURES_DIR
 
 
 import hmac
-from auth_middleware import _check_credentials
+from auth_middleware import _check_credentials, panel_csrf_token
 
 def install(app):
     """Instala las rutas del catálogo dinámico y endpoints multimedia en FastAPI."""
-    csrf_token = secrets.token_urlsafe(24)
+    # Cloud Run puede reiniciar o alternar instancias mientras el panel sigue
+    # abierto. Derivar el token del secreto compartido evita tokens por proceso.
+    # El dominio separa este valor del password y de otros paneles.
+    csrf_token = panel_csrf_token('catalog')
     app.state.catalog_csrf_token = csrf_token
 
     # Inicializar base de datos y sembrar catálogo canónico en startup
@@ -33,7 +36,7 @@ def install(app):
         client_csrf = request.headers.get("X-Catalog-CSRF", "")
         if not client_csrf:
             return False
-        return hmac.compare_digest(client_csrf, csrf_token)
+        return hmac.compare_digest(client_csrf.encode("utf-8"), csrf_token.encode("utf-8"))
 
     def _authorized_mutation(request: Request) -> tuple:
         """
@@ -49,7 +52,9 @@ def install(app):
 
     @app.get("/catalogo", response_class=HTMLResponse)
     async def catalog_page(request: Request):
-        return HTMLResponse(get_catalog_html(csrf_token))
+        if not _check_credentials(request):
+            return Response(status_code=401)
+        return HTMLResponse(get_catalog_html(csrf_token), headers={"Cache-Control": "no-store"})
 
     @app.get("/api/catalog/tours")
     async def list_catalog_tours(request: Request):
@@ -70,7 +75,7 @@ def install(app):
     async def get_catalog_csrf_token(request: Request):
         if not _check_credentials(request):
             return JSONResponse({"ok": False, "error": "No autorizado"}, status_code=401)
-        return JSONResponse({"ok": True, "csrf_token": csrf_token})
+        return JSONResponse({"ok": True, "csrf_token": csrf_token}, headers={"Cache-Control": "no-store"})
 
     @app.post("/api/catalog/tours")
     async def create_or_update_tour(request: Request):
@@ -119,6 +124,40 @@ def install(app):
         if not ok_auth:
             return JSONResponse({"ok": False, "error": err}, status_code=status)
         ok, msg = catalog_service.delete_tour(entity_id)
+        if not ok:
+            return JSONResponse({"ok": False, "error": msg}, status_code=400)
+        return JSONResponse({"ok": True, "message": msg})
+
+    # --- ENDPOINTS DE TARIFAS ESPECIALES (Tour hasMany Rates) ---
+
+    @app.get("/api/catalog/tours/{entity_id}/rates")
+    async def list_tour_rates(entity_id: str, request: Request):
+        all_rates = request.query_params.get("all", "1").lower() in ("1", "true", "yes")
+        active_only = not all_rates
+        rates = catalog_service.get_tour_rates(entity_id, active_only=active_only)
+        return JSONResponse(rates)
+
+    @app.post("/api/catalog/tours/{entity_id}/rates")
+    async def save_tour_rate(entity_id: str, request: Request):
+        ok_auth, status, err = _authorized_mutation(request)
+        if not ok_auth:
+            return JSONResponse({"ok": False, "error": err}, status_code=status)
+        try:
+            data = await request.json()
+            data["entity_id"] = entity_id
+            ok, res = catalog_service.upsert_tour_rate(data)
+            if not ok:
+                return JSONResponse({"ok": False, "error": res}, status_code=400)
+            return JSONResponse({"ok": True, "rate_id": res})
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    @app.delete("/api/catalog/rates/{rate_id}")
+    async def remove_tour_rate(rate_id: int, request: Request):
+        ok_auth, status, err = _authorized_mutation(request)
+        if not ok_auth:
+            return JSONResponse({"ok": False, "error": err}, status_code=status)
+        ok, msg = catalog_service.delete_tour_rate(rate_id)
         if not ok:
             return JSONResponse({"ok": False, "error": msg}, status_code=400)
         return JSONResponse({"ok": True, "message": msg})
