@@ -6,6 +6,7 @@ UI Moderna con diseño limpio, auto-refresh y indicadores visuales.
 """
 
 import json
+from html import escape
 from pathlib import Path
 
 
@@ -81,11 +82,11 @@ def get_dashboard_html(metrics: dict, interactions: list[dict]) -> str:
             </div>
             <div style="background:var(--bg-card);border-radius:12px;padding:16px 20px;margin-bottom:24px;border:1px solid var(--border)">
                 <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">
-                    <strong style="color:var(--text-primary)">Interpretación para la tesis:</strong><br>
-                    • <strong>Faithfulness ≥ 0.80</strong> = El sistema NO alucina → cumple Ley 29571 (protección al consumidor)<br>
-                    • <strong>Relevancy ≥ 0.80</strong> = Las respuestas son útiles y directas para el turista<br>
-                    • <strong>Context Precision</strong> = El retriever recupera los documentos correctos (ChromaDB funciona)<br>
-                    • <strong>Completeness</strong> = Las respuestas cubren la información disponible en los documentos
+                    <strong style="color:var(--text-primary)">Criterios de evaluación (RAGAS):</strong><br>
+                    • <strong>Faithfulness ≥ 0.80</strong> = Mide consistencia factual con el contexto recuperado en el conjunto experimental evaluado.<br>
+                    • <strong>Relevancy ≥ 0.80</strong> = Pertinencia y utilidad directa de las respuestas para el usuario.<br>
+                    • <strong>Context Precision</strong> = Precisión en la recuperación de fragmentos desde la base de conocimiento.<br>
+                    • <strong>Completeness</strong> = Cobertura de la información disponible en los documentos para responder.
                 </div>
             </div>
         """
@@ -93,6 +94,9 @@ def get_dashboard_html(metrics: dict, interactions: list[dict]) -> str:
     # Construir filas de la tabla
     rows_html = ""
     for interaction in interactions:
+        interaction = dict(interaction)
+        for key in ('user_id', 'timestamp', 'channel', 'detected_language', 'user_message', 'bot_response'):
+            interaction[key] = escape(str(interaction.get(key) or ''), quote=True)
         status_icon = "✅" if interaction['resolved_autonomously'] else "❌"
         status_class = "resolved" if interaction['resolved_autonomously'] else "escalated"
         escalation_badge = '<span class="badge badge-danger">ESCALADO</span>' if interaction['escalated_to_human'] else ""
@@ -105,8 +109,8 @@ def get_dashboard_html(metrics: dict, interactions: list[dict]) -> str:
             <td><span class="user-id">{interaction['user_id'][:12]}...</span></td>
             <td><span class="channel-badge channel-{interaction['channel']}">{channel_icon} {interaction['channel']}</span></td>
             <td><span class="lang-badge">{interaction['detected_language'].upper()}</span></td>
-            <td><div class="message-cell" title="{interaction['user_message'][:200]}">{interaction['user_message'][:40]}...</div></td>
-            <td><div class="response-cell" title="{interaction['bot_response'][:200]}">{interaction['bot_response'][:45]}...</div></td>
+            <td><details><summary>Ver mensaje</summary><div style="white-space:pre-wrap;min-width:180px">{interaction['user_message']}</div></details></td>
+            <td><details><summary>Ver respuesta</summary><div style="white-space:pre-wrap;min-width:220px">{interaction['bot_response']}</div></details></td>
             <td>{status_icon} {escalation_badge}</td>
             <td><span class="latency {'latency-good' if interaction['latency_ms'] < 5000 else 'latency-bad'}">{interaction['latency_ms']:.0f}ms</span></td>
         </tr>
@@ -448,12 +452,10 @@ def get_dashboard_html(metrics: dict, interactions: list[dict]) -> str:
             <div class="header">
                 <div class="header-content">
                     <div>
-                        <h1>✈️ Texeira Travel Tour</h1>
-                        <p>Panel de Control del Agente Conversacional RAG</p>
+                        <h1>Resumen de interacciones</h1>
+                        <p>Registro histórico · Incluye los canales y pruebas registrados. No acredita entrega ni resolución validada.</p>
                     </div>
                     <div style="display:flex; gap:10px; align-items:center;">
-                        <a href="/handoffs" style="color:white; text-decoration:none; font-weight:600; font-size:13px; background:rgba(255,255,255,0.2); padding:8px 14px; border-radius:20px;">🛎️ Asesores</a>
-                        <a href="/catalogo" style="color:white; text-decoration:none; font-weight:600; font-size:13px; background:rgba(255,255,255,0.2); padding:8px 14px; border-radius:20px;">🗺️ Catálogo</a>
                         <div class="header-badge">🔄 Auto-refresh: 30s</div>
                     </div>
                 </div>
@@ -530,4 +532,5 @@ def get_dashboard_html(metrics: dict, interactions: list[dict]) -> str:
     </body>
     </html>
     """
-    return html
+    from admin_theme import decorate
+    return decorate(html, 'dashboard')

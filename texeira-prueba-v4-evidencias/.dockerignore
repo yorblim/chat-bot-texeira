@@ -20,6 +20,7 @@
 !catalog_service.py
 !catalog_support.py
 !catalog_ui.py
+!admin_theme.py
 !src/
 !src/**
 src/**/__pycache__/

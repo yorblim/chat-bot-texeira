@@ -84,12 +84,145 @@ def install(app):
     async def page(request:Request):
         if not _is_allowed(request):
             return HTMLResponse('Acceso local requerido',status_code=403)
-        return HTMLResponse(PAGE)
+        from admin_theme import decorate
+        return HTMLResponse(decorate(PAGE, 'metrics'))
 
-PAGE='''<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-<title>Métricas operativas — Texeira</title><style>body{font:16px system-ui;max-width:900px;margin:40px auto;padding:20px;color:#18333b;background:#f4f7f8}table{width:100%;border-collapse:collapse;background:white}td,th{padding:14px;border-bottom:1px solid #ccd}th{text-align:left}button{padding:10px;font:inherit}</style>
-<h1>Métricas operativas de WhatsApp</h1><p>Envío aceptado por Meta no significa entrega al teléfono ni consulta resuelta. Los errores permanecen en el total.</p><p>Se cuentan mensajes de texto admitidos y no duplicados desde esta versión, sin reconstruir eventos antiguos. Las solicitudes humanas corresponden a WhatsApp desde la instalación de su panel.</p>
-<a href="/handoffs">Solicitudes humanas</a> <button id="refresh">Actualizar</button><p id="since"></p><table><thead><tr><th>Indicador</th><th>Valor</th></tr></thead><tbody id="rows"></tbody></table>
-<p>La latencia empieza al recibir el webhook en el servidor. No mide el tiempo desde que el usuario escribió en su teléfono. Una solicitud cerrada refleja el resultado registrado por el asesor, no una confirmación automática del cliente.</p>
-<p>Entrega al teléfono, resolución validada, disponibilidad y atención fuera de horario: todavía no medidas. El horario debe confirmarlo la agencia.</p>
-<script>async function load(){const r=await fetch('/operational-metrics/data');if(!r.ok)throw Error('No se pudieron consultar las métricas');const d=await r.json();document.getElementById('since').textContent=d.observed_since?'Desde: '+new Date(d.observed_since).toLocaleString():'Aún no hay eventos nuevos.';const rows=[['Mensajes registrados',d.received],['Envíos aceptados por Meta',d.api_accepted],['Envíos fallidos',d.send_failed],['Fallos de procesamiento',d.processing_failed],['Pendientes de procesamiento',d.processing],['Errores por límite del proveedor',d.provider_rate_limits],['Aceptación API sobre todos los mensajes (%)',d.api_acceptance_pct],['Preparación de respuesta: promedio (ms)',d.generation_ms],['Hasta aceptación API: promedio de envíos aceptados (ms)',d.api_acceptance_ms],['Solicitudes humanas pendientes',d.human_requests.pending||0],['Solicitudes humanas en atención',d.human_requests.in_progress||0],['Solicitudes cerradas por el asesor',d.human_requests.closed||0]];const root=document.getElementById('rows');root.replaceChildren();for(const [k,v] of rows){const tr=document.createElement('tr');for(const text of [k,v===null?'Sin datos':typeof v==='number'?String(Math.round(v*100)/100):v]){const td=document.createElement('td');td.textContent=text;tr.append(td)}root.append(tr)}}document.getElementById('refresh').onclick=()=>load().catch(e=>document.getElementById('since').textContent=e.message);load().catch(e=>document.getElementById('since').textContent=e.message)</script></html>'''
+PAGE='''<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Métricas operativas de WhatsApp — Texeira Travel</title>
+<style>
+  .metrics-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-bottom: 24px; }
+  .metrics-group { background: #fff; border: 1px solid #dbe4ee; border-radius: 12px; padding: 20px; }
+  .metrics-group.full-width { grid-column: 1 / -1; }
+  .metrics-group h2 { margin: 0 0 14px 0; font-size: 16px; color: #174363; display: flex; align-items: center; gap: 8px; font-weight: 700; }
+  .metrics-table { width: 100%; border-collapse: collapse; }
+  .metrics-table th, .metrics-table td { padding: 10px 14px; text-align: left; font-size: 14px; border-bottom: 1px solid #eef3f8; }
+  .metrics-table th { background: #f8fafc; color: #52657b; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  .metrics-table tr:last-child td { border-bottom: none; }
+  .metrics-table td.val { text-align: right; font-weight: 700; font-family: ui-monospace, monospace; color: #172b43; }
+  .metrics-table td.val-highlight { color: #1769aa; }
+  .since-badge { display: inline-block; font-size: 13px; color: #52657b; margin-top: 6px; }
+  @media(max-width: 800px) {
+    .metrics-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header class="header">
+  <div>
+    <h1>📈 Métricas operativas de WhatsApp</h1>
+    <p>Telemetría de webhooks, latencia y atención humana en tiempo real</p>
+  </div>
+  <button id="refresh" class="btn" style="background:#1769aa;color:white;border:none;padding:8px 16px;font-weight:600;border-radius:8px;">🔄 Actualizar</button>
+</header>
+
+<div class="admin-note" style="margin-bottom: 22px;">
+  <strong>ℹ️ Alcance de medición y limitaciones técnicas</strong>
+  <p style="margin: 4px 0 0;">El <strong>envío aceptado por Meta</strong> indica recepción técnica en la API de WhatsApp Cloud, pero <em>no acredita</em> entrega física en el teléfono ni consulta resuelta para el cliente. Los errores de red o proveedor permanecen contabilizados en el total.</p>
+  <div class="since-badge" id="since">Cargando eventos...</div>
+</div>
+
+<div class="metrics-grid">
+  <div class="metrics-group full-width">
+    <h2>📨 Mensajería y Envíos WhatsApp</h2>
+    <table class="metrics-table">
+      <thead>
+        <tr><th>Indicador de Tráfico y Envíos</th><th style="text-align:right">Valor</th></tr>
+      </thead>
+      <tbody id="rows-traffic"></tbody>
+    </table>
+  </div>
+
+  <div class="metrics-group">
+    <h2>⏱️ Tiempos de Respuesta (Latencia)</h2>
+    <table class="metrics-table">
+      <thead>
+        <tr><th>Etapa de Procesamiento</th><th style="text-align:right">Promedio</th></tr>
+      </thead>
+      <tbody id="rows-latency"></tbody>
+    </table>
+  </div>
+
+  <div class="metrics-group">
+    <h2>🛎️ Solicitudes de Atención Humana</h2>
+    <table class="metrics-table">
+      <thead>
+        <tr><th>Estado de la Solicitud</th><th style="text-align:right">Cantidad</th></tr>
+      </thead>
+      <tbody id="rows-human"></tbody>
+    </table>
+    <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #eef3f8;">
+      <a href="/handoffs" style="font-size: 13px; color: #1769aa; font-weight: 600; text-decoration: none;">Abrir consola de Atención al cliente →</a>
+    </div>
+  </div>
+</div>
+
+<details class="admin-method">
+  <summary>Metodología, definiciones técnicas y limitaciones</summary>
+  <div style="font-size: 13px; line-height: 1.6; color: #52657b; margin-top: 12px;">
+    <p>• <strong>Inicio de latencia:</strong> Se registra a partir de la llegada del webhook al servidor. No contempla la transmisión previa desde el dispositivo del usuario.</p>
+    <p>• <strong>Estado de solicitudes:</strong> Una solicitud cerrada refleja la acción explícita registrada por el asesor en la consola, no una confirmación automática del cliente.</p>
+    <p>• <strong>Métricas no medidas automáticamente:</strong> La entrega física al teléfono, confirmación de lectura, resolución validada del caso y cobertura fuera de horario no están instrumentadas de forma autónoma.</p>
+    <p>• <strong>Período y origen:</strong> Se contabilizan eventos admitidos y desduplicados desde el arranque de esta versión, sin reconstrucción retrospectiva de sesiones anteriores.</p>
+  </div>
+</details>
+
+<script>
+function fmtVal(v, suffix='') {
+  if (v === null || v === undefined) return 'Sin datos';
+  if (typeof v === 'number') {
+    const rounded = Math.round(v * 100) / 100;
+    return String(rounded) + suffix;
+  }
+  return String(v) + suffix;
+}
+
+function fillRows(tbodyId, rows) {
+  const root = document.getElementById(tbodyId);
+  root.replaceChildren();
+  for (const [label, val, highlight] of rows) {
+    const tr = document.createElement('tr');
+    const tdLabel = document.createElement('td');
+    tdLabel.textContent = label;
+    const tdVal = document.createElement('td');
+    tdVal.className = 'val' + (highlight ? ' val-highlight' : '');
+    tdVal.textContent = val;
+    tr.append(tdLabel, tdVal);
+    root.append(tr);
+  }
+}
+
+async function load() {
+  const r = await fetch('/operational-metrics/data');
+  if (!r.ok) throw Error('No se pudieron consultar las métricas');
+  const d = await r.json();
+  document.getElementById('since').textContent = d.observed_since
+    ? 'Observado desde: ' + new Date(d.observed_since).toLocaleString()
+    : 'Aún no hay eventos registrados en este período.';
+
+  fillRows('rows-traffic', [
+    ['Mensajes entrantes registrados', fmtVal(d.received)],
+    ['Envíos aceptados por la API de Meta', fmtVal(d.api_accepted), true],
+    ['Tasa de aceptación API (%)', fmtVal(d.api_acceptance_pct, '%'), true],
+    ['Envíos fallidos (red o proveedor)', fmtVal(d.send_failed)],
+    ['Fallos internos de procesamiento', fmtVal(d.processing_failed)],
+    ['Mensajes pendientes de procesamiento', fmtVal(d.processing)],
+    ['Bloqueos por límite del proveedor (rate limits)', fmtVal(d.provider_rate_limits)]
+  ]);
+
+  fillRows('rows-latency', [
+    ['Preparación de respuesta (RAG / motor)', fmtVal(d.generation_ms, ' ms')],
+    ['Hasta aceptación API en envíos exitosos', fmtVal(d.api_acceptance_ms, ' ms'), true]
+  ]);
+
+  const hr = d.human_requests || {};
+  fillRows('rows-human', [
+    ['Solicitudes pendientes de atención', fmtVal(hr.pending || 0), (hr.pending || 0) > 0],
+    ['Solicitudes en curso de atención', fmtVal(hr.in_progress || 0)],
+    ['Solicitudes cerradas por el asesor', fmtVal(hr.closed || 0)]
+  ]);
+}
+
+document.getElementById('refresh').onclick = () => load().catch(e => document.getElementById('since').textContent = e.message);
+load().catch(e => document.getElementById('since').textContent = e.message);
+</script>
+</html>'''
