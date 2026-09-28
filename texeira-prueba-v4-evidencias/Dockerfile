@@ -47,6 +47,7 @@ COPY db_adapter.py .
 COPY conversation_memory.py .
 COPY chat_ui.py .
 COPY admin_dashboard.py .
+COPY admin_theme.py .
 COPY operational_metrics.py .
 COPY advisor_entry.py .
 COPY auth_middleware.py .

@@ -2454,7 +2454,7 @@ async def dashboard():
         html = get_dashboard_html(metrics, interactions)
         html = html.replace('<body>', '<body><aside style="padding:16px;background:#fff3cd;color:#222">'
                             'Indicadores históricos: no acreditan entrega ni resolución validada. '
-                            'El registro operativo está en el panel local de asesores (puerto 8023).'
+                            'Consulta el <a href="/operational-metrics">registro operativo de WhatsApp</a> y <a href="/handoffs">Atención al cliente</a>.'
                             '</aside>', 1)
         return HTMLResponse(content=html)
     except Exception as e:
@@ -2568,4 +2568,3 @@ from operational_metrics import install as _install_operational
 _install_operational(app)
 from catalog_support import install as _install_catalog
 _install_catalog(app)
-

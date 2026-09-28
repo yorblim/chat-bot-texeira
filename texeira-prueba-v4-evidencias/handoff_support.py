@@ -298,7 +298,8 @@ def install(ns):
     @app.get('/handoffs',response_class=HTMLResponse)
     async def panel(request:Request):
         if not local(request): return HTMLResponse('Acceso local requerido',status_code=403)
-        return HTMLResponse(PANEL.replace('__CSRF__',csrf), headers={'Cache-Control': 'no-store'})
+        from admin_theme import decorate
+        return HTMLResponse(decorate(PANEL.replace('__CSRF__',csrf), 'handoffs'), headers={'Cache-Control': 'no-store'})
 
     @app.get('/handoffs/data')
     async def data(request:Request):
@@ -368,18 +369,39 @@ PANEL='''<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewpo
     <h1>🛎️ Consola de Asesores — Texeira Travel</h1>
     <p style="margin: 4px 0 0; color: var(--muted); font-size: 14px;">Gestión de consultas escaladas y atención humana por WhatsApp</p>
   </div>
-  <div class="nav-links">
-    <a href="/catalogo">🗺️ Catálogo</a>
-    <a href="/dashboard">📊 Dashboard</a>
-    <a href="/operational-metrics">📈 Métricas</a>
+  <div>
     <button id="refresh" class="btn-refresh">🔄 Actualizar</button>
   </div>
 </header>
+<div class="admin-toolbar" aria-label="Filtrar solicitudes">
+<button data-state="pending" aria-pressed="true">Pendientes</button>
+<button data-state="in_progress" aria-pressed="false">En atención</button>
+<button data-state="closed" aria-pressed="false">Cerradas</button>
+<button data-state="all" aria-pressed="false">Todas</button>
+<input id="ticketSearch" type="search" aria-label="Buscar solicitud" placeholder="Buscar cliente, consulta o ticket">
+</div>
+<p id="visibleCount" role="status"></p>
 <p id="feedback" role="status"></p>
 <main id="list"></main>
 <script>
 const stateNames = { pending: 'Pendiente', in_progress: 'En atención', closed: 'Cerrada' };
 const stateBadges = { pending: 'badge-pending', in_progress: 'badge-in_progress', closed: 'badge-closed' };
+let selectedState = 'pending';
+function filterTickets(){
+  const query = document.getElementById('ticketSearch').value.toLocaleLowerCase().trim();
+  let count = 0;
+  document.querySelectorAll('.ticket').forEach(ticket => {
+    ticket.hidden = (selectedState !== 'all' && ticket.dataset.state !== selectedState) || !ticket.dataset.search.includes(query);
+    if (!ticket.hidden) count++;
+  });
+  document.getElementById('visibleCount').textContent = count ? `${count} solicitudes · Abre una para consultar el historial y atenderla.` : 'No hay solicitudes con estos filtros.';
+}
+document.querySelectorAll('[data-state]').forEach(button => button.onclick = () => {
+  selectedState = button.dataset.state;
+  document.querySelectorAll('[data-state]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
+  filterTickets();
+});
+document.getElementById('ticketSearch').oninput = filterTickets;
 const elem = (tag, cls, text) => {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -396,25 +418,30 @@ async function load() {
     list.replaceChildren();
     if (!rows.length) {
       list.append(elem('p', '', 'No hay solicitudes registradas en este momento.'));
+      filterTickets();
       return;
     }
     for (const x of rows) {
-      const a = elem('article');
+      const a = elem('details', 'ticket');
+      a.dataset.state = x.status;
+      a.dataset.search = `${x.id} ${x.user_id} ${x.question} ${x.advisor || ''}`.toLocaleLowerCase();
+      const overview = elem('summary');
       
       const head = elem('div', 'card-header');
       head.append(
         elem('h2', '', `Ticket #${x.id}`),
         elem('span', `badge ${stateBadges[x.status] || ''}`, stateNames[x.status] || x.status)
       );
-      a.append(head);
+      overview.append(head);
 
       const meta = elem('div', 'client-meta');
       meta.textContent = `Canal: ${x.channel} · Cliente: ${x.user_id} · Fecha: ${new Date(x.created_at).toLocaleString()}`;
-      a.append(meta);
+      overview.append(meta);
 
       const query = elem('div', 'client-query');
       query.textContent = `Consulta: "${x.question}"`;
-      a.append(query);
+      overview.append(query);
+      a.append(overview);
 
       if (x.context && x.context !== '[]') {
         const det = elem('details');
@@ -443,12 +470,16 @@ async function load() {
         who.type = 'text';
         who.placeholder = 'Ej: Eugenio Maldonado';
         who.value = x.advisor || '';
+        who.id = `advisor-${x.id}`;
+        lWho.htmlFor = who.id;
         formDiv.append(lWho, who);
 
         const lNote = elem('label', '', 'Respuesta al cliente / Nota de atención');
         const note = elem('textarea');
         note.placeholder = 'Escribe aquí el mensaje para el cliente o el resultado de la atención...';
         note.value = x.note || '';
+        note.id = `note-${x.id}`;
+        lNote.htmlFor = note.id;
         formDiv.append(lNote, note);
 
         const checkLabel = elem('label', 'checkbox-group');
@@ -465,7 +496,8 @@ async function load() {
           bTake.onclick = async () => {
             if (!who.value.trim()) { alert('Por favor ingresa tu nombre de asesor.'); who.focus(); return; }
             bTake.disabled = true;
-            await sendUpdate(x.id, 'in_progress', who.value, note.value, false);
+            try { await sendUpdate(x.id, 'in_progress', who.value, note.value, false); }
+            finally { bTake.disabled = false; }
           };
           btnGroup.append(bTake);
         }
@@ -479,7 +511,8 @@ async function load() {
           if (!who.value.trim()) { alert('Por favor ingresa tu nombre de asesor.'); who.focus(); return; }
           if (!note.value.trim()) { alert('Escribe la respuesta o nota de atención antes de cerrar.'); note.focus(); return; }
           bClose.disabled = true;
-          await sendUpdate(x.id, 'closed', who.value, note.value, sendCheck.checked);
+          try { await sendUpdate(x.id, 'closed', who.value, note.value, sendCheck.checked); }
+          finally { bClose.disabled = false; }
         };
         btnGroup.append(bClose);
 
@@ -489,6 +522,7 @@ async function load() {
 
       list.append(a);
     }
+    filterTickets();
   } catch (err) {
     list.replaceChildren(elem('p', 'error', err.message));
   }

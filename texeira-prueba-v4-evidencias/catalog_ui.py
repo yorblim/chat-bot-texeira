@@ -7,7 +7,8 @@ y subir fotos y folletos PDF sincronizados con WhatsApp.
 """
 
 def get_catalog_html(csrf_token: str) -> str:
-    return f"""<!doctype html>
+    from admin_theme import decorate
+    return decorate(f"""<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
@@ -369,11 +370,7 @@ def get_catalog_html(csrf_token: str) -> str:
         <h1>🗺️ Catálogo de Tours y Tarifas</h1>
         <p class="subtitle">Texeira Travel — Gestión de precios, horarios, folletos e imágenes sincronizados con el chatbot</p>
       </div>
-      <div class="nav-links">
-        <a href="/handoffs">🛎️ Asesores</a>
-        <a href="/catalogo" class="active">🗺️ Catálogo</a>
-        <a href="/dashboard">📊 Dashboard</a>
-        <a href="/operational-metrics">📈 Métricas</a>
+      <div>
         <button id="btnNewTour" class="btn btn-primary">+ Nuevo Tour</button>
       </div>
     </header>
@@ -611,9 +608,9 @@ def get_catalog_html(csrf_token: str) -> str:
         card.innerHTML = `
           <div>
             <div class="card-top">
-              <div>
+              <div style="flex:1;min-width:0;padding-right:8px;">
                 <h3 class="tour-title">${{t.name}}</h3>
-                <div class="tour-id">${{t.entity_id}}</div>
+                <div class="tour-id">ID: ${{t.entity_id}}</div>
               </div>
               <span class="badge ${{badgeCls}}">${{badgeTxt}}</span>
             </div>
@@ -998,4 +995,4 @@ def get_catalog_html(csrf_token: str) -> str:
     loadTours();
   </script>
 </body>
-</html>"""
+</html>""", 'catalogo')
