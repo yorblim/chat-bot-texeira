@@ -78,6 +78,9 @@ def run_verification():
     # 5. Interacciones conversacionales con usuario sintético
     print("\n[4/5] Probando flujo conversacional con usuario sintético...")
     user_id = "synthetic_pilot_audit_final"
+    with get_db_session() as conn:
+        conn.execute("DELETE FROM interactions WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM conversation_memory WHERE user_id = ?", (user_id,))
 
     # Prueba A: Ayuda
     payload_ayuda = json.dumps({"user_id": user_id, "message": "ayuda"}).encode("utf-8")

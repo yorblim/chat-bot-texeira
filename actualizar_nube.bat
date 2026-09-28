@@ -46,9 +46,7 @@ call gcloud run deploy texeira-whatsapp ^
     --max-instances 2 ^
     --platform managed ^
     --allow-unauthenticated ^
-    --update-env-vars="ALLOW_CLOUD_RUN=1,ADMIN_USER=admin,APP_BASE_URL=https://texeira-whatsapp-1038134693816.us-central1.run.app" ^
-    --remove-env-vars="ADMIN_PASSWORD" ^
-    --update-secrets="DATABASE_URL=DATABASE_URL:1,ADMIN_PASSWORD=ADMIN_PASSWORD:2"
+    --quiet
 
 if %ERRORLEVEL% EQU 0 (
     color 0a
