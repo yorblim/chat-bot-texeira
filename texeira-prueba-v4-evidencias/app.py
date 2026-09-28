@@ -1705,8 +1705,6 @@ def _get_active_catalog_tour_buttons(lang: str = "es") -> List[dict]:
     except Exception:
         pass
 
-    if not active_eids:
-        active_eids = ['camino-inka', 'machu-picchu-tren', 'montana-7-colores']
 
     priority_order = [
         'camino-inka', 'machu-picchu-tren', 'montana-7-colores',
@@ -2165,7 +2163,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         "response": bot_response,
                         "route": "help",
                         "response_route": "help",
-                        "resolved_autonomously": True,
+                        "resolved_autonomously": False,
                         "is_fallback": False,
                         "is_predefined": True,
                     }
