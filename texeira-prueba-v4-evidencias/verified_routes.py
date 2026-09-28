@@ -144,7 +144,7 @@ def install(ns, support, original):
         for key,pattern in [
             ('excludes',r'no incluye|no esta incluido|exclu|not include'),
             ('includes',r'inclu|include'),
-            ('price',r'precio|cuesta|cuanto cuesta|costo|costos|tarifa|tarifas|soles|\bpen\b|price|prices|cost|costs|how much'),
+            ('price',r'precio|cuesta|cuanto cuesta|costo|costos|tarifa|tarifas|rate|rates|soles|\bpen\b|price|prices|cost|costs|how much'),
             ('schedule',r'horario|hora|schedule|timetable|what time|departure'),
             ('duration',r'dura|how long'),
             ('stops',r'lugares|recorrido|\bruta\b|paradas|itinerary|\broute\b|places'),

@@ -30,6 +30,12 @@ class TestInteractiveWhatsAppButtons(unittest.TestCase):
     def setUp(self):
         os.environ["META_ACCESS_TOKEN"] = "EAABtest_token_valid_12345"
         os.environ["META_PHONE_NUMBER_ID"] = "109876543210"
+        app.database.init_db(app.SQLITE_DB_PATH)
+        try:
+            from catalog_service import init_catalog_db
+            init_catalog_db()
+        except Exception:
+            pass
 
     def tearDown(self):
         pass
@@ -188,7 +194,6 @@ class TestInteractiveWhatsAppButtons(unittest.TestCase):
         from starlette.testclient import TestClient
         client = TestClient(app.app)
 
-        # Mock HMAC signature verification if required
         with patch.object(app, "META_APP_SECRET", "dummy_secret"), \
              patch("hmac.compare_digest", return_value=True), \
              patch.object(app, "send_whatsapp_message", return_value=True) as mock_send, \
@@ -220,7 +225,7 @@ class TestInteractiveWhatsAppButtons(unittest.TestCase):
                                 "interactive": {
                                     "type": "button_reply",
                                     "button_reply": {
-                                        "id": "btn_photo",
+                                        "id": "btn_photo:camino-inka:es",
                                         "title": "📸 Ver Fotos"
                                     }
                                 }
@@ -235,17 +240,199 @@ class TestInteractiveWhatsAppButtons(unittest.TestCase):
             self.assertEqual(resp.status_code, 200)
             self.assertTrue(mock_send.called)
 
-            # Verificar que el mensaje enviado responde a fotos
+            # Verificar que el mensaje enviado responde a fotos de Camino Inca
             call_kwargs = mock_send.call_args[1]
             sent_text = call_kwargs["text"]
             self.assertIn("imagen", sent_text.lower())
             self.assertIn("Camino Inca", sent_text)
 
-            # Verificar que el mensaje saliente incluye los botones siguientes (tarifas, qué incluye, asesor)
+            # Verificar que los botones devueltos transportan el ID del tour
             sent_buttons = call_kwargs.get("buttons")
             self.assertIsNotNone(sent_buttons)
-            btn_titles = [b["title"] for b in sent_buttons]
-            self.assertTrue(any("Tarifas" in t for t in btn_titles))
+            btn_ids = [b["id"] for b in sent_buttons]
+            self.assertTrue(any("camino-inka" in bid for bid in btn_ids))
+
+    def test_button_entity_binding_prevents_wrong_tour(self):
+        """P1: Un botón de Camino Inca debe responder sobre Camino Inca aunque luego se haya hablado de City Tour."""
+        from starlette.testclient import TestClient
+        client = TestClient(app.app)
+        uid = "51955550001"
+        app.clear_history(uid)
+
+        with patch.object(app, "META_APP_SECRET", "dummy_secret"), \
+             patch("hmac.compare_digest", return_value=True), \
+             patch.object(app, "send_whatsapp_message", return_value=True) as mock_send, \
+             patch.object(app.database, "claim_webhook", return_value=("new", "worker_1")), \
+             patch.object(app.database, "renew_webhook", return_value=True), \
+             patch.object(app.database, "finish_webhook", return_value=True):
+
+            # 1. Usuario habla de Camino Inca
+            app.rag_chain("informacion de Camino Inca", user_id=uid)
+            # 2. Usuario cambia a hablar de City Tour
+            app.rag_chain("informacion de City Tour Cusco", user_id=uid)
+
+            # 3. Usuario pulsa el botón 'Qué incluye' de Camino Inca
+            webhook_payload = {
+                "object": "whatsapp_business_account",
+                "entry": [{
+                    "id": "entry_p1",
+                    "changes": [{
+                        "value": {
+                            "metadata": {"phone_number_id": "109876543210"},
+                            "contacts": [{"wa_id": uid}],
+                            "messages": [{
+                                "from": uid,
+                                "id": "wamid.p1_001",
+                                "type": "interactive",
+                                "interactive": {
+                                    "type": "button_reply",
+                                    "button_reply": {
+                                        "id": "btn_inc:camino-inka:es",
+                                        "title": "📄 Qué incluye"
+                                    }
+                                }
+                            }]
+                        }
+                    }]
+                }]
+            }
+
+            resp = client.post("/webhook", json=webhook_payload)
+            self.assertEqual(resp.status_code, 200)
+            self.assertTrue(mock_send.called)
+            sent_text = mock_send.call_args[1]["text"]
+            self.assertIn("Camino Inca", sent_text)
+            self.assertNotIn("City Tour", sent_text)
+
+    def test_button_preserves_english_language(self):
+        """P2: Pulsar botón en inglés (Rates) debe responder en inglés con botones en inglés."""
+        from starlette.testclient import TestClient
+        client = TestClient(app.app)
+        uid = "51955550002"
+        app.clear_history(uid)
+
+        with patch.object(app, "META_APP_SECRET", "dummy_secret"), \
+             patch("hmac.compare_digest", return_value=True), \
+             patch.object(app, "send_whatsapp_message", return_value=True) as mock_send, \
+             patch.object(app.database, "claim_webhook", return_value=("new", "worker_1")), \
+             patch.object(app.database, "renew_webhook", return_value=True), \
+             patch.object(app.database, "finish_webhook", return_value=True):
+
+            # 1. Usuario inicia conversación en inglés
+            app.rag_chain("What does the Inca Trail include?", user_id=uid)
+
+            # 2. Usuario pulsa el botón 'Rates'
+            webhook_payload = {
+                "object": "whatsapp_business_account",
+                "entry": [{
+                    "id": "entry_p2",
+                    "changes": [{
+                        "value": {
+                            "metadata": {"phone_number_id": "109876543210"},
+                            "contacts": [{"wa_id": uid}],
+                            "messages": [{
+                                "from": uid,
+                                "id": "wamid.p2_001",
+                                "type": "interactive",
+                                "interactive": {
+                                    "type": "button_reply",
+                                    "button_reply": {
+                                        "id": "btn_rates:camino-inka:en",
+                                        "title": "💰 Rates"
+                                    }
+                                }
+                            }]
+                        }
+                    }]
+                }]
+            }
+
+            resp = client.post("/webhook", json=webhook_payload)
+            self.assertEqual(resp.status_code, 200)
+            self.assertTrue(mock_send.called)
+            sent_text = mock_send.call_args[1]["text"]
+            # Debe estar en inglés
+            self.assertTrue("Official rate" in sent_text or "USD" in sent_text)
+            self.assertNotIn("Tarifa oficial", sent_text)
+
+            # Botones devueltos deben ser en inglés
+            buttons = mock_send.call_args[1].get("buttons", [])
+            titles = [b["title"] for b in buttons]
+            self.assertTrue(any("Photos" in t or "Advisor" in t or "included" in t for t in titles))
+            self.assertFalse(any("Tarifas" in t for t in titles))
+
+    def test_buttons_connected_to_active_catalog_no_inactive_tours(self):
+        """P3: Desactivar un tour en el catálogo dinámico lo excluye de los botones de listado."""
+        import catalog_service
+        # Desactivar temporalmente camino-inka
+        ok, _ = catalog_service.upsert_tour(dict(entity_id="camino-inka", name="Camino Inca", is_active=False))
+        self.assertTrue(ok)
+
+        try:
+            buttons = app.get_quick_buttons(route="evidence_listing", lang="es")
+            button_eids = [b["id"] for b in buttons]
+            button_titles = [b["title"] for b in buttons]
+
+            # camino-inka no debe estar presente
+            self.assertFalse(any("camino-inka" in bid for bid in button_eids))
+            self.assertFalse(any("Camino Inca" in title for title in button_titles))
+
+            # Otros tours activos deben estar presentes
+            self.assertTrue(any("machu-picchu-tren" in bid or "montana-7-colores" in bid for bid in button_eids))
+        finally:
+            # Restaurar estado activo
+            catalog_service.upsert_tour(dict(entity_id="camino-inka", name="Camino Inca", is_active=True))
+
+    def test_ambiguous_legacy_button_requests_clarification(self):
+        """P1: Un botón sin entidad tras hablar de múltiples tours solicita aclaración."""
+        from starlette.testclient import TestClient
+        client = TestClient(app.app)
+        uid = "51955550003"
+        app.clear_history(uid)
+
+        with patch.object(app, "META_APP_SECRET", "dummy_secret"), \
+             patch("hmac.compare_digest", return_value=True), \
+             patch.object(app, "send_whatsapp_message", return_value=True) as mock_send, \
+             patch.object(app.database, "claim_webhook", return_value=("new", "worker_1")), \
+             patch.object(app.database, "renew_webhook", return_value=True), \
+             patch.object(app.database, "finish_webhook", return_value=True):
+
+            app.rag_chain("informacion de Camino Inca", user_id=uid)
+            app.rag_chain("informacion de City Tour Cusco", user_id=uid)
+
+            # Clic en botón legacy sin eid
+            webhook_payload = {
+                "object": "whatsapp_business_account",
+                "entry": [{
+                    "id": "entry_p1_ambig",
+                    "changes": [{
+                        "value": {
+                            "metadata": {"phone_number_id": "109876543210"},
+                            "contacts": [{"wa_id": uid}],
+                            "messages": [{
+                                "from": uid,
+                                "id": "wamid.p1_ambig_001",
+                                "type": "interactive",
+                                "interactive": {
+                                    "type": "button_reply",
+                                    "button_reply": {
+                                        "id": "btn_inc",
+                                        "title": "📄 Qué incluye"
+                                    }
+                                }
+                            }]
+                        }
+                    }]
+                }]
+            }
+
+            resp = client.post("/webhook", json=webhook_payload)
+            self.assertEqual(resp.status_code, 200)
+            self.assertTrue(mock_send.called)
+            sent_text = mock_send.call_args[1]["text"]
+            # Debe pedir aclaración en vez de responder City Tour
+            self.assertIn("deseas consultar", sent_text.lower())
+            self.assertNotIn("bus turistico", sent_text.lower())
 
 
 if __name__ == "__main__":

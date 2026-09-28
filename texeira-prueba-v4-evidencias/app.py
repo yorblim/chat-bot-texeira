@@ -1602,6 +1602,132 @@ SHOW_MORE_INTRO = {
     "fr": "Voici les options restantes :",
 }
 
+TOUR_BUTTON_NAMES = {
+    "camino-inka": {"es": "🥾 Camino Inca", "en": "🥾 Inca Trail"},
+    "machu-picchu-tren": {"es": "🏔️ Machu Picchu", "en": "🏔️ Machu Picchu"},
+    "montana-7-colores": {"es": "🌈 7 Colores", "en": "🌈 Rainbow Mtn"},
+    "laguna-humantay": {"es": "💎 Humantay", "en": "💎 Humantay"},
+    "city-tour-cusco": {"es": "🏛️ City Tour", "en": "🏛️ City Tour"},
+    "valle-sagrado": {"es": "🌾 Valle Sagrado", "en": "🌾 Sacred Valley"},
+    "salkantay-trek": {"es": "🥾 Salkantay", "en": "🥾 Salkantay"},
+    "maras-moray": {"es": "🧂 Maras-Moray", "en": "🧂 Maras-Moray"},
+    "maras-moray-cuatrimoto": {"es": "🏎️ Cuatrimotos", "en": "🏎️ ATVs"},
+    "inka-jungle": {"es": "🚵 Inka Jungle", "en": "🚵 Inka Jungle"},
+    "choquequirao": {"es": "🏕️ Choquequirao", "en": "🏕️ Choquequirao"},
+    "valle-sur": {"es": "🌄 Valle Sur", "en": "🌄 South Valley"},
+    "puente-qeswachaca": {"es": "🌉 Q'eswachaca", "en": "🌉 Q'eswachaca"},
+    "tour-mistico": {"es": "🔮 Tour Místico", "en": "🔮 Mystic Tour"},
+    "islas-titicaca": {"es": "⛵ Titicaca", "en": "⛵ Titicaca"},
+    "canon-colca": {"es": "🦅 Cañón Colca", "en": "🦅 Colca Canyon"},
+    "ruta-del-sol": {"es": "☀️ Ruta del Sol", "en": "☀️ Sun Route"},
+    "waqra-pukara": {"es": "🏰 Waqra Pukara", "en": "🏰 Waqra Pukara"},
+    "machu-picchu-car": {"es": "🚗 MP by Car", "en": "🚗 MP by Car"},
+}
+
+
+def _get_tour_display_name(eid: str, is_en: bool = False) -> str:
+    """Retorna el nombre para visualización del tour, priorizando el catálogo dinámico o traducción."""
+    if not eid or eid == "__AMBIGUOUS__":
+        return ""
+    names_es = {
+        "camino-inka": "Camino Inca",
+        "machu-picchu-tren": "Machu Picchu en tren",
+        "machu-picchu-car": "Machu Picchu en auto",
+        "montana-7-colores": "Montaña de 7 Colores",
+        "laguna-humantay": "Laguna Humantay",
+        "city-tour-cusco": "City Tour Cusco",
+        "valle-sagrado": "Valle Sagrado",
+        "salkantay-trek": "Salkantay Trek",
+        "maras-moray": "Maras - Moray",
+        "maras-moray-cuatrimoto": "Cuatrimotos Maras-Moray",
+        "inka-jungle": "Inka Jungle",
+        "choquequirao": "Choquequirao",
+        "valle-sur": "Valle Sur",
+        "puente-qeswachaca": "Puente Q'eswachaca",
+        "tour-mistico": "Tour Místico",
+        "islas-titicaca": "Islas del Titicaca",
+        "canon-colca": "Cañón del Colca",
+        "ruta-del-sol": "Ruta del Sol",
+        "waqra-pukara": "Waqra Pukara",
+    }
+    names_en = {
+        "camino-inka": "Inca Trail",
+        "machu-picchu-tren": "Machu Picchu by Train",
+        "machu-picchu-car": "Machu Picchu by Car",
+        "montana-7-colores": "Rainbow Mountain",
+        "laguna-humantay": "Humantay Lake",
+        "city-tour-cusco": "City Tour Cusco",
+        "valle-sagrado": "Sacred Valley",
+        "salkantay-trek": "Salkantay Trek",
+        "maras-moray": "Maras - Moray",
+        "maras-moray-cuatrimoto": "ATVs Maras-Moray",
+        "inka-jungle": "Inka Jungle",
+        "choquequirao": "Choquequirao",
+        "valle-sur": "South Valley",
+        "puente-qeswachaca": "Q'eswachaca Bridge",
+        "tour-mistico": "Mystic Tour",
+        "islas-titicaca": "Lake Titicaca",
+        "canon-colca": "Colca Canyon",
+        "ruta-del-sol": "Sun Route",
+        "waqra-pukara": "Waqra Pukara",
+    }
+    if is_en and eid in names_en:
+        return names_en[eid]
+    try:
+        from catalog_service import get_tour_by_id
+        t = get_tour_by_id(eid)
+        if t and t.get("name"):
+            return t["name"]
+    except Exception:
+        pass
+    mapping = names_en if is_en else names_es
+    return mapping.get(eid, eid)
+
+
+def _get_tour_button_title(eid: str, is_en: bool = False) -> str:
+    """Retorna un título corto <= 20 caracteres para botones de tour."""
+    if not eid or eid == "__AMBIGUOUS__":
+        return ""
+    if eid in TOUR_BUTTON_NAMES:
+        return TOUR_BUTTON_NAMES[eid]["en" if is_en else "es"]
+    name = _get_tour_display_name(eid, is_en=is_en)
+    return name[:20]
+
+
+def _get_active_catalog_tour_buttons(lang: str = "es") -> List[dict]:
+    """Genera botones de tours verificando que estén activos en el catálogo dinámico."""
+    is_en = (lang == "en")
+    active_eids = []
+    try:
+        from catalog_service import get_all_tours
+        dynamic_all = get_all_tours(active_only=True)
+        active_eids = [t['entity_id'] for t in dynamic_all if t.get('is_active')]
+    except Exception:
+        pass
+
+    if not active_eids:
+        active_eids = ['camino-inka', 'machu-picchu-tren', 'montana-7-colores']
+
+    priority_order = [
+        'camino-inka', 'machu-picchu-tren', 'montana-7-colores',
+        'laguna-humantay', 'city-tour-cusco', 'valle-sagrado',
+        'salkantay-trek', 'maras-moray', 'maras-moray-cuatrimoto'
+    ]
+    selected_eids = [eid for eid in priority_order if eid in active_eids]
+    if not selected_eids:
+        selected_eids = [eid for eid in active_eids if eid]
+
+    buttons = []
+    for eid in selected_eids[:2]:
+        title = _get_tour_button_title(eid, is_en=is_en)
+        buttons.append({"id": f"btn_tour:{eid}:{lang}", "title": title[:20]})
+
+    buttons.append({
+        "id": f"btn_advisor:{lang}",
+        "title": "🙋‍♂️ Advisor" if is_en else "🙋‍♂️ Asesor"
+    })
+    return buttons
+
 
 def get_quick_buttons(
     route: str = "",
@@ -1612,119 +1738,105 @@ def get_quick_buttons(
     """Genera hasta 3 botones contextuales según la intención y tour detectado.
 
     Todos los títulos están estrictamente acotados a <= 20 caracteres según la API de Meta.
+    Los IDs transportan el identificador del tour y el idioma para preservar el contexto.
     """
     is_en = (lang == "en")
     u_lower = (user_message or "").lower()
+    eid_suffix = f":{detected_eid}" if detected_eid else ""
 
     # 1. Si se solicitó o envió foto recientemente
     if route == "evidence_photo" or is_photo_requested(user_message):
         if is_en:
             return [
-                {"id": "btn_rates", "title": "💰 Rates"},
-                {"id": "btn_inc", "title": "📄 What's included"},
-                {"id": "btn_advisor", "title": "🙋‍♂️ Advisor"},
+                {"id": f"btn_rates{eid_suffix}:{lang}", "title": "💰 Rates"},
+                {"id": f"btn_inc{eid_suffix}:{lang}", "title": "📄 What's included"},
+                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Advisor"},
             ]
         else:
             return [
-                {"id": "btn_rates", "title": "💰 Tarifas"},
-                {"id": "btn_inc", "title": "📄 Qué incluye"},
-                {"id": "btn_advisor", "title": "🙋‍♂️ Asesor"},
+                {"id": f"btn_rates{eid_suffix}:{lang}", "title": "💰 Tarifas"},
+                {"id": f"btn_inc{eid_suffix}:{lang}", "title": "📄 Qué incluye"},
+                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Asesor"},
             ]
 
     # 2. Si se trata de precios / tarifas
     if route in ("evidence_confirmed_price", "evidence_special_rate") or _is_price_question(u_lower):
         if is_en:
             return [
-                {"id": "btn_photo", "title": "📸 View Photos"},
-                {"id": "btn_inc", "title": "📄 What's included"},
-                {"id": "btn_advisor", "title": "🙋‍♂️ Book Now"},
+                {"id": f"btn_photo{eid_suffix}:{lang}", "title": "📸 View Photos"},
+                {"id": f"btn_inc{eid_suffix}:{lang}", "title": "📄 What's included"},
+                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Book Now"},
             ]
         else:
             return [
-                {"id": "btn_photo", "title": "📸 Ver Fotos"},
-                {"id": "btn_inc", "title": "📄 Qué incluye"},
-                {"id": "btn_advisor", "title": "🙋‍♂️ Reservar"},
+                {"id": f"btn_photo{eid_suffix}:{lang}", "title": "📸 Ver Fotos"},
+                {"id": f"btn_inc{eid_suffix}:{lang}", "title": "📄 Qué incluye"},
+                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Reservar"},
             ]
 
     # 3. Si es saludo o ayuda
     if route in ("social", "help", "predefined"):
         if is_en:
             return [
-                {"id": "btn_tours", "title": "🗺️ View Tours"},
-                {"id": "btn_advisor", "title": "🙋‍♂️ Advisor"},
+                {"id": f"btn_tours:{lang}", "title": "🗺️ View Tours"},
+                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Advisor"},
             ]
         else:
             return [
-                {"id": "btn_tours", "title": "🗺️ Ver Tours"},
-                {"id": "btn_advisor", "title": "🙋‍♂️ Asesor"},
+                {"id": f"btn_tours:{lang}", "title": "🗺️ Ver Tours"},
+                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Asesor"},
             ]
 
     # 4. Si es listado de tours
     if route in ("evidence_listing", "tour_intent") or _is_listing_question(u_lower):
-        if is_en:
-            return [
-                {"id": "btn_ci", "title": "🥾 Inca Trail"},
-                {"id": "btn_mp", "title": "🏔️ Machu Picchu"},
-                {"id": "btn_advisor", "title": "🙋‍♂️ Advisor"},
-            ]
-        else:
-            return [
-                {"id": "btn_ci", "title": "🥾 Camino Inca"},
-                {"id": "btn_mp", "title": "🏔️ Machu Picchu"},
-                {"id": "btn_advisor", "title": "🙋‍♂️ Asesor"},
-            ]
+        return _get_active_catalog_tour_buttons(lang=lang)
 
     # 5. Si es consulta sobre qué incluye
     if route in ("evidence_confirmed_includes",) or _is_includes_question(u_lower):
         if is_en:
             return [
-                {"id": "btn_rates", "title": "💰 Rates"},
-                {"id": "btn_photo", "title": "📸 View Photos"},
-                {"id": "btn_advisor", "title": "🙋‍♂️ Advisor"},
+                {"id": f"btn_rates{eid_suffix}:{lang}", "title": "💰 Rates"},
+                {"id": f"btn_photo{eid_suffix}:{lang}", "title": "📸 View Photos"},
+                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Advisor"},
             ]
         else:
             return [
-                {"id": "btn_rates", "title": "💰 Tarifas"},
-                {"id": "btn_photo", "title": "📸 Ver Fotos"},
-                {"id": "btn_advisor", "title": "🙋‍♂️ Asesor"},
+                {"id": f"btn_rates{eid_suffix}:{lang}", "title": "💰 Tarifas"},
+                {"id": f"btn_photo{eid_suffix}:{lang}", "title": "📸 Ver Fotos"},
+                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Asesor"},
             ]
 
     # 6. Si hay un tour detectado (información general, itinerario, detalles)
     if detected_eid:
         if is_en:
             return [
-                {"id": "btn_photo", "title": "📸 View Photos"},
-                {"id": "btn_rates", "title": "💰 Rates"},
-                {"id": "btn_advisor", "title": "🙋‍♂️ Advisor"},
+                {"id": f"btn_photo:{detected_eid}:{lang}", "title": "📸 View Photos"},
+                {"id": f"btn_rates:{detected_eid}:{lang}", "title": "💰 Rates"},
+                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Advisor"},
             ]
         else:
             return [
-                {"id": "btn_photo", "title": "📸 Ver Fotos"},
-                {"id": "btn_rates", "title": "💰 Tarifas"},
-                {"id": "btn_advisor", "title": "🙋‍♂️ Asesor"},
+                {"id": f"btn_photo:{detected_eid}:{lang}", "title": "📸 Ver Fotos"},
+                {"id": f"btn_rates:{detected_eid}:{lang}", "title": "💰 Tarifas"},
+                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Asesor"},
             ]
 
     # 7. Si es escalamiento / contacto / handoff
     if route in ("evidence_contact", "evidence_human_escalation"):
-        if is_en:
-            return [
-                {"id": "btn_tours", "title": "🗺️ View Tours"},
-            ]
-        else:
-            return [
-                {"id": "btn_tours", "title": "🗺️ Ver Tours"},
-            ]
+        return [
+            {"id": f"btn_tours:{lang}", "title": "🗺️ View Tours" if is_en else "🗺️ Ver Tours"},
+        ]
 
     # 8. Por defecto
     if is_en:
         return [
-            {"id": "btn_tours", "title": "🗺️ View Tours"},
-            {"id": "btn_advisor", "title": "🙋‍♂️ Advisor"},
+            {"id": f"btn_tours:{lang}", "title": "🗺️ View Tours"},
+            {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Advisor"},
         ]
     else:
         return [
-            {"id": "btn_tours", "title": "🗺️ Ver Tours"},
-            {"id": "btn_advisor", "title": "🙋‍♂️ Asesor"},
+            {"id": f"btn_tours:{lang}", "title": "🗺️ Ver Tours"},
+            {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Asesor"},
         ]
 
 
@@ -1858,39 +1970,6 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                     msg_type = msg.get("type", "")
                     phone_number_id = value.get("metadata", {}).get("phone_number_id")
 
-                    # Soporte para respuestas de botones y listas interactivas de WhatsApp
-                    if msg_type == "interactive":
-                        interactive_obj = msg.get("interactive", {})
-                        itype = interactive_obj.get("type", "")
-                        btn_id = ""
-                        btn_title = ""
-                        if itype == "button_reply":
-                            reply_data = interactive_obj.get("button_reply", {})
-                            btn_id = reply_data.get("id", "")
-                            btn_title = reply_data.get("title", "")
-                        elif itype == "list_reply":
-                            reply_data = interactive_obj.get("list_reply", {})
-                            btn_id = reply_data.get("id", "")
-                            btn_title = reply_data.get("title", "")
-
-                        # Mapeo semántico de botones interactivos
-                        if btn_id == "btn_photo":
-                            user_message = "fotos"
-                        elif btn_id in ("btn_rates", "btn_price"):
-                            user_message = "tarifas y precios"
-                        elif btn_id == "btn_inc":
-                            user_message = "que incluye"
-                        elif btn_id in ("btn_advisor", "btn_book"):
-                            user_message = "asesor"
-                        elif btn_id == "btn_tours":
-                            user_message = "que tours tienen disponibles"
-                        elif btn_id == "btn_ci":
-                            user_message = "informacion de Camino Inca"
-                        elif btn_id == "btn_mp":
-                            user_message = "informacion de Machu Picchu en tren"
-                        else:
-                            user_message = btn_title or btn_id
-
                     # Extract identifiers from contacts
                     contact_wa_id = contact.get("wa_id", "")
                     contact_user_id = contact.get("user_id", "")
@@ -1906,6 +1985,126 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                     bsuid = contact_user_id or msg_from_user_id or ""
                     parent_bsuid = contact_parent_user_id or msg_from_parent_user_id or ""
                     user_id = phone_number or bsuid or msg_from or "unknown"
+
+                    is_interactive_ambiguous = False
+                    ambiguous_clarif_buttons = []
+
+                    # Soporte para respuestas de botones y listas interactivas de WhatsApp
+                    if msg_type == "interactive":
+                        interactive_obj = msg.get("interactive", {})
+                        itype = interactive_obj.get("type", "")
+                        btn_id = ""
+                        btn_title = ""
+                        if itype == "button_reply":
+                            reply_data = interactive_obj.get("button_reply", {})
+                            btn_id = reply_data.get("id", "")
+                            btn_title = reply_data.get("title", "")
+                        elif itype == "list_reply":
+                            reply_data = interactive_obj.get("list_reply", {})
+                            btn_id = reply_data.get("id", "")
+                            btn_title = reply_data.get("title", "")
+
+                        btn_parts = btn_id.split(":")
+                        action = btn_parts[0]
+                        explicit_eid = None
+                        explicit_lang = None
+                        if len(btn_parts) >= 3:
+                            explicit_eid = btn_parts[1]
+                            explicit_lang = btn_parts[2]
+                        elif len(btn_parts) == 2:
+                            if btn_parts[1] in ("es", "en"):
+                                explicit_lang = btn_parts[1]
+                            else:
+                                explicit_eid = btn_parts[1]
+
+                        # Detectar idioma de la interacción
+                        hist = get_history(user_id) if user_id else []
+                        last_user_turn = ""
+                        for h in reversed(hist):
+                            if h.get("role") == "human":
+                                last_user_turn = h.get("content", "")
+                                break
+
+                        is_en = False
+                        if explicit_lang == "en":
+                            is_en = True
+                        elif explicit_lang == "es":
+                            is_en = False
+                        elif any(w in btn_title.lower() for w in ["rates", "photo", "what's included", "what is included", "advisor", "view tours", "book now", "inca trail", "rainbow mtn"]):
+                            is_en = True
+                        elif any(w in btn_title.lower() for w in ["tarifas", "ver fotos", "qué incluye", "que incluye", "asesor", "reservar", "ver tours", "camino inca"]):
+                            is_en = False
+                        elif last_user_turn and detect_language(last_user_turn) == "en":
+                            is_en = True
+
+                        target_eid = explicit_eid
+                        tours_in_hist = []
+                        if not target_eid:
+                            from trial_support import normalize
+                            try:
+                                from catalog_service import get_active_entity_keywords
+                                active_kw = get_active_entity_keywords()
+                                for h in hist:
+                                    if h.get("role") == "human":
+                                        norm_c = normalize(h.get("content", ""))
+                                        for teid, kws in active_kw.items():
+                                            if any(normalize(kw) in norm_c for kw in kws):
+                                                if teid not in tours_in_hist:
+                                                    tours_in_hist.append(teid)
+                            except Exception:
+                                pass
+
+                            if len(tours_in_hist) == 1:
+                                target_eid = tours_in_hist[0]
+                            elif len(tours_in_hist) > 1:
+                                target_eid = "__AMBIGUOUS__"
+
+                        tour_name = _get_tour_display_name(target_eid, is_en=is_en) if (target_eid and target_eid != "__AMBIGUOUS__") else ""
+
+                        # Mapeo semántico de botones interactivos preservando entidad e idioma
+                        if target_eid == "__AMBIGUOUS__" and action in ("btn_inc", "btn_rates", "btn_price", "btn_photo"):
+                            is_interactive_ambiguous = True
+                            if is_en:
+                                user_message = "Which tour would you like to check? Please specify the tour name (e.g., *Inca Trail* or *City Tour*) 😊"
+                                ambiguous_clarif_buttons = [
+                                    {"id": f"btn_tour:{t}:en", "title": _get_tour_button_title(t, is_en=True)}
+                                    for t in tours_in_hist[:2]
+                                ]
+                                ambiguous_clarif_buttons.append({"id": "btn_advisor:en", "title": "🙋‍♂️ Advisor"})
+                            else:
+                                user_message = "¿De cuál de nuestros tours deseas consultar? Por favor escribe el nombre del tour (por ejemplo: *Camino Inca* o *City Tour*) 😊"
+                                ambiguous_clarif_buttons = [
+                                    {"id": f"btn_tour:{t}:es", "title": _get_tour_button_title(t, is_en=False)}
+                                    for t in tours_in_hist[:2]
+                                ]
+                                ambiguous_clarif_buttons.append({"id": "btn_advisor:es", "title": "🙋‍♂️ Asesor"})
+                        elif action == "btn_photo":
+                            if tour_name:
+                                user_message = f"photos of {tour_name}" if is_en else f"fotos de {tour_name}"
+                            else:
+                                user_message = "photos" if is_en else "fotos"
+                        elif action in ("btn_rates", "btn_price"):
+                            if tour_name:
+                                user_message = f"official rates for {tour_name}" if is_en else f"tarifas y precios de {tour_name}"
+                            else:
+                                user_message = "rates and prices" if is_en else "tarifas y precios"
+                        elif action == "btn_inc":
+                            if tour_name:
+                                user_message = f"what does {tour_name} include" if is_en else f"que incluye {tour_name}"
+                            else:
+                                user_message = "what does it include" if is_en else "que incluye"
+                        elif action in ("btn_advisor", "btn_book"):
+                            user_message = "advisor" if is_en else "asesor"
+                        elif action == "btn_tours":
+                            user_message = "what tours do you offer" if is_en else "que tours tienen disponibles"
+                        elif action == "btn_tour":
+                            user_message = f"information about {tour_name}" if is_en else f"informacion de {tour_name}"
+                        elif action == "btn_ci":
+                            user_message = "information about Inca Trail" if is_en else "informacion de Camino Inca"
+                        elif action == "btn_mp":
+                            user_message = "information about Machu Picchu" if is_en else "informacion de Machu Picchu en tren"
+                        else:
+                            user_message = btn_title or btn_id
 
                     print(f"[WA INBOUND] "
                           f"message_id={message_id} "
@@ -1958,10 +2157,23 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
             try:
                 if channel == 'whatsapp':
                     event_id = operational.start()
-                rag_result = rag_chain(user_message, user_id=user_id)
-                from handoff_support import apply_request
-                rag_result = apply_request(globals(), rag_result, user_id, channel, user_message)
-                bot_response = rag_result["response"]
+                if is_interactive_ambiguous:
+                    bot_response = user_message
+                    route = "help"
+                    quick_buttons = ambiguous_clarif_buttons
+                    rag_result = {
+                        "response": bot_response,
+                        "route": "help",
+                        "response_route": "help",
+                        "resolved_autonomously": True,
+                        "is_fallback": False,
+                        "is_predefined": True,
+                    }
+                else:
+                    rag_result = rag_chain(user_message, user_id=user_id)
+                    from handoff_support import apply_request
+                    rag_result = apply_request(globals(), rag_result, user_id, channel, user_message)
+                    bot_response = rag_result["response"]
                 resolved_autonomously = rag_result.get("resolved_autonomously", not rag_result["is_fallback"])
                 escalated_to_human = rag_result.get('handoff_registered', False)
                 is_predefined = rag_result.get("is_predefined", False)
@@ -2004,12 +2216,13 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                             bot_response_clean += "\n\n📄 _Nota: Actualmente este tour no cuenta con folleto en PDF en línea, pero nuestro asesor te facilitará el itinerario completo._"
 
                     # Botones de respuesta rápida interactivos (Meta WhatsApp Cloud API)
-                    quick_buttons = get_quick_buttons(
-                        route=route,
-                        user_message=user_message,
-                        detected_eid=detected_eid,
-                        lang=detect_language(user_message),
-                    )
+                    if not is_interactive_ambiguous:
+                        quick_buttons = get_quick_buttons(
+                            route=route,
+                            user_message=user_message,
+                            detected_eid=detected_eid,
+                            lang=detect_language(user_message),
+                        )
 
                     accepted = user_id != 'unknown' and send_whatsapp_message(
                         text=bot_response_clean,
