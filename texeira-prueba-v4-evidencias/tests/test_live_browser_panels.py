@@ -81,63 +81,119 @@ def main():
     base_url = "https://texeira-whatsapp-1038134693816.us-central1.run.app"
     auth_b64 = base64.b64encode(f"admin:{admin_password}".encode()).decode()
 
-    # Seguridad: aislar cabecera de autenticación exclusivamente al origen del bot
-    ext_dir = _create_scoped_auth_extension(base_url, auth_b64)
-
-    options = Options()
-    options.add_argument("--headless=new")
-    options.add_argument("--disable-gpu")
-    options.add_argument(f"--load-extension={ext_dir}")
-    options.add_argument(f"--disable-extensions-except={ext_dir}")
-
-    driver = webdriver.Edge(options=options)
-    driver.set_window_size(1280, 800)
+    ext_dir = None
+    driver = None
 
     try:
+        # 1. Seguridad: aislar cabecera de autenticación al origen del bot
+        # Protegido por finally: si Edge falla al iniciar, ext_dir se elimina inmediatamente.
+        ext_dir = _create_scoped_auth_extension(base_url, auth_b64)
+
+        options = Options()
+        options.add_argument("--headless=new")
+        options.add_argument("--disable-gpu")
+        options.add_argument(f"--load-extension={ext_dir}")
+        options.add_argument(f"--disable-extensions-except={ext_dir}")
+
+        driver = webdriver.Edge(options=options)
+        driver.set_window_size(1280, 800)
+
         print("=========================================================")
         print("VERIFICACION RIGUROSA EN VIVO: PANELES CLOUD RUN")
         print("Autenticación acotada al dominio del bot (Declarative Net Request)")
         print("=========================================================")
 
-        # 1. Handoffs: abrir solicitud y validar formulario o resumen
+        # 1. Handoffs: abrir solicitud y validar formulario o resumen con distinción de error
         print("\n[1/4] Panel de Asesores (/handoffs)...")
         driver.get(f"{base_url}/handoffs")
         WebDriverWait(driver, 15).until(
-            lambda d: d.execute_script("return document.querySelectorAll('.ticket, #list p').length > 0")
+            lambda d: d.execute_script("return document.querySelectorAll('.ticket, #list p, #feedback.error').length > 0")
         )
-        ticket_data = driver.execute_script("""
-            const t = document.querySelector('.ticket:not([data-state="closed"])') || document.querySelector('.ticket');
-            if (!t) {
-                const emptyMsg = document.querySelector('#list p');
-                return { empty: true, msg: emptyMsg ? emptyMsg.textContent.trim() : '' };
+        ticket_res = driver.execute_script("""
+            const errEl = document.querySelector('#list p.error, #feedback.error');
+            const emptyEl = document.querySelector('#list > p:not(.error)');
+            const allTickets = [...document.querySelectorAll('.ticket')];
+            const activeTicket = allTickets.find(t => t.dataset.state !== 'closed');
+            const closedTicket = allTickets.find(t => t.dataset.state === 'closed');
+
+            let activeData = null;
+            if (activeTicket) {
+                activeTicket.open = true;
+                const h2 = activeTicket.querySelector('h2');
+                const who = activeTicket.querySelector('input[type=text]');
+                const note = activeTicket.querySelector('textarea');
+                const btnClose = activeTicket.querySelector('.btn-close');
+                activeData = {
+                    id: h2 ? h2.textContent.trim() : '',
+                    state: activeTicket.dataset.state || '',
+                    isOpen: activeTicket.open,
+                    hasAdvisorField: !!who,
+                    hasTextarea: !!note,
+                    hasCloseButton: !!btnClose
+                };
             }
-            t.open = true;
-            const h2 = t.querySelector('h2');
-            const isClosed = t.dataset.state === 'closed';
-            const who = t.querySelector('input[type=text]');
-            const note = t.querySelector('textarea');
-            const btnClose = t.querySelector('.btn-close');
-            const closedBox = t.querySelector('.closed-box');
+
+            let closedData = null;
+            if (closedTicket) {
+                closedTicket.open = true;
+                const h2 = closedTicket.querySelector('h2');
+                const closedBox = closedTicket.querySelector('.closed-box');
+                closedData = {
+                    id: h2 ? h2.textContent.trim() : '',
+                    state: closedTicket.dataset.state || '',
+                    isOpen: closedTicket.open,
+                    hasClosedBox: !!closedBox
+                };
+            }
+
             return {
-                empty: false,
-                id: h2 ? h2.textContent.trim() : '',
-                state: t.dataset.state || '',
-                isClosed: isClosed,
-                hasAdvisorField: !!who || isClosed,
-                hasTextarea: !!note || isClosed,
-                hasCloseButton: !!btnClose || isClosed,
-                hasClosedBox: !!closedBox,
-                isOpen: t.open
+                hasLoadError: !!errEl,
+                loadErrorMessage: errEl ? errEl.textContent.trim() : '',
+                isEmpty: !!emptyEl && emptyEl.textContent.includes('No hay solicitudes registradas'),
+                emptyMessage: emptyEl ? emptyEl.textContent.trim() : '',
+                totalTickets: allTickets.length,
+                activeTicket: activeData,
+                closedTicket: closedData
             };
         """)
-        assert ticket_data is not None, "Error: No se obtuvo respuesta del panel de asesores"
-        if ticket_data.get("empty"):
-            print(f"  PASS | Panel de asesores operativo (sin tickets pendientes en base de datos: '{ticket_data['msg']}')")
+        assert ticket_res is not None, "Error: No se obtuvo respuesta del panel de asesores"
+        # Distinguir explícitamente un error de carga de un estado vacío
+        assert not ticket_res["hasLoadError"], (
+            f"Error de carga en panel de asesores: '{ticket_res['loadErrorMessage']}'"
+        )
+
+        if ticket_res["isEmpty"]:
+            assert ticket_res["totalTickets"] == 0, (
+                f"Inconsistencia en /handoffs: mensaje de lista vacía pero se encontraron {ticket_res['totalTickets']} tickets"
+            )
+            assert "No hay solicitudes registradas" in ticket_res["emptyMessage"], (
+                f"Mensaje de lista vacía inesperado: '{ticket_res['emptyMessage']}'"
+            )
+            print(f"  PASS | Panel de asesores operativo (estado vacío legítimo confirmado: '{ticket_res['emptyMessage']}')")
         else:
-            assert ticket_data["isOpen"] is True, "Error: El ticket no pudo ser abierto (<details open>)"
-            assert ticket_data["hasAdvisorField"] is True, "Error: Falta campo de asesor"
-            assert ticket_data["hasTextarea"] is True, "Error: Falta textarea de notas"
-            print(f"  PASS | Ticket verificado: {ticket_data['id']} (estado: {ticket_data['state']}) con campos/resumen válidos")
+            assert ticket_res["totalTickets"] > 0, (
+                "Error en /handoffs: la lista no tiene tickets ni muestra el mensaje formal de estado vacío"
+            )
+
+            # Comprobar aserciones de ticket activo
+            if ticket_res["activeTicket"]:
+                act = ticket_res["activeTicket"]
+                assert act["isOpen"] is True, f"Error: Ticket activo {act['id']} no pudo abrirse (<details open>)"
+                assert act["hasAdvisorField"] is True, f"Error: Falta campo de asesor en ticket activo {act['id']}"
+                assert act["hasTextarea"] is True, f"Error: Falta textarea de notas en ticket activo {act['id']}"
+                assert act["hasCloseButton"] is True, f"Error: Falta botón de cerrar (.btn-close) en formulario de ticket activo {act['id']}"
+                print(f"  PASS | Ticket activo verificado: {act['id']} (estado: {act['state']}) con asesor, textarea y botón de cerrar comprobados")
+
+            # Comprobar aserciones de ticket cerrado
+            if ticket_res["closedTicket"]:
+                cls = ticket_res["closedTicket"]
+                assert cls["isOpen"] is True, f"Error: Ticket cerrado {cls['id']} no pudo abrirse (<details open>)"
+                assert cls["hasClosedBox"] is True, f"Error: Falta caja informativa (.closed-box) en ticket cerrado {cls['id']}"
+                print(f"  PASS | Ticket cerrado verificado: {cls['id']} (estado: {cls['state']}) con resumen de atención (.closed-box) comprobado")
+
+            assert ticket_res["activeTicket"] or ticket_res["closedTicket"], (
+                "Error: No se pudo extraer información ni de ticket activo ni de ticket cerrado"
+            )
 
         # 2. Catálogo: buscar tour, verificar filtrado exhaustivo y abrir modal de edición
         print("\n[2/4] Panel de Catálogo (/catalogo)...")
@@ -221,7 +277,7 @@ def main():
         assert modal_res["hasSubmitBtn"] is True, "Error: Falta botón submit en formulario modal de tour"
         print(f"  PASS | Formulario modal verificado: '{modal_res['modalTitle']}' con campos completos y visibles")
 
-        # 3. Resumen (/dashboard)
+        # 3. Resumen (/dashboard): comprobación de las 5 métricas base por su identidad
         print("\n[3/4] Panel de Resumen (/dashboard)...")
         driver.get(f"{base_url}/dashboard")
         WebDriverWait(driver, 15).until(
@@ -242,26 +298,48 @@ def main():
                 title: document.title
             };
         """)
-        # Comprobación adaptable a métricas base (5) o ampliadas con RAGAS (9)
-        assert dash_res["kpiCount"] >= 4, f"Error: Se esperaban al menos 4 tarjetas KPI en /dashboard, encontradas: {dash_res['kpiCount']}"
+        # Validación de identidad: las 5 métricas base deben estar obligatoriamente presentes
+        REQUIRED_BASE_KPIS = [
+            ("total interacciones", "Total Interacciones"),
+            ("latencia promedio", "Latencia Promedio"),
+            ("resolución autónoma", "Resolución Autónoma"),
+            ("escalamiento humano", "Escalamiento Humano"),
+            ("fuera de horario", "Fuera de Horario"),
+        ]
+        found_kpi_labels = [k["label"].lower() for k in dash_res["kpis"]]
+        for needle, display_name in REQUIRED_BASE_KPIS:
+            assert any(needle in lbl for lbl in found_kpi_labels), (
+                f"Error: Falta la métrica base obligatoria '{display_name}' en /dashboard. "
+                f"Métricas encontradas: {[k['label'] for k in dash_res['kpis']]}"
+            )
+
+        # Validación estructural de cada tarjeta (permitiendo tarjetas adicionales como RAGAS)
         for k in dash_res["kpis"]:
             assert k["label"] and k["value"], f"Error: Tarjeta KPI con datos incompletos: {k}"
         assert dash_res["hasNav"] is True, "Error: Falta barra .admin-nav en /dashboard"
         assert dash_res["hasTable"] is True, "Error: Falta tabla de interacciones en /dashboard"
-        print(f"  PASS | Dashboard verificado: {dash_res['kpiCount']} KPIs válidos (etiqueta y valor), barra de navegación y tabla presentes")
+        print(f"  PASS | Dashboard verificado: {dash_res['kpiCount']} KPIs detectados (las 5 métricas base identificadas y validadas)")
 
-        # 4. Métricas (/operational-metrics)
+        # 4. Métricas (/operational-metrics): comprobación de las 3 secciones por su identidad
         print("\n[4/4] Panel de Métricas Operativas (/operational-metrics)...")
         driver.get(f"{base_url}/operational-metrics")
         WebDriverWait(driver, 15).until(
             lambda d: d.execute_script("return document.querySelectorAll('.metrics-group').length > 0")
         )
         metrics_res = driver.execute_script("""
-            const groups = document.querySelectorAll('.metrics-group');
+            const groups = [...document.querySelectorAll('.metrics-group')].map(g => {
+                const h2 = g.querySelector('h2');
+                const tbody = g.querySelector('tbody');
+                return {
+                    title: h2 ? h2.textContent.trim() : '',
+                    tableId: tbody ? tbody.id : ''
+                };
+            });
             const note = document.querySelector('.admin-note');
             const method = document.querySelector('.admin-method');
             const nav = document.querySelector('.admin-nav');
             return {
+                groups: groups,
                 groupsCount: groups.length,
                 hasNoteBanner: !!note,
                 hasMethodAccordion: !!method,
@@ -269,22 +347,42 @@ def main():
                 title: document.title
             };
         """)
-        assert metrics_res["groupsCount"] >= 2, f"Error: Se esperaban al menos 2 grupos temáticos en métricas, encontrados: {metrics_res['groupsCount']}"
+        # Validación de identidad: las 3 secciones temáticas deben estar presentes
+        REQUIRED_SECTIONS = [
+            ("rows-traffic", "mensajería y envíos", "📨 Mensajería y Envíos WhatsApp"),
+            ("rows-latency", "tiempos de respuesta", "⏱️ Tiempos de Respuesta (Latencia)"),
+            ("rows-human", "atención humana", "🛎️ Solicitudes de Atención Humana"),
+        ]
+        for table_id, title_frag, display_name in REQUIRED_SECTIONS:
+            matched = any(
+                (g["tableId"] == table_id or title_frag in g["title"].lower())
+                for g in metrics_res["groups"]
+            )
+            assert matched, (
+                f"Error: Falta la sección obligatoria '{display_name}' (ID: '{table_id}') en /operational-metrics. "
+                f"Secciones presentes: {[g['title'] for g in metrics_res['groups']]}"
+            )
+
         assert metrics_res["hasNoteBanner"] is True, "Error: Falta banner de limitaciones técnicas (.admin-note)"
         assert metrics_res["hasMethodAccordion"] is True, "Error: Falta acordeón de metodología (.admin-method)"
         assert metrics_res["hasNav"] is True, "Error: Falta barra .admin-nav en /operational-metrics"
-        print(f"  PASS | Métricas verificadas: {metrics_res['groupsCount']} grupos temáticos, aviso de limitaciones y metodología confirmados")
+        print(f"  PASS | Métricas verificadas: {metrics_res['groupsCount']} grupos temáticos (las 3 secciones base identificadas y confirmadas)")
 
         print("\n=========================================================")
         print("  ¡LAS 4 VISTAS Y ACCIONES REALES FUERON VALIDADAS CON ÉXITO!")
-        print("  - Ámbito de autenticación protegido y acotado al bot")
-        print("  - Filtro de catálogo validado exhaustivamente")
-        print("  - Cantidades adaptables sin valores fijos frágiles")
+        print("  - Ciclo de vida de extensión y credenciales protegido por finally")
+        print("  - Atención al cliente: distinción de error y aserciones de botones y cajas")
+        print("  - 5 métricas base y 3 secciones temáticas verificadas por identidad")
         print("=========================================================")
 
     finally:
-        driver.quit()
-        shutil.rmtree(ext_dir, ignore_errors=True)
+        if driver is not None:
+            try:
+                driver.quit()
+            except Exception:
+                pass
+        if ext_dir is not None:
+            shutil.rmtree(ext_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":
