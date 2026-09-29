@@ -717,11 +717,13 @@ def needs_escalation(response: str) -> bool:
 # ============================================================
 
 PREDEFINED_RESPONSES = {
-    "hola": "¡Hola! 👋 ¡Bienvenido a Texeira Travel Tour! Soy Texeira Bot, tu asistente virtual. ¿En qué puedo ayudarte hoy? 🌟",
-    "buenos días": "¡Buenos días! ☀️ ¡Bienvenido a Texeira Travel Tour! ¿Planeas un viaje a Cusco? Estoy aquí para ayudarte. 🏔️",
-    "buenas": "¡Buenas! 👋 ¡Qué gusto saludarte! Soy Texeira Bot. ¿En qué puedo asistirte? ✈️",
-    "hello": "Hello! 👋 Welcome to Texeira Travel Tour! I'm Texeira Bot, your virtual assistant. How can I help you today? 🌟",
-    "hi": "Hi there! 👋 Welcome to Texeira Travel Tour! I'm here to help you plan your trip to Cusco. What would you like to know? 🏔️",
+    "hola": "¡Hola! 👋 Soy el asistente virtual de Texeira Travel. Puedo ayudarte a explorar tours y consultar información, o comunicarte con un asesor.",
+    "buenos días": "¡Hola! 👋 Soy el asistente virtual de Texeira Travel. Puedo ayudarte a explorar tours y consultar información, o comunicarte con un asesor.",
+    "buenas tardes": "¡Hola! 👋 Soy el asistente virtual de Texeira Travel. Puedo ayudarte a explorar tours y consultar información, o comunicarte con un asesor.",
+    "buenas noches": "¡Hola! 👋 Soy el asistente virtual de Texeira Travel. Puedo ayudarte a explorar tours y consultar información, o comunicarte con un asesor.",
+    "buenas": "¡Hola! 👋 Soy el asistente virtual de Texeira Travel. Puedo ayudarte a explorar tours y consultar información, o comunicarte con un asesor.",
+    "hello": "Hello! 👋 I am Texeira Travel's virtual assistant. I can help you explore tours and check information, or connect you with an advisor.",
+    "hi": "Hello! 👋 I am Texeira Travel's virtual assistant. I can help you explore tours and check information, or connect you with an advisor.",
     "adiós": "¡Hasta luego! 👋 ¡Que tengas un excelente viaje! Si necesitas algo más, estaré aquí. ✈️",
     "chau": "¡Chau! 👋 ¡Fue un gusto ayudarte! ¡Vuelve pronto! 🌟",
     "hasta luego": "¡Hasta luego! 👋 ¡Espero haberte ayudado! ¡Buena vuelta! 🏔️",
@@ -1742,37 +1744,109 @@ def get_quick_buttons(
     u_lower = (user_message or "").lower()
     eid_suffix = f":{detected_eid}" if detected_eid else ""
 
-    # 1. Si se solicitó o envió foto recientemente
-    if route == "evidence_photo" or is_photo_requested(user_message):
+    # 1. Si es listado de tours o categorías
+    if route == "evidence_listing" or _is_listing_question(u_lower):
+        from verified_routes import CAT_SPECS
+        try:
+            from catalog_service import get_all_tours
+            active_eids = {t['entity_id'] for t in get_all_tours(active_only=True) if t.get('is_active')}
+        except Exception:
+            active_eids = set()
+        cat_buttons = []
+        for spec in CAT_SPECS:
+            tour_ids = [t[0] if isinstance(t, (list, tuple)) else t for t in spec.get('tours', [])]
+            if any(tid in active_eids for tid in tour_ids):
+                title = spec['btn_title_en'] if is_en else spec['btn_title_es']
+                cat_buttons.append({"id": f"{spec['btn_id']}:{lang}", "title": title[:20]})
+        if cat_buttons:
+            return cat_buttons[:3]
+        return [{"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Advisor" if is_en else "🙋‍♂️ Asesor"}]
+
+    # 2. Si se están mostrando los tours de una categoría
+    if route == "evidence_category_tours":
+        buttons = []
+        cat_key = ""
+        for ck in ('treks', 'cusco', 'reg'):
+            if ck in u_lower:
+                cat_key = ck
+                break
+        from verified_routes import CAT_SPECS
+        spec = next((s for s in CAT_SPECS if s['key'] == cat_key), None)
+        if spec:
+            try:
+                from catalog_service import get_all_tours
+                active_eids = {t['entity_id'] for t in get_all_tours(active_only=True) if t.get('is_active')}
+            except Exception:
+                active_eids = set()
+            tour_ids = [t[0] if isinstance(t, (list, tuple)) else t for t in spec.get('tours', [])]
+            avail = [tid for tid in tour_ids if not active_eids or tid in active_eids]
+            for t in avail[:2]:
+                title = _get_tour_button_title(t, is_en=is_en)
+                buttons.append({"id": f"btn_tour:{t}:{lang}", "title": title[:20]})
+        buttons.append({"id": f"btn_cats:{lang}", "title": "⬅️ Categories" if is_en else "⬅️ Categorías"})
+        return buttons[:3]
+
+    # 3. Si se solicitó o mostró foto (disponible o no)
+    if route in ("evidence_photo", "evidence_photo_unavailable") or is_photo_requested(user_message):
         if is_en:
             return [
                 {"id": f"btn_rates{eid_suffix}:{lang}", "title": "💰 Rates"},
                 {"id": f"btn_inc{eid_suffix}:{lang}", "title": "📄 What's included"},
-                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Advisor"},
+                {"id": f"btn_book{eid_suffix}:{lang}", "title": "Request reservation"},
             ]
         else:
             return [
                 {"id": f"btn_rates{eid_suffix}:{lang}", "title": "💰 Tarifas"},
                 {"id": f"btn_inc{eid_suffix}:{lang}", "title": "📄 Qué incluye"},
-                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Asesor"},
+                {"id": f"btn_book{eid_suffix}:{lang}", "title": "Solicitar reserva"},
             ]
 
-    # 2. Si se trata de precios / tarifas
+    # 4. Si se trata de precios / tarifas
     if route in ("evidence_confirmed_price", "evidence_special_rate") or _is_price_question(u_lower):
         if is_en:
             return [
                 {"id": f"btn_photo{eid_suffix}:{lang}", "title": "📸 View Photos"},
                 {"id": f"btn_inc{eid_suffix}:{lang}", "title": "📄 What's included"},
-                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Book Now"},
+                {"id": f"btn_book{eid_suffix}:{lang}", "title": "Request reservation"},
             ]
         else:
             return [
                 {"id": f"btn_photo{eid_suffix}:{lang}", "title": "📸 Ver Fotos"},
                 {"id": f"btn_inc{eid_suffix}:{lang}", "title": "📄 Qué incluye"},
-                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Reservar"},
+                {"id": f"btn_book{eid_suffix}:{lang}", "title": "Solicitar reserva"},
             ]
 
-    # 3. Si es saludo o ayuda
+    # 5. Si es consulta sobre qué incluye
+    if route in ("evidence_confirmed_includes", "evidence_includes") or _is_includes_question(u_lower):
+        if is_en:
+            return [
+                {"id": f"btn_rates{eid_suffix}:{lang}", "title": "💰 Rates"},
+                {"id": f"btn_photo{eid_suffix}:{lang}", "title": "📸 View Photos"},
+                {"id": f"btn_book{eid_suffix}:{lang}", "title": "Request reservation"},
+            ]
+        else:
+            return [
+                {"id": f"btn_rates{eid_suffix}:{lang}", "title": "💰 Tarifas"},
+                {"id": f"btn_photo{eid_suffix}:{lang}", "title": "📸 Ver Fotos"},
+                {"id": f"btn_book{eid_suffix}:{lang}", "title": "Solicitar reserva"},
+            ]
+
+    # 6. Si es ficha de tour (overview) o hay un tour detectado
+    if detected_eid:
+        if is_en:
+            return [
+                {"id": f"btn_inc:{detected_eid}:{lang}", "title": "📄 What's included"},
+                {"id": f"btn_photo:{detected_eid}:{lang}", "title": "📸 View Photos"},
+                {"id": f"btn_book:{detected_eid}:{lang}", "title": "Request reservation"},
+            ]
+        else:
+            return [
+                {"id": f"btn_inc:{detected_eid}:{lang}", "title": "📄 Qué incluye"},
+                {"id": f"btn_photo:{detected_eid}:{lang}", "title": "📸 Ver Fotos"},
+                {"id": f"btn_book:{detected_eid}:{lang}", "title": "Solicitar reserva"},
+            ]
+
+    # 7. Si es saludo o ayuda
     if route in ("social", "help", "predefined"):
         if is_en:
             return [
@@ -1785,47 +1859,13 @@ def get_quick_buttons(
                 {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Asesor"},
             ]
 
-    # 4. Si es listado de tours
-    if route in ("evidence_listing", "tour_intent") or _is_listing_question(u_lower):
-        return _get_active_catalog_tour_buttons(lang=lang)
-
-    # 5. Si es consulta sobre qué incluye
-    if route in ("evidence_confirmed_includes",) or _is_includes_question(u_lower):
-        if is_en:
-            return [
-                {"id": f"btn_rates{eid_suffix}:{lang}", "title": "💰 Rates"},
-                {"id": f"btn_photo{eid_suffix}:{lang}", "title": "📸 View Photos"},
-                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Advisor"},
-            ]
-        else:
-            return [
-                {"id": f"btn_rates{eid_suffix}:{lang}", "title": "💰 Tarifas"},
-                {"id": f"btn_photo{eid_suffix}:{lang}", "title": "📸 Ver Fotos"},
-                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Asesor"},
-            ]
-
-    # 6. Si hay un tour detectado (información general, itinerario, detalles)
-    if detected_eid:
-        if is_en:
-            return [
-                {"id": f"btn_photo:{detected_eid}:{lang}", "title": "📸 View Photos"},
-                {"id": f"btn_rates:{detected_eid}:{lang}", "title": "💰 Rates"},
-                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Advisor"},
-            ]
-        else:
-            return [
-                {"id": f"btn_photo:{detected_eid}:{lang}", "title": "📸 Ver Fotos"},
-                {"id": f"btn_rates:{detected_eid}:{lang}", "title": "💰 Tarifas"},
-                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Asesor"},
-            ]
-
-    # 7. Si es escalamiento / contacto / handoff
+    # 8. Si es escalamiento / contacto / handoff
     if route in ("evidence_contact", "evidence_human_escalation"):
         return [
             {"id": f"btn_tours:{lang}", "title": "🗺️ View Tours" if is_en else "🗺️ Ver Tours"},
         ]
 
-    # 8. Por defecto
+    # 9. Por defecto
     if is_en:
         return [
             {"id": f"btn_tours:{lang}", "title": "🗺️ View Tours"},
@@ -1986,6 +2026,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
 
                     is_interactive_ambiguous = False
                     ambiguous_clarif_buttons = []
+                    interaction_lang = None
 
                     # Soporte para respuestas de botones y listas interactivas de WhatsApp
                     if msg_type == "interactive":
@@ -2028,12 +2069,14 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                             is_en = True
                         elif explicit_lang == "es":
                             is_en = False
-                        elif any(w in btn_title.lower() for w in ["rates", "photo", "what's included", "what is included", "advisor", "view tours", "book now", "inca trail", "rainbow mtn"]):
+                        elif any(w in btn_title.lower() for w in ["rates", "photo", "what's included", "what is included", "advisor", "view tours", "book now", "request reservation", "inca trail", "rainbow mtn", "categories"]):
                             is_en = True
-                        elif any(w in btn_title.lower() for w in ["tarifas", "ver fotos", "qué incluye", "que incluye", "asesor", "reservar", "ver tours", "camino inca"]):
+                        elif any(w in btn_title.lower() for w in ["tarifas", "ver fotos", "qué incluye", "que incluye", "asesor", "reservar", "solicitar reserva", "ver tours", "camino inca", "categorias"]):
                             is_en = False
                         elif last_user_turn and detect_language(last_user_turn) == "en":
                             is_en = True
+
+                        interaction_lang = "en" if is_en else "es"
 
                         target_eid = explicit_eid
                         tours_in_hist = []
@@ -2060,7 +2103,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         tour_name = _get_tour_display_name(target_eid, is_en=is_en) if (target_eid and target_eid != "__AMBIGUOUS__") else ""
 
                         # Mapeo semántico de botones interactivos preservando entidad e idioma
-                        if target_eid == "__AMBIGUOUS__" and action in ("btn_inc", "btn_rates", "btn_price", "btn_photo"):
+                        if target_eid == "__AMBIGUOUS__" and action in ("btn_inc", "btn_rates", "btn_price", "btn_photo", "btn_book"):
                             is_interactive_ambiguous = True
                             if is_en:
                                 user_message = "Which tour would you like to check? Please specify the tour name (e.g., *Inca Trail* or *City Tour*) 😊"
@@ -2091,10 +2134,18 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                                 user_message = f"what does {tour_name} include" if is_en else f"que incluye {tour_name}"
                             else:
                                 user_message = "what does it include" if is_en else "que incluye"
-                        elif action in ("btn_advisor", "btn_book"):
+                        elif action == "btn_book":
+                            if tour_name:
+                                user_message = f"request reservation for {tour_name}" if is_en else f"solicitar reserva de {tour_name}"
+                            else:
+                                user_message = "request reservation" if is_en else "solicitar reserva"
+                        elif action == "btn_advisor":
                             user_message = "advisor" if is_en else "asesor"
-                        elif action == "btn_tours":
-                            user_message = "what tours do you offer" if is_en else "que tours tienen disponibles"
+                        elif action == "btn_cat":
+                            cat_key = explicit_eid or ""
+                            user_message = f"category {cat_key}" if is_en else f"categoria {cat_key}"
+                        elif action in ("btn_cats", "btn_categories", "btn_tours"):
+                            user_message = "view tour categories" if is_en else "ver categorias de tours"
                         elif action == "btn_tour":
                             user_message = f"information about {tour_name}" if is_en else f"informacion de {tour_name}"
                         elif action == "btn_ci":
@@ -2213,13 +2264,41 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         if not tour_doc_info:
                             bot_response_clean += "\n\n📄 _Nota: Actualmente este tour no cuenta con folleto en PDF en línea, pero nuestro asesor te facilitará el itinerario completo._"
 
+                    # 1. Despacho seguro de Fotografía SOLO si fue solicitada y existe en catálogo
+                    photo_api_accepted = None
+                    if route == "evidence_photo" and is_photo_requested(user_message):
+                        tour_img_info = get_tour_image_data(user_message + " " + bot_response, user_msg=user_message, entity_id=detected_eid)
+                        if tour_img_info:
+                            img_url, img_caption = tour_img_info
+                            photo_api_accepted = send_whatsapp_image(
+                                image_url=img_url,
+                                caption=img_caption,
+                                to_phone=phone_number if phone_number else None,
+                                recipient_bsuid=bsuid if bsuid else None,
+                                phone_number_id=phone_number_id,
+                            )
+                            if photo_api_accepted:
+                                print(f"[WA MULTIMEDIA PHOTO API ACCEPTED] to={phone_number or bsuid} url={img_url}")
+                            else:
+                                print(f"[WA MULTIMEDIA PHOTO SEND FAILED] to={phone_number or bsuid} url={img_url}")
+                                is_en_user = (detect_language(user_message) == "en")
+                                tour_name_disp = _get_tour_display_name(detected_eid, is_en=is_en_user) if detected_eid else ""
+                                bot_response_clean = (
+                                    f"Tuvimos un inconveniente al cargar la fotografía oficial de *{tour_name_disp or 'este tour'}*. Nuestro asesor te compartirá la galería completa directamente."
+                                    if not is_en_user else
+                                    f"We encountered an issue loading the official photo for *{tour_name_disp or 'this tour'}*. Our advisor will share the full gallery directly with you."
+                                )
+
                     # Botones de respuesta rápida interactivos (Meta WhatsApp Cloud API)
                     if not is_interactive_ambiguous:
+                        eff_lang = interaction_lang or detect_language(user_message)
+                        if eff_lang not in ("es", "en"):
+                            eff_lang = "es"
                         quick_buttons = get_quick_buttons(
                             route=route,
                             user_message=user_message,
                             detected_eid=detected_eid,
-                            lang=detect_language(user_message),
+                            lang=eff_lang,
                         )
 
                     accepted = user_id != 'unknown' and send_whatsapp_message(
@@ -2230,35 +2309,19 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         buttons=quick_buttons,
                     )
 
-                    # Despacho de Assets Multimedia (Fotos y Folletos PDF) SOLO bajo solicitud válida
+                    # 2. Despacho de Folleto PDF si fue solicitado y está cargado en el catálogo
                     try:
-                        if accepted and route not in no_multimedia_routes:
-                            # 1. Enviar Foto si fue solicitada expresamente
-                            if is_photo_requested(user_message):
-                                tour_img_info = get_tour_image_data(user_message + " " + bot_response, user_msg=user_message, entity_id=detected_eid)
-                                if tour_img_info:
-                                    img_url, img_caption = tour_img_info
-                                    send_whatsapp_image(
-                                        image_url=img_url,
-                                        caption=img_caption,
-                                        to_phone=phone_number if phone_number else None,
-                                        recipient_bsuid=bsuid if bsuid else None,
-                                        phone_number_id=phone_number_id,
-                                    )
-                                    print(f"[WA MULTIMEDIA PHOTO SENT] to={phone_number or bsuid} url={img_url}")
-
-                            # 2. Enviar Folleto PDF si fue solicitado y está cargado en el catálogo
-                            if tour_doc_info:
-                                doc_url, doc_filename, doc_caption = tour_doc_info
-                                send_whatsapp_document(
-                                    document_url=doc_url,
-                                    filename=doc_filename,
-                                    caption=doc_caption,
-                                    to_phone=phone_number if phone_number else None,
-                                    recipient_bsuid=bsuid if bsuid else None,
-                                    phone_number_id=phone_number_id,
-                                )
-                                print(f"[WA MULTIMEDIA BROCHURE SENT] to={phone_number or bsuid} filename={doc_filename}")
+                        if accepted and tour_doc_info and route not in no_multimedia_routes:
+                            doc_url, doc_filename, doc_caption = tour_doc_info
+                            send_whatsapp_document(
+                                document_url=doc_url,
+                                filename=doc_filename,
+                                caption=doc_caption,
+                                to_phone=phone_number if phone_number else None,
+                                recipient_bsuid=bsuid if bsuid else None,
+                                phone_number_id=phone_number_id,
+                            )
+                            print(f"[WA MULTIMEDIA BROCHURE SENT] to={phone_number or bsuid} filename={doc_filename}")
                     except Exception as media_err:
                         print(f"[WA MULTIMEDIA DISPATCH ERROR] {media_err}")
 

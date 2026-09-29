@@ -18,10 +18,16 @@ EN_ITEMS = {
 }
 
 def english_duration(value):
-    # Traducir el texto, sin sustituir la cantidad ni inferir noches.
-    return (value.replace('días','days').replace('dias','days').replace('horas','hours')
-            .replace('itinerario publicado','published itinerary')
-            .replace('confirmar variante y noches','confirm variant and nights'))
+    if not value: return ""
+    v = value
+    v = v.replace('Medio día', 'Half day').replace('Medio dia', 'Half day').replace('medio día', 'half day')
+    v = v.replace('Día completo', 'Full day').replace('Dia completo', 'Full day')
+    v = v.replace('días', 'days').replace('dias', 'days').replace('día', 'day').replace('dia', 'day')
+    v = v.replace('noches', 'nights').replace('noche', 'night')
+    v = v.replace('horas', 'hours').replace('hora', 'hour')
+    v = v.replace('itinerario publicado', 'published itinerary')
+    v = v.replace('confirmar variante y noches', 'confirm variant and nights')
+    return v
 
 _SOCIAL_INTENTS = {
     'hola': 'hola',
@@ -44,22 +50,78 @@ _SOCIAL_INTENTS = {
     'como estas': 'saludo',
 }
 
+_GREETING_ES = "¡Hola! 👋 Soy el asistente virtual de Texeira Travel. Puedo ayudarte a explorar tours y consultar información, o comunicarte con un asesor."
+_GREETING_EN = "Hello! 👋 I am the virtual assistant of Texeira Travel. I can help you explore tours and check information, or connect you with an advisor."
+
 _SOCIAL_RESPONSES = {
-    'hola': '¡Hola! 👋 Bienvenido a *Texeira Travel*. ¿En qué te puedo ayudar hoy?',
-    'buenos dias': '¡Buenos días! ☀️ Bienvenido a *Texeira Travel*. ¿En qué te puedo ayudar?',
-    'buenas tardes': '¡Buenas tardes! 🌤️ Bienvenido a *Texeira Travel*. ¿En qué te puedo ayudar?',
-    'buenas noches': '¡Buenas noches! 🌙 Bienvenido a *Texeira Travel*. ¿En qué te puedo ayudar?',
-    'hello': 'Hello! 👋 Welcome to *Texeira Travel*. How can I help you today?',
-    'hi': 'Hi! 👋 Welcome to *Texeira Travel*. How can I help you?',
-    'buenas': '¡Buenas! 👋 Bienvenido a *Texeira Travel*. ¿En qué te puedo ayudar?',
+    'hola': _GREETING_ES,
+    'buenos dias': _GREETING_ES,
+    'buenas tardes': _GREETING_ES,
+    'buenas noches': _GREETING_ES,
+    'hello': _GREETING_EN,
+    'hi': _GREETING_EN,
+    'buenas': _GREETING_ES,
     'gracias': '¡Con gusto! 😊 Si necesitas algo más, aquí estamos.',
     'thanks': "You're welcome! 😊 Feel free to ask anything else.",
     'adios': '¡Hasta pronto! 🙌 Que disfrutes tu visita a Cusco.',
     'bye': 'Goodbye! 🙌 Enjoy your trip to Cusco!',
-    'saludo': '¡Hola! 👋 Bienvenido a *Texeira Travel*. ¿En qué te puedo ayudar?',
+    'saludo': _GREETING_ES,
 }
 
 _HELP_RESPONSE = '¡Claro! 😊 Puedo ayudarte con *tours, horarios y servicios* de Texeira Travel.\n¿Qué destino te interesa? O escribe 👉 *asesor*'
+
+CAT_SPECS_DICT = {
+    'treks': {
+        'key': 'treks',
+        'title_es': '🏔️ *Machu Picchu y Treks*',
+        'title_en': '🏔️ *Machu Picchu & Treks*',
+        'btn_id': 'btn_cat:treks',
+        'btn_title_es': '🏔️ Machu Picchu',
+        'btn_title_en': '🏔️ Machu Picchu',
+        'tours': [
+            ('machu-picchu-tren', 'Machu Picchu en Tren', '1 día | 04:00-20:30'),
+            ('camino-inka', 'Camino Inca Clásico', '4 días / 3 noches'),
+            ('machu-picchu-car', 'Machu Picchu by Car', '2 días / 1 noche'),
+            ('salkantay-trek', 'Salkantay Trek', '4 días / 3 noches'),
+            ('inka-jungle', 'Inka Jungle to Machu Picchu', '4 días / 3 noches'),
+            ('choquequirao', 'Choquequirao Trek', '4 días / 3 noches'),
+        ]
+    },
+    'cusco': {
+        'key': 'cusco',
+        'title_es': '🌄 *Montañas y Clásicos (Cusco)*',
+        'title_en': '🌄 *Mountains & Classics (Cusco)*',
+        'btn_id': 'btn_cat:cusco',
+        'btn_title_es': '🌄 Clásicos Cusco',
+        'btn_title_en': '🌄 Cusco Classics',
+        'tours': [
+            ('montana-7-colores', 'Montaña de 7 Colores', 'Full Day | 04:00-18:30'),
+            ('laguna-humantay', 'Laguna Humantay', 'Full Day | 04:30-18:00'),
+            ('city-tour-cusco', 'City Tour Cusco', 'Medio día | 13:00-18:30'),
+            ('valle-sagrado', 'Valle Sagrado', 'Full Day | 07:00-18:30'),
+            ('maras-moray', 'Maras - Moray', 'Medio día | 08:00-14:30'),
+            ('waqra-pukara', 'Waqra Pukara', 'Full Day | 04:00-19:00'),
+            ('valle-sur', 'Valle Sur', 'Medio día | 08:30-14:00'),
+            ('maras-moray-cuatrimoto', 'Tour Cuatrimoto / Maras-Moray', 'Medio día'),
+            ('puente-qeswachaca', "Puente de Q’eswachaca", 'Full Day'),
+            ('tour-mistico', 'Tour Místico', 'Medio día'),
+        ]
+    },
+    'reg': {
+        'key': 'reg',
+        'title_es': '🚌 *Rutas Regionales*',
+        'title_en': '🚌 *Regional Routes*',
+        'btn_id': 'btn_cat:reg',
+        'btn_title_es': '🚌 Rutas Regionales',
+        'btn_title_en': '🚌 Regional Routes',
+        'tours': [
+            ('ruta-del-sol', 'Ruta del Sol Cusco-Puno', 'Día completo | 06:40-17:30'),
+            ('islas-titicaca', 'Islas del Lago Titicaca', 'Full Day'),
+            ('canon-colca', 'Cañón del Colca / Baños Termales de Chacapi', '2 días / 1 noche'),
+        ]
+    }
+}
+CAT_SPECS = list(CAT_SPECS_DICT.values())
 
 def install(ns, support, original):
     catalog = support.CATALOG
@@ -209,123 +271,120 @@ def install(ns, support, original):
         # Catálogo de tours solicitados (antes de evaluar fechas o disponibilidad comercial)
         listing_keywords = {
             'tour', 'tours', 'opcion', 'opciones', 'paquetes', 'catalogo',
+            'ver tours', 'ver tour', 'ver catalogo', 'ver categorias', 'ver categoria',
+            'categoria', 'categorias', 'category', 'categories',
+            'view tours', 'view tour', 'view catalog', 'view categories', 'view category',
+            'view tour categories', 'tour categories',
             'que tours tienen', 'que tours ofrecen', 'que tours hay', 'lista de tours',
             'cuales tours tienen', 'cuales son los tours', 'todos los tours',
             'que opciones tienen', 'que opciones hay', 'todas las opciones',
             'what tours do you offer', 'what tours do you have', 'all tours',
             'show me all options', 'list of tours'
         }
+        # ---- CATÁLOGO NAVEGABLE POR CATEGORÍAS ----
+        CAT_SPECS = CAT_SPECS_DICT
+
+        # 1. Petición de categoría específica (ej. "categoria treks", "category treks", "categoria cusco", etc.)
+        is_cat_treks = bool(re.search(r'\b(categor[iy]a?\s+treks?|categor[iy]a?\s+machu|categor[iy]a?\s+1|treks?\s+y\s+machu|treks?\s+and\s+machu)\b', q))
+        is_cat_cusco = bool(re.search(r'\b(categor[iy]a?\s+cusco|categor[iy]a?\s+monta[nñ]as|categor[iy]a?\s+mountains|categor[iy]a?\s+2|clasicos\s+cusco|cusco\s+classics)\b', q))
+        is_cat_reg = bool(re.search(r'\b(categor[iy]a?\s+reg\w*|categor[iy]a?\s+rutas|categor[iy]a?\s+routes|categor[iy]a?\s+3|rutas\s+regionales|regional\s+routes)\b', q))
+        selected_cat_key = None
+        if is_cat_treks: selected_cat_key = 'treks'
+        elif is_cat_cusco: selected_cat_key = 'cusco'
+        elif is_cat_reg: selected_cat_key = 'reg'
+
+        if selected_cat_key:
+            cat_data = CAT_SPECS[selected_cat_key]
+            active_in_cat = [
+                (eid, default_label, default_dur)
+                for eid, default_label, default_dur in cat_data['tours']
+                if eid in active_tours and is_product_confirmed(eid)
+            ]
+            if not active_in_cat:
+                cat_name = cat_data['title_es'] if not en else cat_data['title_en']
+                msg = (f"Actualmente no hay tours disponibles en la categoría {cat_name}. 📋\n\nPuedes explorar otras categorías o comunicarte con un asesor 😊"
+                       if not en else
+                       f"Currently there are no tours available in the category {cat_name}. 📋\n\nYou can explore other categories or contact an advisor 😊")
+                return finish(msg, 'evidence_category_empty', sources=['CATALOGO_OFICIAL'], entity_id=f"cat_{selected_cat_key}")
+
+            cat_title = cat_data['title_es'] if not en else cat_data['title_en']
+            lines = [f"{cat_title} disponibles:\n" if not en else f"{cat_title} available:\n"]
+            for eid, default_label, default_dur in active_in_cat:
+                t_obj = active_tours[eid]
+                if en:
+                    from app import _get_tour_display_name
+                    tour_name = _get_tour_display_name(eid, is_en=True) or default_label
+                else:
+                    tour_name = t_obj.get('name', default_label)
+                dur = english_duration(t_obj.get('duration') or default_dur) if en else (t_obj.get('duration') or default_dur)
+                lines.append(f"• *{tour_name}* ({dur})")
+
+            footer = ("\n_Escribe directamente el nombre del tour para ver detalles completos, o selecciona una opción abajo:_\nEscribe 👉 *asesor* si necesitas ayuda personalizada 😊"
+                      if not en else
+                      "\n_Type the name of the tour for full details, or select an option below:_\nWrite 👉 *advisor* for personalized help 😊")
+            lines.append(footer)
+            return finish("\n".join(lines), 'evidence_category_tours', sources=['CATALOGO_OFICIAL'], entity_id=f"cat_{selected_cat_key}")
+
+        # 2. Petición de catálogo general (Ver Tours / Categorías)
         is_listing_request = (
             q.strip(' ?¿!.') in listing_keywords or
-            # Peticiones tipo "me muestras todas las opciones", "muéstrame los tours", "qué opciones tienes", "ver tours", etc.
-            bool(re.search(r'\b(muestr\w*|meustr\w*|mostr\w*|ver|dime|cuales|que|tienen?|hay)\b.*?\b(tours?|opciones?|paquetes?|destinos?|viajes?|rutas?|circuitos?|paseos?)\b', q) and
-                 not re.search(r'\b(precio|precios|cuesta|cuanto|costo|costos|tarifa|tarifas|soles|dolares|\busd\b|\bpen\b|horario|hora|duracion|incluye|itinerario|fotos?|imagen|imagenes|brochure|folleto|cancel|reembols|yape|paypal|pagar|pago|adelant|deposit|descuento|reserva|booking|cupos?|manana|tomorrow|7d|7\s*d[ií]as?|7.day)\b|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}', q) and
+            bool(re.search(r'\b(muestr\w*|meustr\w*|mostr\w*|ver|view|show|dime|tell\s+me|cuales|which|what|tienen?|do\s+you\s+have|hay)\b.*?\b(tours?|opciones?|options?|paquetes?|packages?|destinos?|destinations?|viajes?|trips?|rutas?|routes?|circuitos?|paseos?|categorias?|categories)\b', q) and
+                 not re.search(r'\b(precio|precios|cuesta|cuanto|costo|costos|tarifa|tarifas|price|prices|cost|costs|rate|rates|soles|dolares|\busd\b|\bpen\b|horario|hora|duracion|duration|schedule|incluye|includes?|itinerario|itinerary|fotos?|photos?|imagen|image|imagenes|images|brochure|folleto|cancel|reembols|refund|yape|paypal|pagar|pay|pago|payment|adelant|deposit|descuento|discount|reserva|book|booking|cupos?|manana|tomorrow|7d|7\s*d[ií]as?|7.day)\b|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}', q) and
                  support.detect_entity_from_question(q) is None) or
-            # Preguntas sobre si es el único o si hay más opciones, u otros lugares/destinos
             bool(re.search(r'\b(es el unic\w|es la unic\w|es lo unic\w|hay mas|tienen mas|otros? tours?|otras? opciones?|otros? lugares?|otros? destinos?|otros? paquetes?|que m[aá]s tienen|que mas tienen|mas opciones|m[aá]s opciones|other tours?|other options?|more tours?|more options?|anything else)\b', q) and
                  not re.search(r'\b(cancel|reembols|yape|paypal|pagar|pago|manana|tomorrow)\b', q) and
                  (support.detect_entity_from_question(q) is None or
                   bool(re.search(r'\b(aparte\s+de|adem[aá]s\s+de|fuera\s+de|other\s+than|besides|apart\s+from)\b', q)))) or
-            # Consultas con la palabra "disponibles" generales
             (bool(re.search(r'\b(tours?|viajes?|opciones?|paquetes?|cuales?|muestr\w*|ver|dime)\b.*?\bdisponibles?\b', q) or
                   re.search(r'\bdisponibles?\b.*?\b(tours?|viajes?|opciones?|paquetes?)\b', q)) and
              not re.search(r'\b(manana|tomorrow|hoy|today|enero|febrero|marzo|abril|mayo|junio|julio|agosto|setiembre|septiembre|octubre|noviembre|diciembre)\b|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}', q) and
              support.detect_entity_from_question(q) is None) or
-            bool(re.search(r'^\s*(tours?|viajes?|opciones?|destinos?)\s*$', q))
+            bool(re.search(r'^\s*(tours?|viajes?|opciones?|options?|destinos?|destinations?|categorias?|categories|ver\s+categorias?|view\s+categories?|view\s+tour\s+categories|ver\s+tours?|view\s+tours?)\s*$', q))
         )
         if is_listing_request:
+            # Comprobar si el catálogo está completamente vacío
+            has_any_active = any(
+                eid in active_tours and is_product_confirmed(eid)
+                for cat in CAT_SPECS.values()
+                for eid, _, _ in cat['tours']
+            )
+            if not has_any_active:
+                msg = ("Actualmente no disponemos de tours activos en el catálogo. Por favor consulta con un asesor."
+                       if not en else
+                       "Currently we have no active tours in the catalog. Please consult with an advisor.")
+                return finish(msg, 'evidence_listing', sources=['CATALOGO_OFICIAL'])
+
             is_asking_unique = bool(re.search(r'\b(es el unic\w|es la unic\w|es lo unic\w|hay mas|tienen mas|otros? tours?|otras? opciones?|otros? lugares?|otros? destinos?|que m[aá]s tienen|mas opciones|m[aá]s opciones|other tours?|more tours?|more options?|anything else)\b', q))
             if en:
                 if is_asking_unique:
-                    title = "Not at all! We have many more confirmed tour options at *Texeira Travel*: 🗺️\n\n"
+                    title = "Not at all! We have many more confirmed tour options at *Texeira Travel*. Explore them by category: 🗺️\n\n"
                 else:
-                    title = "🗺️ *Our confirmed tours with Texeira Travel:*\n\n"
+                    title = "🗺️ *Tour Experiences — Texeira Travel*\nSelect a category to explore our available tours:\n\n"
                 
-                cat_specs = [
-                    ("🏔️ *Machu Picchu & Treks:*", [
-                        ('machu-picchu-tren', 'Machu Picchu by Train'),
-                        ('machu-picchu-car', 'Machu Picchu by Car'),
-                        ('camino-inka', 'Inca Trail'),
-                        ('salkantay-trek', 'Salkantay Trek'),
-                        ('inka-jungle', 'Inka Jungle to Machu Picchu'),
-                        ('choquequirao', 'Choquequirao Trek')
-                    ]),
-                    ("🌄 *Mountains & Day Tours (Cusco):*", [
-                        ('montana-7-colores', 'Rainbow Mountain (7 Colors)'),
-                        ('laguna-humantay', 'Humantay Lake'),
-                        ('city-tour-cusco', 'City Tour Cusco'),
-                        ('valle-sagrado', 'Sacred Valley'),
-                        ('maras-moray', 'Maras - Moray'),
-                        ('waqra-pukara', 'Waqra Pukara'),
-                        ('valle-sur', 'South Valley'),
-                        ('maras-moray-cuatrimoto', 'Quad Bike ATV Maras-Moray'),
-                        ('puente-qeswachaca', "Q'eswachaca Bridge"),
-                        ('tour-mistico', 'Mystic Tour')
-                    ]),
-                    ("🚌 *Regional Routes:*", [
-                        ('ruta-del-sol', 'Route of the Sun (Cusco - Puno)'),
-                        ('islas-titicaca', 'Lake Titicaca Islands'),
-                        ('canon-colca', 'Colca Canyon')
-                    ])
-                ]
-                footer = "\n\nWhich one would you like to explore? Ask me for photos, prices or itinerary 😊\nOr write 👉 *advisor* to book directly."
+                cat_lines = []
+                num_emojis = ['1️⃣', '2️⃣', '3️⃣']
+                for idx, (cat_key, cat_data) in enumerate(CAT_SPECS.items()):
+                    cnt = sum(1 for eid, _, _ in cat_data['tours'] if eid in active_tours and is_product_confirmed(eid))
+                    if cnt > 0:
+                        cat_lines.append(f"{num_emojis[idx]} {cat_data['title_en']} ({cnt} tours)")
+                body = "\n".join(cat_lines)
+                footer = "\n\n_Tap a category or write the name of the tour you're looking for (e.g. Inca Trail, Humantay Lake)._\nWrite 👉 *advisor* to reach our team."
             else:
                 if is_asking_unique:
-                    title = "¡Para nada! No es el único. En *Texeira Travel* tenemos todas estas opciones disponibles: 🗺️\n\n"
+                    title = "¡Para nada! No es el único. En *Texeira Travel* organizamos nuestros destinos en estas categorías: 🗺️\n\n"
                 else:
-                    title = "🗺️ *Nuestros tours confirmados con Texeira Travel:*\n\n"
+                    title = "🗺️ *Catálogo de Experiencias — Texeira Travel*\nSelecciona una categoría para explorar nuestros tours disponibles:\n\n"
+                
+                cat_lines = []
+                num_emojis = ['1️⃣', '2️⃣', '3️⃣']
+                for idx, (cat_key, cat_data) in enumerate(CAT_SPECS.items()):
+                    cnt = sum(1 for eid, _, _ in cat_data['tours'] if eid in active_tours and is_product_confirmed(eid))
+                    if cnt > 0:
+                        cat_lines.append(f"{num_emojis[idx]} {cat_data['title_es']} ({cnt} tours)")
+                body = "\n".join(cat_lines)
+                footer = "\n\n_Pulsa una categoría o escribe directamente el nombre del tour que buscas (ej. Camino Inca, Laguna Humantay)._\nEscribe 👉 *asesor* para comunicarte con nuestro equipo."
 
-                cat_specs = [
-                    ("🏔️ *Machu Picchu y Treks:*", [
-                        ('machu-picchu-tren', 'Machu Picchu en Tren'),
-                        ('machu-picchu-car', 'Machu Picchu by Car'),
-                        ('camino-inka', 'Camino Inka'),
-                        ('salkantay-trek', 'Salkantay Trek'),
-                        ('inka-jungle', 'Inka Jungle to Machu Picchu'),
-                        ('choquequirao', 'Choquequirao Trek')
-                    ]),
-                    ("🌄 *Montañas y Clásicos (Cusco):*", [
-                        ('montana-7-colores', 'Montaña de 7 Colores'),
-                        ('laguna-humantay', 'Laguna Humantay'),
-                        ('city-tour-cusco', 'City Tour Cusco'),
-                        ('valle-sagrado', 'Valle Sagrado'),
-                        ('maras-moray', 'Maras - Moray'),
-                        ('waqra-pukara', 'Waqra Pukara'),
-                        ('valle-sur', 'Valle Sur'),
-                        ('maras-moray-cuatrimoto', 'Tour Cuatrimoto / Maras-Moray'),
-                        ('puente-qeswachaca', "Puente de Q’eswachaca"),
-                        ('tour-mistico', 'Tour Místico')
-                    ]),
-                    ("🚌 *Rutas Regionales:*", [
-                        ('ruta-del-sol', 'Ruta del Sol Cusco-Puno'),
-                        ('islas-titicaca', 'Islas del Lago Titicaca'),
-                        ('canon-colca', 'Cañón del Colca / Baños Termales de Chacapi')
-                    ])
-                ]
-                footer = "\n\n¿Cuál de ellos te gustaría conocer? Pregúntame por fotos, precios o detalles 😊\nO escribe 👉 *asesor* para reservar."
-
-            seen = set()
-            blocks = []
-            for cat_title, items in cat_specs:
-                grp = []
-                for eid, default_label in items:
-                    if eid in active_tours and is_product_confirmed(eid):
-                        label = default_label if en else active_tours[eid]['name']
-                        grp.append(f"• {label}")
-                        seen.add(eid)
-                if grp:
-                    blocks.append(f"{cat_title}\n" + "\n".join(grp))
-
-            extras = []
-            for eid, t in active_tours.items():
-                if eid not in seen and is_product_confirmed(eid):
-                    extras.append(f"• {t['name']}")
-            if extras:
-                extra_title = "✨ *More Experiences:*" if en else "✨ *Otras Opciones:*"
-                blocks.append(f"{extra_title}\n" + "\n".join(extras))
-
-            full_body = "\n\n".join(blocks)
-            return finish(title + full_body + footer, 'evidence_listing', sources=['F1','F2','F3'])
+            return finish(title + body + footer, 'evidence_listing', sources=['F1','F2','F3'])
 
         # --- TARIFAS ESPECIALES (Estudiantes, Menores/Niños, Promociones) ---
         def detect_rate_category(query_norm):
@@ -522,11 +581,11 @@ def install(ns, support, original):
             tour_name = tour_obj['name'] if tour_obj else None
             if img_data:
                 img_url, img_caption = img_data
-                msg = f"Sure! Here is a photo of {tour_name or 'our tours with Texeira Travel'}. 📸✨" if en else f"¡Por supuesto! Aquí tienes una imagen de {tour_name or 'nuestros destinos con Texeira Travel'}. 📸✨"
+                msg = f"Here is the official photo of *{tour_name or 'our tours with Texeira Travel'}*. 📸✨" if en else f"Te compartimos la fotografía oficial de *{tour_name or 'nuestros destinos con Texeira Travel'}*. 📸✨"
                 return finish(msg, 'evidence_photo', sources=['ASSET_OFICIAL'], entity_id=eid)
             else:
-                msg = f"Currently we don't have online photos for {tour_name or 'this tour'}, but our advisor can share our gallery with you." if en else f"Actualmente no disponemos de fotos en línea para {tour_name or 'este tour'}, pero nuestro asesor te compartirá nuestra galería completa."
-                return finish(msg, 'evidence_photo', sources=['ASSET_OFICIAL'], entity_id=eid)
+                msg = f"Currently we don't have online photos for *{tour_name or 'this tour'}*, but our advisor will share our complete gallery with you." if en else f"Actualmente no disponemos de fotos en línea para *{tour_name or 'este tour'}*, pero nuestro asesor te compartirá nuestra galería completa."
+                return finish(msg, 'evidence_photo_unavailable', sources=['ASSET_OFICIAL'], entity_id=eid)
 
         if is_brochure_requested(question):
             if eid and (is_deactivated_tour(eid) or eid not in active_tours):
@@ -595,6 +654,21 @@ def install(ns, support, original):
                     if not duration and f.field == 'duration' and f.value:
                         duration = str(f.value).strip()
 
+            if not duration or not schedule:
+                for cat in CAT_SPECS_DICT.values():
+                    for t_eid, _, t_dur in cat.get('tours', []):
+                        if t_eid == eid and t_dur:
+                            if '|' in t_dur:
+                                d_part, s_part = [p.strip() for p in t_dur.split('|', 1)]
+                                if not duration:
+                                    duration = d_part
+                                if not schedule:
+                                    schedule = s_part
+                            else:
+                                if not duration:
+                                    duration = t_dur
+                            break
+
             if official_price or schedule or duration or includes:
                 tour_emojis = {
                     'camino-inka': '🥾', 'salkantay-trek': '🥾', 'inka-jungle': '🥾', 'choquequirao': '🏕️',
@@ -605,20 +679,19 @@ def install(ns, support, original):
                     'tour-mistico': '🔮', 'islas-titicaca': '⛵', 'canon-colca': '🦅', 'ruta-del-sol': '☀️'
                 }
                 icon = tour_emojis.get(eid, '📍')
-                lines = [f"{icon} *{name}*"]
+                display_name = name
+                if en:
+                    from app import _get_tour_display_name
+                    display_name = _get_tour_display_name(eid, is_en=True) or name
+                lines = [f"{icon} *{display_name}*"]
+                if duration:
+                    lines.append(f"• Duración: {duration}" if not en else f"• Duration: {english_duration(duration)}")
+                if schedule:
+                    lines.append(f"• Horario: {schedule}" if not en else f"• Schedule: {schedule}")
                 if official_price:
                     price_display = official_price if any(c in official_price for c in ['USD', 'PEN', '$', 'S/']) else f"{official_price} {currency}"
                     lines.append(f"• Tarifa oficial: *{price_display}* por persona" if not en else f"• Official rate: *{price_display}* per person")
-                if schedule:
-                    lines.append(f"• Horario: {schedule}" if not en else f"• Schedule: {schedule}")
-                if duration:
-                    lines.append(f"• Duración: {duration}" if not en else f"• Duration: {english_duration(duration)}")
-                if includes:
-                    inc_short = includes if len(includes) <= 180 else includes[:177] + "..."
-                    lines.append(f"• Incluye: {inc_short}" if not en else f"• Includes: {inc_short}")
-                if excludes:
-                    exc_short = excludes if len(excludes) <= 140 else excludes[:137] + "..."
-                    lines.append(f"• No incluye: {exc_short}" if not en else f"• Does not include: {exc_short}")
+
                 try:
                     from catalog_service import get_tour_rates
                     rates_ov = get_tour_rates(eid, active_only=True)
@@ -628,8 +701,12 @@ def install(ns, support, original):
                 except Exception:
                     pass
 
-                footer = '\n\nEscribe 👉 *asesor* para reservar o más información 😊' if not en else '\n\nWrite 👉 *advisor* for bookings or more info 😊'
-                return finish("\n".join(lines) + footer, 'evidence_tour_overview', sources=['CATALOGO_OFICIAL'], entity_id=eid)
+                actions_hint = (
+                    "\n_Puedes consultar qué incluye, ver fotos o solicitar reserva con las opciones de abajo o escribiendo tu consulta._"
+                    if not en else
+                    "\n_You can check what's included, view photos, or request a reservation using the options below or typing your question._"
+                )
+                return finish("\n".join(lines) + actions_hint, 'evidence_tour_overview', sources=['CATALOGO_OFICIAL'], entity_id=eid)
 
         if eid and fld and lang in {'es','en'}:
             tour_obj = active_tours.get(eid, {})
@@ -644,13 +721,23 @@ def install(ns, support, original):
             if dynamic_value and fld in overrides and fld in {'schedule', 'duration', 'includes', 'excludes'}:
                 label = ({'schedule': 'Horario', 'duration': 'Duración', 'includes': 'Incluye', 'excludes': 'No incluye'}
                          if not en else {'schedule': 'Schedule', 'duration': 'Duration', 'includes': 'Includes', 'excludes': 'Does not include'})[fld]
-                text = f"*{name}*\n{label}: {dynamic_value}"
+                if fld in {'includes', 'excludes'} and any(sep in dynamic_value for sep in [',', ';', '\n']):
+                    items = [it.strip().lstrip('•-* ') for it in re.split(r'[,;\n]+', dynamic_value) if it.strip()]
+                    formatted_val = ":\n" + "\n".join(f"• {it}" for it in items)
+                else:
+                    formatted_val = f": {dynamic_value}"
+                text = f"*{name}*\n{label}{formatted_val}"
                 if fld in {'includes', 'excludes'}:
                     other = 'excludes' if fld == 'includes' else 'includes'
                     other_value = str(tour_obj.get(other) or '').strip()
                     if other_value:
                         other_label = ('No incluye' if other == 'excludes' else 'Incluye') if not en else ('Does not include' if other == 'excludes' else 'Includes')
-                        text += f"\n{other_label}: {other_value}"
+                        if any(sep in other_value for sep in [',', ';', '\n']):
+                            o_items = [it.strip().lstrip('•-* ') for it in re.split(r'[,;\n]+', other_value) if it.strip()]
+                            formatted_other = ":\n" + "\n".join(f"• {it}" for it in o_items)
+                        else:
+                            formatted_other = f": {other_value}"
+                        text += f"\n\n{other_label}{formatted_other}"
                 return finish(text, f'evidence_{fld}', sources=['CATALOGO_OFICIAL'], entity_id=eid)
             relevant=detect_conflicts(eid, fld)
             if relevant:
@@ -713,10 +800,16 @@ def install(ns, support, original):
                     labels_en = {'includes':'Includes','excludes':'Does not include','stops':'Visits','schedule':'Schedule','duration':'Duration'}
                     emoji = emojis.get(fld, 'ℹ️')
                     label = (labels_en if en else labels_es).get(fld, fld.capitalize())
-                    if en:
-                        msg = f"{emoji} *{name}*\n{label}: {dyn_val}\n\nWrite 👉 *advisor* for more details or to book 😊"
+                    if fld in {'includes', 'excludes'} and any(sep in dyn_val for sep in [',', ';', '\n']):
+                        items = [it.strip().lstrip('•-* ') for it in re.split(r'[,;\n]+', dyn_val) if it.strip()]
+                        formatted_dyn = ":\n" + "\n".join(f"• {it}" for it in items)
+                        body_str = f"{label}{formatted_dyn}"
                     else:
-                        msg = f"{emoji} *{name}*\n{label}: {dyn_val}\n\nEscribe 👉 *asesor* para más detalles o reservar 😊"
+                        body_str = f"{label}: {dyn_val}"
+                    if en:
+                        msg = f"{emoji} *{name}*\n{body_str}\n\nWrite 👉 *advisor* for more details or to book 😊"
+                    else:
+                        msg = f"{emoji} *{name}*\n{body_str}\n\nEscribe 👉 *asesor* para más detalles o reservar 😊"
                     return finish(msg, f'evidence_{fld}', sources=['CATALOGO_OFICIAL'], entity_id=eid)
                 if en:
                     msg = f"💬 That detail for *{name}* is confirmed directly with our team.\n\nWrite 👉 *advisor* and we'll help you 😊"

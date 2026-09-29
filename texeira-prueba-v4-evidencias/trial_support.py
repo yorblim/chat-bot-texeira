@@ -121,8 +121,8 @@ def install(ns):
     def language(text):
         words = set(re.findall(r'\b\w+\b', normalize(text)))
         markers = {
-            'es': set('que cual cuanto cuesta incluye incluidas entradas puedo cancelar manana gracias hola precio precios como donde cuando salir salida horario hora boleto boletos llegar quiero necesito visita ruinas arqueologico arqueologica caminata trekking montana colores sagrao waqrapukara waqra pukara queswachaca puente mistico'.split()),
-            'en': set('what which how does the include includes included tickets can cancel tomorrow thanks price where when want need is are do offer available'.split()),
+            'es': set('que cual cuanto cuesta incluye incluidas entradas puedo cancelar manana gracias hola precio precios como donde cuando salir salida horario hora boleto boletos llegar quiero necesito visita ruinas arqueologico arqueologica caminata trekking montana colores sagrao waqrapukara waqra pukara queswachaca puente mistico ver categorias categoria catalogo reserva reservar solicitar'.split()),
+            'en': set('what which how does the include includes included tickets can cancel tomorrow thanks price where when want need is are do offer available hello hi categories category reservation reserve book view'.split()),
             'pt': set('quais quanto custa preco passeios voce quero ola obrigado'.split()),
             'fr': set('quels quelle combien bonjour prix je avec merci'.split()),
         }
@@ -144,7 +144,7 @@ def install(ns):
         return original_ui(*args, **kwargs).replace('Texeira Travel Tour', 'Texeira — PRUEBA REFERENCIAL v4')
     ns['get_chat_html'] = trial_ui
 
-    keep = {'hola', 'buenos días', 'buenas', 'hello', 'hi', 'adiós', 'chau', 'hasta luego', 'bye', 'gracias', 'muchas gracias', 'thanks', 'ayuda', 'help', 'me ayudas'}
+    keep = {'hola', 'buenos días', 'buenas tardes', 'buenas noches', 'buenas', 'hello', 'hi', 'adiós', 'chau', 'hasta luego', 'bye', 'gracias', 'muchas gracias', 'thanks', 'ayuda', 'help', 'me ayudas'}
     ns['PREDEFINED_RESPONSES'] = {k: v for k, v in ns['PREDEFINED_RESPONSES'].items() if k in keep}
     ns['get_retriever'] = retriever
     ns['CHROMA_HYBRID_DIR'] = str(INDEX)

@@ -47,7 +47,6 @@ def get_tour_image_data(text: str, user_msg: str = "", entity_id: str = ""):
         'montana-7-colores': (f"{base_url}/images/montana_7_colores.jpg", '🌈 *Montaña de 7 Colores (Vinicunca)* — Texeira Travel'),
         'laguna-humantay': (f"{base_url}/images/laguna_humantay.jpg", '💎 *Laguna Humantay* — Texeira Travel'),
         'valle-sagrado': (f"{base_url}/images/valle_sagrado.jpg", '🌾 *Valle Sagrado* — Texeira Travel'),
-        'valle-sur': (f"{base_url}/images/cusco_general.jpg", '🏺 *Valle Sur* — Texeira Travel'),
         'maras-moray': (f"{base_url}/images/maras_moray.jpg", '🧂 *Maras y Moray* — Texeira Travel'),
         'maras-moray-cuatrimoto': (f"{base_url}/images/maras_moray.jpg", '🏍️ *Maras y Moray en Cuatrimoto* — Texeira Travel'),
         'city-tour-cusco': (f"{base_url}/images/city_tour_cusco.jpg", '🏛️ *City Tour Cusco* — Texeira Travel'),
@@ -92,8 +91,12 @@ def get_tour_image_data(text: str, user_msg: str = "", entity_id: str = ""):
                 pass
             return canonical_images[target_eid]
 
-    # 3. Si el usuario pidió fotos expresamente y no se detectó un tour particular
-    if is_photo_requested(user_msg):
+        # Regla estricta: si se seleccionó o detectó un tour y no tiene foto oficial,
+        # NO sustituir por fotos de otro tour ni por la imagen general de Cusco.
+        return None
+
+    # 3. Solo si no hay tour involucrado y el usuario pide fotos generales de la agencia
+    if is_photo_requested(user_msg or text):
         return (f"{base_url}/images/cusco_general.jpg", '📸 *Texeira Travel* — Destinos en Cusco y el Perú')
 
     return None

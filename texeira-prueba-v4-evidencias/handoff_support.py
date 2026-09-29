@@ -143,11 +143,15 @@ def requested(text):
         'atencion de una persona', 'ayuda de una persona',
         'comunicame con un asesor', 'comunicarme con un asesor',
         'deseo contactar a un asesor', 'contactar a un asesor',
+        'solicitar reserva', 'solicitar una reserva', 'hacer una reserva', 'hacer reserva',
+        'quiero reservar', 'deseo reservar', 'quisiera reservar', 'reservar', 'reservar tour',
         'speak to an agent', 'i want to speak to an agent',
         'speak to an advisor', 'i want to speak to an advisor',
         'talk to an agent', 'talk to an advisor', 'talk to a human', 'speak to a human', 'speak to a person',
         'talk to a person', 'i want to talk to a person',
         'human support', 'human help', 'i need human help', 'i need an advisor',
+        'request reservation', 'request a reservation', 'book now', 'book tour', 'book a tour',
+        'i want to book', 'booking request',
     }
     if q in exact_phrases:
         return True
@@ -158,6 +162,9 @@ def requested(text):
         # Solicitar que le llamen o contacten directamente
         r'\b(quiero\s+que\s+me\s+llamen|pueden\s+llamarme|me\s+pueden\s+llamar|favor\s+de\s+llamarme|llamenme)\b',
         r'\b(pueden\s+contactarme|me\s+pueden\s+contactar|quiero\s+que\s+me\s+contacten|contactenme)\b',
+        # Solicitudes de reserva explícitas
+        r'\b(solicitar|pedir|hacer|quiero|quisiera|deseo|necesito)\s+(una\s+)?reserva(\s+de|\s+para|\s+sobre|\s+del)?\b',
+        r'\b(solicitud\s+de\s+reserva|quiero\s+reservar|deseo\s+reservar|quisiera\s+reservar|como\s+reservo|para\s+reservar)\b',
         # Ayuda / atención humana
         r'\b(ayuda|atencion|soporte|asistencia)\s+(humana?|de\s+una\s+persona|personalizada)\b',
         # En inglés
@@ -165,6 +172,7 @@ def requested(text):
         r'\b(i\s+want\s+to|i\s+need\s+to|can\s+i|i\s+need|please|i\s+would\s+like\s+to)?\s*(speak|talk|chat|contact)\s*(to|with)?\s*(a\s+|an\s+)?(human|person|agent|advisor|representative)\b',
         r'\b(call\s+me|please\s+call\s+me|can\s+you\s+call\s+me)\b',
         r'\b(connect\s+me\s+(with|to)\s+(an?\s+)?(agent|advisor|human|representative))\b',
+        r'\b(request\s+(a\s+)?reservation|i\s+(want|would\s+like|need)\s+to\s+book|book\s+now|booking\s+request)\b',
     ]
     for pat in patterns:
         if re.search(pat, q):
@@ -221,7 +229,38 @@ def apply_request(ns, result, user_id, channel, question):
     en=result.get('handoff_language')=='en'
     try:
         history=ns['get_history'](user_id)
-        row, created=create_request(user_id,channel,question,history[:-2])
+        # Identificar si es una solicitud de reserva y tour seleccionado
+        is_booking = bool(re.search(r'\b(reserva\w*|reserv|book\w*)\b', question, re.IGNORECASE))
+        tour_name = ""
+        try:
+            from trial_support import detect_entity_from_question
+            eid = detect_entity_from_question(question)
+            if not eid or eid == "unknown":
+                for h in reversed(history[:-2]):
+                    if h.get('role') == 'human':
+                        cand = detect_entity_from_question(h.get('content', ''))
+                        if cand and cand != 'unknown':
+                            eid = cand
+                            break
+            if eid and eid != "unknown":
+                from catalog_service import get_tour
+                t_data = get_tour(eid)
+                if t_data and t_data.get('name'):
+                    tour_name = t_data['name']
+                elif 'support' in ns and 'CATALOG' in ns['support'] and eid in ns['support']['CATALOG']:
+                    tour_name = ns['support']['CATALOG'][eid].get('name', eid)
+        except Exception:
+            pass
+
+        ticket_question = question
+        if is_booking:
+            if tour_name and tour_name.lower() not in question.lower():
+                ticket_question = f"[Reserva - {tour_name}] {question}"
+            elif not question.lower().startswith("[reserva"):
+                ticket_question = f"[Reserva] {question}"
+
+        row, created = create_request(user_id, channel, ticket_question, history[:-2])
+        result.update(handoff_id=row['id'], handoff_status=row['status'], handoff_registered=True)
         if created and channel in {'whatsapp', 'messenger'} and ns.get('ADVISOR_NOTIFICATIONS_ENABLED', False):
             send_fn = ns.get('send_whatsapp_message')
             advisor_phone = ns.get('ADVISOR_WHATSAPP_PHONE') or os.getenv('ADVISOR_WHATSAPP_PHONE', '')
@@ -229,15 +268,58 @@ def apply_request(ns, result, user_id, channel, question):
                 notify_advisor(row, send_fn=send_fn, advisor_phone=advisor_phone)
             except Exception as e:
                 print(f"[ADVISOR NOTIFY] Error silencioso al notificar asesor: {e}")
-        result['response']=(f"Tu solicitud {row['id']} está registrada y pendiente de atención humana. "
-                            'Aún no ha sido atendida. Puedes seguir haciendo consultas al bot.')
-        result.update(handoff_id=row['id'],handoff_status=row['status'],handoff_registered=True)
-        if en:
-            result['response']=(f"Your request {row['id']} is registered and pending human attention. "
-                                'It has not been handled yet. You can continue asking the bot questions.')
-        if row['status']=='in_progress':
-            result['response']=f"Tu solicitud {row['id']} ya está en atención. Aún no está cerrada."
-            if en: result['response']=f"Your request {row['id']} is being handled. It is not closed yet."
+
+        if is_booking:
+            if created:
+                if tour_name:
+                    result['response'] = (
+                        f"Registré tu solicitud sobre {tour_name}. Está pendiente de atención por un asesor; tu reserva aún no está confirmada."
+                        if not en else
+                        f"I registered your request regarding {tour_name}. It is pending review by an advisor; your reservation is not yet confirmed."
+                    )
+                else:
+                    result['response'] = (
+                        "Registré tu solicitud de reserva. Está pendiente de atención por un asesor; tu reserva aún no está confirmada."
+                        if not en else
+                        "I registered your reservation request. It is pending review by an advisor; your reservation is not yet confirmed."
+                    )
+            else:
+                if row['status'] == 'in_progress':
+                    result['response'] = (
+                        f"Tu solicitud sobre {tour_name or 'tu reserva'} (Ticket {row['id']}) ya está en atención por un asesor. Tu reserva aún no está confirmada."
+                        if not en else
+                        f"Your request regarding {tour_name or 'your reservation'} (Ticket {row['id']}) is already being attended by an advisor. Your reservation is not yet confirmed."
+                    )
+                else:
+                    result['response'] = (
+                        f"Ya tienes una solicitud registrada (Ticket {row['id']}) pendiente de atención por un asesor. Tu reserva aún no está confirmada; te atenderemos a la brevedad."
+                        if not en else
+                        f"You already have a registered request (Ticket {row['id']}) pending review by an advisor. Your reservation is not yet confirmed; we will assist you shortly."
+                    )
+        else:
+            if created:
+                result['response'] = (
+                    f"Tu solicitud {row['id']} está registrada y pendiente de atención humana. "
+                    "Aún no ha sido atendida. Puedes seguir haciendo consultas al bot."
+                    if not en else
+                    f"Your request {row['id']} is registered and pending human attention. "
+                    "It has not been handled yet. You can continue asking the bot questions."
+                )
+            else:
+                if row['status'] == 'in_progress':
+                    result['response'] = (
+                        f"Tu solicitud {row['id']} ya está en atención. Aún no está cerrada."
+                        if not en else
+                        f"Your request {row['id']} is being handled. It is not closed yet."
+                    )
+                else:
+                    result['response'] = (
+                        f"Ya tienes una solicitud registrada ({row['id']}) pendiente de atención humana. "
+                        "Aún no ha sido atendida. Puedes seguir haciendo consultas al bot."
+                        if not en else
+                        f"You already have a registered request ({row['id']}) pending human attention. "
+                        "It has not been handled yet. You can continue asking the bot questions."
+                    )
     except (sqlite3.Error, Exception):
         result['response']='No pude registrar la solicitud. Intenta nuevamente o usa los contactos de la agencia.'
         result.update(handoff_registered=False,handoff_status='registration_failed')
