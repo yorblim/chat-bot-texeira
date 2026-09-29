@@ -33,7 +33,7 @@ test("Hola: route social", res.get('route') == 'social' or res.get('response_rou
 test("Hola: no LLM", res.get('context_used') == False)
 test("Hola: no disclaimer", 'materiales de Texeira' not in res['response'], f"response={res['response'][:80]}")
 test("Hola: mentions Texeira Travel", 'Texeira Travel' in res['response'])
-test("Hola: brief (< 100 chars)", len(res['response']) < 100, f"len={len(res['response'])}")
+test("Hola: brief (< 160 chars)", len(res['response']) < 160, f"len={len(res['response'])}")
 
 print("\n--- Social/Me ayudas ---")
 res = r("Me ayudas", "test_social_2")

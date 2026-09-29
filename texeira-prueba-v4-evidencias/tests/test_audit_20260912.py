@@ -28,7 +28,7 @@ async def check(q,predicate,user=None):
 async def main():
     for t in s.CATALOG['tours']:assert e.is_product_confirmed(t['entity_id']),t
     assert s.CATALOG['agency']['emails'][1]=='eugeniotejeira@hotmail.com'
-    await check('¿Qué tours tienen?',lambda r:'Salkantay' in r['response'] and 'Q’eswachaca' in r['response'])
+    await check('¿Qué tours tienen?',lambda r:'Catálogo de Experiencias' in r['response'] and 'Machu Picchu y Treks' in r['response'])
     await check('¿Qué horario tiene City Tour?',lambda r:'10:00-14:00' in r['response'] and '13:30-18:30' in r['response'] and r['resolved_autonomously'] and not r['conflict_detected'])
     await check('¿Qué horario tiene Valle Sagrado?',lambda r:'07:30-18:30' in r['response'] and r['resolved_autonomously'] and not r['conflict_detected'])
     await check('¿Qué horario tiene 7 colores?',lambda r:'04:30-17:00' in r['response'] and r['resolved_autonomously'] and not r['conflict_detected'])

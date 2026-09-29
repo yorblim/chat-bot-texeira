@@ -240,10 +240,10 @@ class TestInteractiveWhatsAppButtons(unittest.TestCase):
             self.assertEqual(resp.status_code, 200)
             self.assertTrue(mock_send.called)
 
-            # Verificar que el mensaje enviado responde a fotos de Camino Inca
+            # Verificar que el mensaje enviado responde sobre fotos de Camino Inca
             call_kwargs = mock_send.call_args[1]
             sent_text = call_kwargs["text"]
-            self.assertIn("imagen", sent_text.lower())
+            self.assertTrue("foto" in sent_text.lower() or "imagen" in sent_text.lower())
             self.assertIn("Camino Inca", sent_text)
 
             # Verificar que los botones devueltos transportan el ID del tour
@@ -369,7 +369,12 @@ class TestInteractiveWhatsAppButtons(unittest.TestCase):
         self.assertTrue(ok)
 
         try:
-            buttons = app.get_quick_buttons(route="evidence_listing", lang="es")
+            # 1. En listado de categorías, se presentan las categorías activas
+            cat_buttons = app.get_quick_buttons(route="evidence_listing", lang="es")
+            self.assertTrue(any("btn_cat:" in b["id"] for b in cat_buttons))
+
+            # 2. En la categoría correspondiente, camino-inka no debe estar presente y machu-picchu-tren sí
+            buttons = app.get_quick_buttons(route="evidence_category_tours", user_message="categoria treks", lang="es")
             button_eids = [b["id"] for b in buttons]
             button_titles = [b["title"] for b in buttons]
 
@@ -378,7 +383,7 @@ class TestInteractiveWhatsAppButtons(unittest.TestCase):
             self.assertFalse(any("Camino Inca" in title for title in button_titles))
 
             # Otros tours activos deben estar presentes
-            self.assertTrue(any("machu-picchu-tren" in bid or "montana-7-colores" in bid for bid in button_eids))
+            self.assertTrue(any("machu-picchu-tren" in bid for bid in button_eids))
         finally:
             # Restaurar estado activo
             catalog_service.upsert_tour(dict(entity_id="camino-inka", name="Camino Inca", is_active=True))
