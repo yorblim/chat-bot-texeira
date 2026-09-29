@@ -1734,6 +1734,7 @@ def get_quick_buttons(
     user_message: str = "",
     detected_eid: str = "",
     lang: str = "es",
+    photo_send_failed: bool = False,
 ) -> List[dict]:
     """Genera hasta 3 botones contextuales según la intención y tour detectado.
 
@@ -1744,25 +1745,84 @@ def get_quick_buttons(
     u_lower = (user_message or "").lower()
     eid_suffix = f":{detected_eid}" if detected_eid else ""
 
-    # 1. Si es listado de tours o categorías
+    from catalog_service import is_deactivated_tour
+
+    # 1. Tour desactivado: NUNCA ofrecer acciones comerciales (fotos, tarifas, reserva)
+    if route == "evidence_inactive_tour" or (detected_eid and is_deactivated_tour(detected_eid)):
+        if is_en:
+            return [
+                {"id": f"btn_tours:{lang}", "title": "View other tours"},
+                {"id": f"btn_advisor:{lang}", "title": "Consult advisor"},
+            ]
+        else:
+            return [
+                {"id": f"btn_tours:{lang}", "title": "Ver otros tours"},
+                {"id": f"btn_advisor:{lang}", "title": "Consultar asesor"},
+            ]
+
+    # 2. Error técnico al cargar catálogo (base de datos inaccesible)
+    if route == "evidence_catalog_error":
+        if is_en:
+            return [
+                {"id": f"btn_advisor:{lang}", "title": "Consult advisor"},
+                {"id": f"btn_tours:{lang}", "title": "Retry"},
+            ]
+        else:
+            return [
+                {"id": f"btn_advisor:{lang}", "title": "Consultar asesor"},
+                {"id": f"btn_tours:{lang}", "title": "Reintentar"},
+            ]
+
+    # 3. Catálogo vacío
+    if route in ("evidence_catalog_empty", "catalog_unavailable"):
+        return [{"id": f"btn_advisor:{lang}", "title": "Consult advisor" if is_en else "Consultar asesor"}]
+
+    # 4. Categoría vacía
+    if route == "evidence_category_empty":
+        return [
+            {"id": f"btn_cats:{lang}", "title": "⬅️ Categories" if is_en else "⬅️ Categorías"},
+            {"id": f"btn_advisor:{lang}", "title": "Consult advisor" if is_en else "Consultar asesor"},
+        ]
+
+    # 5. Consulta ambigua ("el otro", aclaración entre 2 tours)
+    if route == "evidence_ambiguous":
+        buttons = []
+        if detected_eid and "," in detected_eid:
+            cands = [c.strip() for c in detected_eid.split(",") if c.strip()]
+            for c in cands[:2]:
+                title = _get_tour_button_title(c, is_en=is_en)
+                buttons.append({"id": f"btn_tour:{c}:{lang}", "title": title[:20]})
+        buttons.append({"id": f"btn_tours:{lang}", "title": "🗺️ View Tours" if is_en else "🗺️ Ver Tours"})
+        return buttons[:3]
+
+    # 6. Solicitud de atención o reserva registrada (handoff)
+    if route == "human_request":
+        buttons = [{"id": f"btn_tours:{lang}", "title": "View other tours" if is_en else "Ver otros tours"}]
+        if detected_eid and not is_deactivated_tour(detected_eid):
+            buttons.append({"id": f"btn_inc:{detected_eid}:{lang}", "title": "📄 What's included" if is_en else "📄 Qué incluye"})
+        else:
+            buttons.append({"id": f"btn_advisor:{lang}", "title": "Consult advisor" if is_en else "Consultar asesor"})
+        return buttons[:2]
+
+    # 7. Listado de tours o categorías
     if route == "evidence_listing" or _is_listing_question(u_lower):
-        from verified_routes import CAT_SPECS
+        from verified_routes import get_dynamic_cat_specs
         try:
             from catalog_service import get_all_tours
-            active_eids = {t['entity_id'] for t in get_all_tours(active_only=True) if t.get('is_active')}
+            all_active = {t['entity_id']: t for t in get_all_tours(active_only=True) if t.get('is_active')}
         except Exception:
-            active_eids = set()
+            all_active = {}
+        cat_specs = get_dynamic_cat_specs(all_active)
         cat_buttons = []
-        for spec in CAT_SPECS:
-            tour_ids = [t[0] if isinstance(t, (list, tuple)) else t for t in spec.get('tours', [])]
-            if any(tid in active_eids for tid in tour_ids):
+        for spec in cat_specs.values():
+            if len(spec.get('tours', [])) > 0:
                 title = spec['btn_title_en'] if is_en else spec['btn_title_es']
                 cat_buttons.append({"id": f"{spec['btn_id']}:{lang}", "title": title[:20]})
         if cat_buttons:
             return cat_buttons[:3]
-        return [{"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Advisor" if is_en else "🙋‍♂️ Asesor"}]
+        return [{"id": f"btn_advisor:{lang}", "title": "Consult advisor" if is_en else "Consultar asesor"}]
 
-    # 2. Si se están mostrando los tours de una categoría
+    # 8. Tours de una categoría con paginación
     if route == "evidence_category_tours":
         buttons = []
         cat_key = ""
@@ -1770,24 +1830,70 @@ def get_quick_buttons(
             if ck in u_lower:
                 cat_key = ck
                 break
-        from verified_routes import CAT_SPECS
-        spec = next((s for s in CAT_SPECS if s['key'] == cat_key), None)
-        if spec:
+        page = 0
+        import re
+        m_page = re.search(r'(?:pagina|page)\s+(\d+)', u_lower)
+        if m_page:
             try:
-                from catalog_service import get_all_tours
-                active_eids = {t['entity_id'] for t in get_all_tours(active_only=True) if t.get('is_active')}
+                page = int(m_page.group(1))
             except Exception:
-                active_eids = set()
-            tour_ids = [t[0] if isinstance(t, (list, tuple)) else t for t in spec.get('tours', [])]
-            avail = [tid for tid in tour_ids if not active_eids or tid in active_eids]
-            for t in avail[:2]:
+                page = 0
+
+        from verified_routes import get_dynamic_cat_specs
+        try:
+            from catalog_service import get_all_tours
+            all_active = {t['entity_id']: t for t in get_all_tours(active_only=True) if t.get('is_active')}
+        except Exception:
+            all_active = {}
+        cat_specs = get_dynamic_cat_specs(all_active)
+        spec = cat_specs.get(cat_key)
+        if spec:
+            tour_ids = [t[0] for t in spec.get('tours', [])]
+            start = page * 2
+            page_slice = tour_ids[start : start + 2]
+            for t in page_slice:
                 title = _get_tour_button_title(t, is_en=is_en)
                 buttons.append({"id": f"btn_tour:{t}:{lang}", "title": title[:20]})
-        buttons.append({"id": f"btn_cats:{lang}", "title": "⬅️ Categories" if is_en else "⬅️ Categorías"})
+            if start + 2 < len(tour_ids):
+                buttons.append({"id": f"btn_cat_page:{cat_key}:{page+1}:{lang}", "title": "➡️ More tours" if is_en else "➡️ Más tours"})
+            else:
+                buttons.append({"id": f"btn_cats:{lang}", "title": "⬅️ Categories" if is_en else "⬅️ Categorías"})
+        else:
+            buttons.append({"id": f"btn_cats:{lang}", "title": "⬅️ Categories" if is_en else "⬅️ Categorías"})
         return buttons[:3]
 
-    # 3. Si se solicitó o mostró foto (disponible o no)
-    if route in ("evidence_photo", "evidence_photo_unavailable") or is_photo_requested(user_message):
+    # 9. Fallo de envío de foto en Meta API
+    if photo_send_failed and detected_eid:
+        if is_en:
+            return [
+                {"id": f"btn_photo{eid_suffix}:{lang}", "title": "📸 Retry photo"},
+                {"id": f"btn_inc{eid_suffix}:{lang}", "title": "📄 What's included"},
+                {"id": f"btn_book{eid_suffix}:{lang}", "title": "Request reservation"},
+            ]
+        else:
+            return [
+                {"id": f"btn_photo{eid_suffix}:{lang}", "title": "📸 Reintentar foto"},
+                {"id": f"btn_inc{eid_suffix}:{lang}", "title": "📄 Qué incluye"},
+                {"id": f"btn_book{eid_suffix}:{lang}", "title": "Solicitar reserva"},
+            ]
+
+    # 10. Foto inexistente en línea
+    if route == "evidence_photo_unavailable" and detected_eid:
+        if is_en:
+            return [
+                {"id": f"btn_inc{eid_suffix}:{lang}", "title": "📄 What's included"},
+                {"id": f"btn_rates{eid_suffix}:{lang}", "title": "💰 Rates"},
+                {"id": f"btn_book{eid_suffix}:{lang}", "title": "Request reservation"},
+            ]
+        else:
+            return [
+                {"id": f"btn_inc{eid_suffix}:{lang}", "title": "📄 Qué incluye"},
+                {"id": f"btn_rates{eid_suffix}:{lang}", "title": "💰 Tarifas"},
+                {"id": f"btn_book{eid_suffix}:{lang}", "title": "Solicitar reserva"},
+            ]
+
+    # 11. Foto enviada exitosamente
+    if route == "evidence_photo" or is_photo_requested(user_message):
         if is_en:
             return [
                 {"id": f"btn_rates{eid_suffix}:{lang}", "title": "💰 Rates"},
@@ -1801,7 +1907,7 @@ def get_quick_buttons(
                 {"id": f"btn_book{eid_suffix}:{lang}", "title": "Solicitar reserva"},
             ]
 
-    # 4. Si se trata de precios / tarifas
+    # 12. Precios / tarifas
     if route in ("evidence_confirmed_price", "evidence_special_rate") or _is_price_question(u_lower):
         if is_en:
             return [
@@ -1816,7 +1922,7 @@ def get_quick_buttons(
                 {"id": f"btn_book{eid_suffix}:{lang}", "title": "Solicitar reserva"},
             ]
 
-    # 5. Si es consulta sobre qué incluye
+    # 13. Qué incluye
     if route in ("evidence_confirmed_includes", "evidence_includes") or _is_includes_question(u_lower):
         if is_en:
             return [
@@ -1831,7 +1937,22 @@ def get_quick_buttons(
                 {"id": f"btn_book{eid_suffix}:{lang}", "title": "Solicitar reserva"},
             ]
 
-    # 6. Si es ficha de tour (overview) o hay un tour detectado
+    # 14. Horario publicado o precio sin confirmar
+    if route == "evidence_schedule" and detected_eid:
+        if is_en:
+            return [
+                {"id": f"btn_inc{eid_suffix}:{lang}", "title": "📄 What's included"},
+                {"id": f"btn_photo{eid_suffix}:{lang}", "title": "📸 View Photos"},
+                {"id": f"btn_advisor:{lang}", "title": "Consult advisor"},
+            ]
+        else:
+            return [
+                {"id": f"btn_inc{eid_suffix}:{lang}", "title": "📄 Qué incluye"},
+                {"id": f"btn_photo{eid_suffix}:{lang}", "title": "📸 Ver Fotos"},
+                {"id": f"btn_advisor:{lang}", "title": "Consultar asesor"},
+            ]
+
+    # 15. Ficha de tour (overview) o tour detectado activo
     if detected_eid:
         if is_en:
             return [
@@ -1846,18 +1967,17 @@ def get_quick_buttons(
                 {"id": f"btn_book:{detected_eid}:{lang}", "title": "Solicitar reserva"},
             ]
 
-    # 7. Si es saludo o ayuda
-    if route in ("social", "help", "predefined"):
-        if is_en:
-            return [
-                {"id": f"btn_tours:{lang}", "title": "🗺️ View Tours"},
-                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Advisor"},
-            ]
-        else:
-            return [
-                {"id": f"btn_tours:{lang}", "title": "🗺️ Ver Tours"},
-                {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Asesor"},
-            ]
+    # 16. Saludo / ayuda / bienvenida
+    if is_en:
+        return [
+            {"id": f"btn_tours:{lang}", "title": "🗺️ View Tours"},
+            {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Advisor"},
+        ]
+    else:
+        return [
+            {"id": f"btn_tours:{lang}", "title": "🗺️ Ver Tours"},
+            {"id": f"btn_advisor:{lang}", "title": "🙋‍♂️ Asesor"},
+        ]
 
     # 8. Si es escalamiento / contacto / handoff
     if route in ("evidence_contact", "evidence_human_escalation"):
@@ -2047,7 +2167,16 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         action = btn_parts[0]
                         explicit_eid = None
                         explicit_lang = None
-                        if len(btn_parts) >= 3:
+                        cat_page_num = 0
+                        if action == "btn_cat_page":
+                            if len(btn_parts) >= 4:
+                                explicit_eid = btn_parts[1]
+                                cat_page_num = int(btn_parts[2]) if btn_parts[2].isdigit() else 0
+                                explicit_lang = btn_parts[3]
+                            elif len(btn_parts) >= 3:
+                                explicit_eid = btn_parts[1]
+                                cat_page_num = int(btn_parts[2]) if btn_parts[2].isdigit() else 0
+                        elif len(btn_parts) >= 3:
                             explicit_eid = btn_parts[1]
                             explicit_lang = btn_parts[2]
                         elif len(btn_parts) == 2:
@@ -2102,8 +2231,11 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
 
                         tour_name = _get_tour_display_name(target_eid, is_en=is_en) if (target_eid and target_eid != "__AMBIGUOUS__") else ""
 
+                        from catalog_service import is_deactivated_tour
                         # Mapeo semántico de botones interactivos preservando entidad e idioma
-                        if target_eid == "__AMBIGUOUS__" and action in ("btn_inc", "btn_rates", "btn_price", "btn_photo", "btn_book"):
+                        if target_eid and target_eid != "__AMBIGUOUS__" and is_deactivated_tour(target_eid):
+                            user_message = f"information about {tour_name or target_eid}" if is_en else f"informacion de {tour_name or target_eid}"
+                        elif target_eid == "__AMBIGUOUS__" and action in ("btn_inc", "btn_rates", "btn_price", "btn_photo", "btn_book"):
                             is_interactive_ambiguous = True
                             if is_en:
                                 user_message = "Which tour would you like to check? Please specify the tour name (e.g., *Inca Trail* or *City Tour*) 😊"
@@ -2144,6 +2276,9 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         elif action == "btn_cat":
                             cat_key = explicit_eid or ""
                             user_message = f"category {cat_key}" if is_en else f"categoria {cat_key}"
+                        elif action == "btn_cat_page":
+                            cat_key = explicit_eid or ""
+                            user_message = f"category {cat_key} page {cat_page_num}" if is_en else f"categoria {cat_key} pagina {cat_page_num}"
                         elif action in ("btn_cats", "btn_categories", "btn_tours"):
                             user_message = "view tour categories" if is_en else "ver categorias de tours"
                         elif action == "btn_tour":
@@ -2299,6 +2434,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                             user_message=user_message,
                             detected_eid=detected_eid,
                             lang=eff_lang,
+                            photo_send_failed=(photo_api_accepted is False),
                         )
 
                     accepted = user_id != 'unknown' and send_whatsapp_message(

@@ -318,6 +318,19 @@ def get_tour_by_id(entity_id: str) -> Optional[Dict[str, Any]]:
 get_tour = get_tour_by_id
 
 
+def is_deactivated_tour(entity_id: str) -> bool:
+    """Verifica si un tour existe en el catálogo y está marcado como inactivo (is_active = 0 o False)."""
+    if not entity_id:
+        return False
+    try:
+        t = get_tour_by_id(entity_id)
+        if t is not None:
+            return not bool(t.get("is_active", 1))
+    except Exception:
+        pass
+    return False
+
+
 def upsert_tour(data: Dict[str, Any]) -> Tuple[bool, str]:
     """
     Crea o actualiza un tour en la base de datos.

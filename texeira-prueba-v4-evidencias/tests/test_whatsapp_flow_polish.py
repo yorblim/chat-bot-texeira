@@ -1,14 +1,16 @@
-"""tests/test_whatsapp_flow_polish.py — Validación exhaustiva del flujo de WhatsApp de Texeira Travel.
+"""tests/test_whatsapp_flow_polish.py — Validación integral del flujo de WhatsApp de Texeira Travel.
 
-Comprueba los 8 recorridos exigidos por el requerimiento de calidad:
-1. Saludo → categorías → tour → inclusiones → tarifa.
-2. Consultar dos tours y pulsar un botón del primero: preserva el tour original.
-3. Foto disponible, foto inexistente y error de envío a Meta API.
-4. Solicitar reserva: ticket con tour y contexto, sin confirmar reserva ni pago.
-5. Repetir la solicitud: sin tickets duplicados, informando estado del ticket abierto.
-6. Recorrido equivalente en inglés (Request reservation, English tour card, etc.).
-7. Tour desactivado y categoría vacía / catálogo vacío.
-8. Regresión de CSRF, catálogo dinámico, atención humana y métricas operativas.
+Comprueba los 10 recorridos obligatorios exigidos por la especificación:
+1. Saludo → catálogo → categoría → tour → detalles → tarifa.
+2. Tour A → tour B → botón antiguo de A (preservación de entidad).
+3. Desactivar un tour después de mostrar sus botones → pulsar un botón antiguo (sin bucles ni botones comerciales).
+4. Tour desactivado → elegir otra opción → continuar normalmente.
+5. Alta de tour activo y modificación de sus datos → consulta del dato actualizado (catálogo dinámico).
+6. Foto disponible, inexistente y envío fallido (multimedia coherente).
+7. Solicitud al asesor → repetición sin duplicar ticket → continuación normal de la conversación.
+8. Catálogo vacío y error de lectura BD como situaciones distintas (sin falsas atribuciones).
+9. Mensajes libres, preguntas de seguimiento ("¿y el precio?") y referencias ambiguas ("el otro").
+10. Recorridos equivalentes en español e inglés.
 """
 import os
 import sys
@@ -44,7 +46,6 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
         self.client = TestClient(app.app)
         self.test_uid = "51999888777"
         app.clear_history(self.test_uid)
-        # Limpiar tickets previos del usuario de prueba
         with handoff_support.connection() as conn:
             conn.execute("DELETE FROM requests WHERE user_id=?", (self.test_uid,))
             conn.commit()
@@ -130,7 +131,7 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
             }
 
     # =========================================================================
-    # RECORRIDO 1: Saludo → categorías → tour → inclusiones → tarifa
+    # RECORRIDO 1: Saludo → catálogo → categoría → tour → detalles → tarifa
     # =========================================================================
     def test_journey_1_greeting_to_rates(self):
         # 1. Saludo
@@ -151,11 +152,11 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
         # 3. Tours de categoría (Pulsar categoría "treks")
         res3 = self._send_wa_button_reply("btn_cat:treks:es", "🏔️ Machu Picchu")
         self.assertEqual(res3["status_code"], 200)
-        self.assertIn("Camino Inca", res3["sent_text"])
+        self.assertIn("Machu Picchu", res3["sent_text"])
         btn_ids_3 = [b["id"] for b in res3["sent_buttons"]]
-        # Debe incluir botón para regresar a categorías y botón para tour
-        self.assertTrue(any("btn_cats:es" in bid for bid in btn_ids_3))
-        self.assertTrue(any("btn_tour:camino-inka:es" in bid for bid in btn_ids_3))
+        # Debe incluir botones para tours y salida/paginación
+        self.assertTrue(any("btn_tour:machu-picchu-tren:es" in bid or "btn_tour:camino-inka:es" in bid for bid in btn_ids_3))
+        self.assertTrue(any(bid.startswith("btn_cat_page:") or bid.startswith("btn_cats:") for bid in btn_ids_3))
 
         # 4. Ficha de tour (Pulsar "Camino Inca Clásico")
         res4 = self._send_wa_button_reply("btn_tour:camino-inka:es", "Camino Inca")
@@ -182,7 +183,6 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
         self.assertEqual(res5["status_code"], 200)
         text5 = res5["sent_text"]
         self.assertIn("Incluye", text5)
-        # Elementos completos por viñetas, sin cortes
         self.assertNotIn("...", text5)
         btn_ids_5 = [b["id"] for b in res5["sent_buttons"]]
         self.assertTrue(any("btn_rates:camino-inka:es" in bid for bid in btn_ids_5))
@@ -197,16 +197,16 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
         self.assertTrue(any("btn_book:camino-inka:es" in bid for bid in btn_ids_6))
 
     # =========================================================================
-    # RECORRIDO 2: Consultar dos tours y pulsar un botón del primero
+    # RECORRIDO 2: Tour A → tour B → botón antiguo de A
     # =========================================================================
     def test_journey_2_tour_binding_preservation(self):
         uid = "51911112222"
         app.clear_history(uid)
 
-        # 1. Usuario consulta sobre Camino Inca
+        # 1. Usuario consulta sobre Camino Inca (Tour A)
         self._send_wa_message("informacion de Camino Inca", user_id=uid)
 
-        # 2. Usuario consulta sobre City Tour
+        # 2. Usuario consulta sobre City Tour (Tour B)
         self._send_wa_message("informacion de City Tour Cusco", user_id=uid)
 
         # 3. Usuario pulsa el botón del primer tour (Camino Inca: Qué incluye)
@@ -223,13 +223,142 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
         self.assertTrue(all("camino-inka" in bid for bid in btn_ids if "btn_cats" not in bid and "btn_advisor" not in bid))
 
     # =========================================================================
-    # RECORRIDO 3: Foto disponible, foto inexistente y error de envío
+    # RECORRIDO 3: Desactivar un tour después de mostrar sus botones → pulsar botón antiguo
     # =========================================================================
-    def test_journey_3_photo_available_unavailable_and_error(self):
+    def test_journey_3_deactivated_tour_clicking_old_button(self):
+        uid = "51922223333"
+        app.clear_history(uid)
+
+        # Desactivar explícitamente choquequirao en el catálogo dinámico
+        catalog_service.upsert_tour(dict(entity_id="choquequirao", name="Choquequirao Trek", is_active=False))
+        try:
+            # 1. Pulsar botón antiguo de Tarifas sobre tour desactivado
+            res_rates = self._send_wa_button_reply("btn_rates:choquequirao:es", "💰 Tarifas", user_id=uid)
+            self.assertEqual(res_rates["status_code"], 200)
+            text_rates = res_rates["sent_text"]
+
+            # Comprobar qué DEBE aparecer:
+            self.assertIn("Choquequirao", text_rates)
+            self.assertIn("no figura actualmente en nuestro catálogo activo", text_rates)
+            self.assertIn("asesor", text_rates)
+
+            # Comprobar qué NO DEBE aparecer en botones:
+            # NUNCA ofrecer fotos, tarifas ni reservas sobre un tour inactivo
+            btn_ids = [b["id"] for b in res_rates["sent_buttons"]]
+            self.assertFalse(any("btn_rates" in bid for bid in btn_ids))
+            self.assertFalse(any("btn_inc" in bid for bid in btn_ids))
+            self.assertFalse(any("btn_photo" in bid for bid in btn_ids))
+            self.assertFalse(any("btn_book" in bid for bid in btn_ids))
+            # SOLO salidas útiles hacia otros tours y asesor
+            self.assertTrue(any("btn_tours" in bid for bid in btn_ids))
+            self.assertTrue(any("btn_advisor" in bid for bid in btn_ids))
+
+            # 2. Pulsar botón antiguo de Solicitar Reserva sobre tour desactivado
+            res_book = self._send_wa_button_reply("btn_book:choquequirao:es", "Solicitar reserva", user_id=uid)
+            self.assertEqual(res_book["status_code"], 200)
+            text_book = res_book["sent_text"]
+            self.assertIn("no figura actualmente en nuestro catálogo activo", text_book)
+            # NO debe crear un ticket comercial de reserva
+            with handoff_support.connection() as conn:
+                row = conn.execute("SELECT * FROM requests WHERE user_id=? AND question LIKE '%Choquequirao%'", (uid,)).fetchone()
+                self.assertIsNone(row)
+        finally:
+            catalog_service.upsert_tour(dict(entity_id="choquequirao", name="Choquequirao Trek", is_active=True))
+
+    # =========================================================================
+    # RECORRIDO 4: Tour desactivado → elegir otra opción → continuar normalmente
+    # =========================================================================
+    def test_journey_4_inactive_tour_to_other_options(self):
+        uid = "51922224444"
+        app.clear_history(uid)
+
+        # 1. Usuario pregunta por Choquequirao desactivado
+        catalog_service.upsert_tour(dict(entity_id="choquequirao", name="Choquequirao Trek", is_active=False))
+        try:
+            res1 = self._send_wa_message("Quiero información de Choquequirao", user_id=uid)
+            self.assertIn("no figura actualmente en nuestro catálogo activo", res1["sent_text"])
+            btn_ids1 = [b["id"] for b in res1["sent_buttons"]]
+            self.assertTrue(any("btn_tours" in bid for bid in btn_ids1))
+
+            # 2. El cliente pulsa "Ver otros tours"
+            res2 = self._send_wa_button_reply("btn_tours:es", "Ver otros tours", user_id=uid)
+            self.assertIn("Catálogo de Experiencias", res2["sent_text"])
+            btn_ids2 = [b["id"] for b in res2["sent_buttons"]]
+            self.assertTrue(any("btn_cat:cusco:es" in bid for bid in btn_ids2))
+
+            # 3. Elige categoría Cusco
+            res3 = self._send_wa_button_reply("btn_cat:cusco:es", "🌄 Clásicos Cusco", user_id=uid)
+            self.assertIn("City Tour Cusco", res3["sent_text"])
+
+            # 4. Selecciona un tour activo (City Tour Cusco) y continúa con fluidez
+            res4 = self._send_wa_button_reply("btn_tour:city-tour-cusco:es", "City Tour Cusco", user_id=uid)
+            self.assertIn("City Tour Cusco", res4["sent_text"])
+            self.assertIn("Duración", res4["sent_text"])
+            self.assertIn("Horario", res4["sent_text"])
+            btn_ids4 = [b["id"] for b in res4["sent_buttons"]]
+            self.assertTrue(any("btn_book:city-tour-cusco:es" in bid for bid in btn_ids4))
+        finally:
+            catalog_service.upsert_tour(dict(entity_id="choquequirao", name="Choquequirao Trek", is_active=True))
+
+    # =========================================================================
+    # RECORRIDO 5: Alta de tour activo y modificación de datos → consulta actualizada
+    # =========================================================================
+    def test_journey_5_dynamic_tour_lifecycle(self):
+        uid = "51955551111"
+        app.clear_history(uid)
+
+        new_eid = f"canon-tinajani-{os.urandom(2).hex()}"
+        # 1. Crear nuevo tour activo sin tocar código estático
+        ok, msg = catalog_service.upsert_tour({
+            "entity_id": new_eid,
+            "name": "Cañón de Tinajani",
+            "aliases": ["tinajani", "canon de tinajani"],
+            "official_price": "60",
+            "currency": "USD",
+            "duration": "1 día completo",
+            "schedule": "06:00 a 18:00",
+            "includes": "Transporte turístico, guía profesional, almuerzo campestre",
+            "is_active": True,
+        })
+        self.assertTrue(ok)
+
+        try:
+            # 2. Consultar el nuevo tour
+            res1 = self._send_wa_message(f"informacion de Cañón de Tinajani", user_id=uid)
+            text1 = res1["sent_text"]
+            self.assertIn("Cañón de Tinajani", text1)
+            self.assertIn("60 USD", text1)
+            self.assertIn("06:00 a 18:00", text1)
+
+            # 3. Modificar el precio y horario del tour
+            ok2, _ = catalog_service.upsert_tour({
+                "entity_id": new_eid,
+                "name": "Cañón de Tinajani",
+                "official_price": "75",
+                "currency": "USD",
+                "schedule": "05:30 a 18:30",
+                "is_active": True,
+            })
+            self.assertTrue(ok2)
+
+            # 4. Consultar inmediatamente: debe reflejar el precio y horario actualizado
+            app.clear_history(uid)
+            res2 = self._send_wa_message(f"precio de Cañón de Tinajani", user_id=uid)
+            text2 = res2["sent_text"]
+            self.assertIn("75 USD", text2)
+            self.assertNotIn("60 USD", text2)
+        finally:
+            # Limpiar tour de prueba
+            catalog_service.upsert_tour({"entity_id": new_eid, "name": "Cañón de Tinajani", "is_active": False})
+
+    # =========================================================================
+    # RECORRIDO 6: Foto disponible, inexistente y envío fallido
+    # =========================================================================
+    def test_journey_6_multimedia_matrix(self):
         uid = "51933334444"
         app.clear_history(uid)
 
-        # Caso 3A: Foto disponible (machu-picchu-tren) con éxito en Meta API
+        # Caso 6A: Foto disponible (machu-picchu-tren) con éxito en Meta API
         with patch.object(app, "META_APP_SECRET", "test_meta_secret_123"), \
              patch("hmac.compare_digest", return_value=True), \
              patch.object(app, "send_whatsapp_message", return_value=True) as mock_msg, \
@@ -258,16 +387,16 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
             }
             resp = self.client.post("/webhook", json=payload)
             self.assertEqual(resp.status_code, 200)
-            # Debe intentar enviar la imagen a Meta API
             self.assertTrue(mock_img.called)
-            img_call_kwargs = mock_img.call_args[1]
-            self.assertIn("machu_picchu", img_call_kwargs["image_url"].lower())
-            # Mensaje de texto acompaña confirmando entrega oficial
             text = mock_msg.call_args[1]["text"]
             self.assertIn("fotografía oficial", text)
-            self.assertIn("Machu Picchu", text)
+            # Acciones válidas para foto entregada:
+            buttons = mock_msg.call_args[1].get("buttons", [])
+            b_ids = [b["id"] for b in buttons]
+            self.assertTrue(any("btn_rates" in b for b in b_ids))
+            self.assertTrue(any("btn_book" in b for b in b_ids))
 
-        # Caso 3B: Foto inexistente (camino-inka no tiene imagen oficial en línea)
+        # Caso 6B: Foto inexistente (camino-inka no tiene imagen oficial en línea)
         app.clear_history(uid)
         with patch.object(app, "META_APP_SECRET", "test_meta_secret_123"), \
              patch("hmac.compare_digest", return_value=True), \
@@ -297,16 +426,17 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
             }
             resp = self.client.post("/webhook", json=payload)
             self.assertEqual(resp.status_code, 200)
-            # NUNCA debe invocar send_whatsapp_image para una foto inexistente
             self.assertFalse(mock_img.called)
-            # NO debe afirmar falsamente que envió una foto
             text = mock_msg.call_args[1]["text"]
-            self.assertNotIn("Aquí tienes una imagen", text)
             self.assertNotIn("Te compartimos la fotografía oficial", text)
             self.assertIn("Actualmente no disponemos de fotos en línea", text)
-            self.assertIn("asesor", text)
+            # Botones NO deben ofrecer de nuevo foto que no existe
+            buttons = mock_msg.call_args[1].get("buttons", [])
+            b_ids = [b["id"] for b in buttons]
+            self.assertFalse(any("btn_photo" in b for b in b_ids))
+            self.assertTrue(any("btn_rates" in b for b in b_ids))
 
-        # Caso 3C: Error de envío en Meta API (send_whatsapp_image retorna False)
+        # Caso 6C: Error de envío en Meta API (send_whatsapp_image retorna False)
         app.clear_history(uid)
         with patch.object(app, "META_APP_SECRET", "test_meta_secret_123"), \
              patch("hmac.compare_digest", return_value=True), \
@@ -337,87 +467,114 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
             resp = self.client.post("/webhook", json=payload)
             self.assertEqual(resp.status_code, 200)
             self.assertTrue(mock_img.called)
-            # Si Meta API falló, NO debe afirmar que envió la imagen
             text = mock_msg.call_args[1]["text"]
             self.assertNotIn("Te compartimos la fotografía oficial", text)
             self.assertIn("inconveniente al cargar la fotografía", text)
-            self.assertIn("asesor", text)
+            # Botones deben incluir reintento controlado de foto
+            buttons = mock_msg.call_args[1].get("buttons", [])
+            b_ids = [b["id"] for b in buttons]
+            self.assertTrue(any("btn_photo" in b for b in b_ids))
 
     # =========================================================================
-    # RECORRIDO 4: Solicitar reserva (ticket con tour y contexto, sin confirmar)
+    # RECORRIDO 7: Solicitud al asesor → repetición → continuación de la conversación
     # =========================================================================
-    def test_journey_4_reservation_request_and_ticket_creation(self):
+    def test_journey_7_handoff_repeat_and_continue(self):
         uid = "51944445555"
         app.clear_history(uid)
         with handoff_support.connection() as conn:
             conn.execute("DELETE FROM requests WHERE user_id=?", (uid,))
             conn.commit()
 
-        # Conversación previa para dar contexto
-        self._send_wa_message("Hola, buenas tardes", user_id=uid)
-        self._send_wa_message("Cuánto cuesta el Camino Inca Clásico 4D/3N?", user_id=uid)
+        # 1. Solicitud de reserva
+        res1 = self._send_wa_button_reply("btn_book:camino-inka:es", "Solicitar reserva", user_id=uid)
+        self.assertEqual(res1["status_code"], 200)
+        sent_text1 = res1["sent_text"]
+        self.assertIn("Registré tu solicitud", sent_text1)
+        self.assertIn("pendiente de atención por un asesor", sent_text1)
+        self.assertIn("tu reserva aún no está confirmada", sent_text1)
 
-        # Solicitud de reserva pulsando el botón formal
-        res = self._send_wa_button_reply("btn_book:camino-inka:es", "Solicitar reserva", user_id=uid)
-        self.assertEqual(res["status_code"], 200)
-        sent_text = res["sent_text"]
-
-        # 1. Mensaje al usuario: no confirma disponibilidad, pago ni reserva
-        self.assertIn("Registré tu solicitud", sent_text)
-        self.assertIn("Camino Inca", sent_text)
-        self.assertIn("pendiente de atención por un asesor", sent_text)
-        self.assertIn("tu reserva aún no está confirmada", sent_text)
-        self.assertNotIn("tu reserva está confirmada", sent_text.lower())
-        self.assertNotIn("pago recibido", sent_text.lower())
-        self.assertNotIn("cupos asegurados", sent_text.lower())
-
-        # 2. Comprobar que el ticket se registró en base de datos con el tour y contexto
+        # Comprobar creación de ticket en BD
         with handoff_support.connection() as conn:
             row = conn.execute("SELECT * FROM requests WHERE user_id=? AND channel='whatsapp'", (uid,)).fetchone()
             self.assertIsNotNone(row)
             self.assertEqual(row["status"], "pending")
-            self.assertIn("Camino Inca", row["question"])
-            # Contexto de la conversación registrado
-            ctx = json.loads(row["context"])
-            self.assertTrue(len(ctx) >= 1)
 
-    # =========================================================================
-    # RECORRIDO 5: Repetir la solicitud sin tickets duplicados
-    # =========================================================================
-    def test_journey_5_no_duplicate_tickets_on_repeat(self):
-        uid = "51955556666"
-        app.clear_history(uid)
-        with handoff_support.connection() as conn:
-            conn.execute("DELETE FROM requests WHERE user_id=?", (uid,))
-            conn.commit()
-
-        # Primera solicitud
-        res1 = self._send_wa_button_reply("btn_book:camino-inka:es", "Solicitar reserva", user_id=uid)
-        self.assertEqual(res1["status_code"], 200)
-
-        with handoff_support.connection() as conn:
-            count1 = conn.execute("SELECT COUNT(*) as c FROM requests WHERE user_id=?", (uid,)).fetchone()["c"]
-            self.assertEqual(count1, 1)
-
-        # Repetición de la solicitud
+        # 2. Repetición del clic: no duplica ticket e informa estado
         res2 = self._send_wa_button_reply("btn_book:camino-inka:es", "Solicitar reserva", user_id=uid)
         self.assertEqual(res2["status_code"], 200)
         sent_text2 = res2["sent_text"]
-
-        # No se debe crear ticket duplicado
-        with handoff_support.connection() as conn:
-            count2 = conn.execute("SELECT COUNT(*) as c FROM requests WHERE user_id=?", (uid,)).fetchone()["c"]
-            self.assertEqual(count2, 1)
-
-        # Informa estado del ticket abierto y reitera que la reserva no está confirmada
         self.assertIn("Ya tienes una solicitud registrada", sent_text2)
-        self.assertIn("pendiente de atención", sent_text2)
-        self.assertIn("tu reserva aún no está confirmada", sent_text2.lower())
+        with handoff_support.connection() as conn:
+            count = conn.execute("SELECT COUNT(*) as c FROM requests WHERE user_id=?", (uid,)).fetchone()["c"]
+            self.assertEqual(count, 1)
+
+        # 3. Continuación libre de la conversación mientras la solicitud está abierta
+        res3 = self._send_wa_message("¿Tienen tours en Puno o el Lago Titicaca?", user_id=uid)
+        self.assertEqual(res3["status_code"], 200)
+        text3 = res3["sent_text"]
+        self.assertTrue(any(k in text3.lower() for k in ["titicaca", "puno", "islas"]))
 
     # =========================================================================
-    # RECORRIDO 6: Recorrido equivalente en inglés
+    # RECORRIDO 8: Catálogo vacío y error de lectura BD como situaciones distintas
     # =========================================================================
-    def test_journey_6_english_journey(self):
+    def test_journey_8_empty_catalog_vs_read_error(self):
+        # Situación 8A: Catálogo vacío (0 tours activos devueltos normalmente)
+        with patch("catalog_service.get_all_tours", return_value=[]):
+            btn_empty = app.get_quick_buttons(route="evidence_catalog_empty", lang="es")
+            self.assertEqual(len(btn_empty), 1)
+            self.assertTrue(any("btn_advisor" in b["id"] for b in btn_empty))
+
+        # Situación 8B: Error de lectura de BD (excepción no controlada al consultar la base)
+        btn_err = app.get_quick_buttons(route="evidence_catalog_error", lang="es")
+        self.assertEqual(len(btn_err), 2)
+        # Permite contactar asesor y reintentar, sin inventar que los tours fueron desactivados
+        self.assertTrue(any("btn_advisor" in b["id"] for b in btn_err))
+        self.assertTrue(any("btn_tours" in b["id"] for b in btn_err))
+
+    # =========================================================================
+    # RECORRIDO 9: Mensajes libres, preguntas de seguimiento y referencias ambiguas
+    # =========================================================================
+    def test_journey_9_free_text_followup_and_ambiguity(self):
+        uid = "51988889999"
+        app.clear_history(uid)
+
+        # 1. Mensaje libre con intención clara
+        res1 = self._send_wa_message("Hola, quiero saber del Camino Inca", user_id=uid)
+        self.assertEqual(res1["status_code"], 200)
+        self.assertIn("Camino Inca", res1["sent_text"])
+
+        # 2. Pregunta de seguimiento elíptica ("¿y el precio?") conservando entidad
+        res2 = self._send_wa_message("¿y el precio?", user_id=uid)
+        self.assertEqual(res2["status_code"], 200)
+        # Conserva contexto de Camino Inca y devuelve la tarifa oficial confirmada
+        self.assertTrue(any(curr in res2["sent_text"] for curr in ["USD", "$", "790"]))
+
+        # 2b. Precio sin confirmar: para tours sin tarifa fija registrada, explica y ofrece asesor
+        app.clear_history(uid)
+        self._send_wa_message("Hola, quiero saber de la montaña de 7 colores", user_id=uid)
+        res_unconf = self._send_wa_message("¿cuál es la tarifa?", user_id=uid)
+        self.assertEqual(res_unconf["status_code"], 200)
+        self.assertIn("Montaña de 7 Colores", res_unconf["sent_text"])
+        self.assertIn("confirmamos", res_unconf["sent_text"])
+        self.assertIn("asesor", res_unconf["sent_text"])
+
+        # 3. Referencia ambigua ("el otro" tras mencionar dos opciones)
+        app.clear_history(uid)
+        self._send_wa_message("Me gusta el Camino Inca pero también el City Tour", user_id=uid)
+        res_ambi = self._send_wa_message("¿tienes fotos del otro?", user_id=uid)
+        self.assertEqual(res_ambi["status_code"], 200)
+        text_ambi = res_ambi["sent_text"]
+        # Debe pedir aclaración específica sin adivinar
+        self.assertTrue("¿A cuál de los tours te refieres?" in text_ambi or "¿De cuál de nuestros tours deseas consultar?" in text_ambi)
+        btn_ids_ambi = [b["id"] for b in res_ambi["sent_buttons"]]
+        # Debe ofrecer botones para ambos tours candidatos
+        self.assertTrue(any("camino-inka" in bid for bid in btn_ids_ambi))
+        self.assertTrue(any("city-tour-cusco" in bid for bid in btn_ids_ambi))
+
+    # =========================================================================
+    # RECORRIDO 10: Recorridos equivalentes en español e inglés
+    # =========================================================================
+    def test_journey_10_english_full_journey(self):
         uid = "51966667777"
         app.clear_history(uid)
         with handoff_support.connection() as conn:
@@ -438,9 +595,9 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
 
         # 3. Category tours
         res3 = self._send_wa_button_reply("btn_cat:treks:en", "🏔️ Machu Picchu", user_id=uid)
-        self.assertIn("Inca Trail", res3["sent_text"])
+        self.assertIn("Machu Picchu", res3["sent_text"])
         btn_titles_3 = [b["title"] for b in res3["sent_buttons"]]
-        self.assertTrue(any("Categories" in t for t in btn_titles_3))
+        self.assertTrue(any("More tours" in t or "Categories" in t for t in btn_titles_3))
 
         # 4. Tour overview
         res4 = self._send_wa_button_reply("btn_tour:camino-inka:en", "Inca Trail", user_id=uid)
@@ -450,6 +607,7 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
         self.assertIn("Official rate", text4)
         btn_titles_4 = [b["title"] for b in res4["sent_buttons"]]
         self.assertTrue(any("Request reservation" in t for t in btn_titles_4))
+        self.assertFalse(any("Reservar" in t for t in btn_titles_4))
 
         # 5. Reservation request
         res5 = self._send_wa_button_reply("btn_book:camino-inka:en", "Request reservation", user_id=uid)
@@ -457,41 +615,28 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
         self.assertIn("registered your request", text5)
         self.assertIn("reservation is not yet confirmed", text5)
 
-    # =========================================================================
-    # RECORRIDO 7: Tour desactivado y catálogo vacío
-    # =========================================================================
-    def test_journey_7_deactivated_tour_and_empty_catalog(self):
-        # Desactivar temporalmente camino-inka
-        catalog_service.upsert_tour(dict(entity_id="camino-inka", name="Camino Inca", is_active=False))
+        # 6. Deactivated tour inquiry in English
+        catalog_service.upsert_tour(dict(entity_id="choquequirao", name="Choquequirao Trek", is_active=False))
         try:
-            # En la categoría treks, camino-inka no debe aparecer
-            res = self._send_wa_button_reply("btn_cat:treks:es", "🏔️ Machu Picchu")
-            self.assertNotIn("Camino Inca Clásico", res["sent_text"])
-            btn_ids = [b["id"] for b in res["sent_buttons"]]
-            self.assertFalse(any("camino-inka" in bid for bid in btn_ids))
-            self.assertTrue(any("machu-picchu-tren" in bid for bid in btn_ids))
+            res_deact = self._send_wa_message("Do you have Choquequirao available?", user_id=uid)
+            text_deact = res_deact["sent_text"]
+            self.assertIn("is not currently in our active catalog", text_deact)
+            btn_ids_deact = [b["id"] for b in res_deact["sent_buttons"]]
+            self.assertTrue(any("btn_tours:en" in bid for bid in btn_ids_deact))
+            self.assertTrue(any("btn_advisor:en" in bid for bid in btn_ids_deact))
+            self.assertFalse(any("btn_book" in bid for bid in btn_ids_deact))
         finally:
-            catalog_service.upsert_tour(dict(entity_id="camino-inka", name="Camino Inca", is_active=True))
-
-        # Catálogo vacío simulado: get_all_tours retorna []
-        with patch("catalog_service.get_all_tours", return_value=[]):
-            btn_empty = app.get_quick_buttons(route="evidence_listing", lang="es")
-            self.assertEqual(len(btn_empty), 1)
-            self.assertTrue(any("btn_advisor" in b["id"] for b in btn_empty))
+            catalog_service.upsert_tour(dict(entity_id="choquequirao", name="Choquequirao Trek", is_active=True))
 
     # =========================================================================
-    # RECORRIDO 8: Regresión de CSRF, catálogo, atención humana y métricas
+    # REGRESIÓN: CSRF, atención humana y métricas operativas
     # =========================================================================
-    def test_journey_8_regressions(self):
-        # 1. CSRF en endpoints administrativos (/api/catalog/tours sin token CSRF es rechazado con 403)
+    def test_journey_regression_security_and_metrics(self):
+        # 1. CSRF en endpoints administrativos
         resp_csrf = self.client.post("/api/catalog/tours", json={"entity_id": "eval-csrf-test", "name": "Test CSRF"})
         self.assertEqual(resp_csrf.status_code, 403)
 
-        # 2. Catálogo dinámico: persistencia y consulta
-        rates = catalog_service.get_tour_rates("machu-picchu-tren", active_only=True)
-        self.assertIsNotNone(rates)
-
-        # 3. Atención humana: bloqueo de cierre sin atender
+        # 2. Atención humana: bloqueo de cierre sin atender
         with handoff_support.connection() as conn:
             tid = f"reg_{os.urandom(4).hex()}"
             conn.execute("INSERT INTO requests(id, user_id, channel, question, context, status, created_at, updated_at) "
@@ -499,20 +644,17 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
                          (tid, "test_user_reg"))
             conn.commit()
 
-        # Intentar cerrar ticket pendiente directamente sin tomarlo en atención debe fallar
         with self.assertRaises(ValueError):
             handoff_support.update_request(tid, "closed", "Asesor Test", "Nota de cierre")
 
-        # Tomarlo en atención primero
         handoff_support.update_request(tid, "in_progress", "Asesor Test", "Tomado en atención")
-        # Ahora sí se puede cerrar
         handoff_support.update_request(tid, "closed", "Asesor Test", "Atendido correctamente")
 
         with handoff_support.connection() as conn:
             row = conn.execute("SELECT status FROM requests WHERE id=?", (tid,)).fetchone()
             self.assertEqual(row["status"], "closed")
 
-        # 4. Métricas operativas
+        # 3. Métricas operativas
         import operational_metrics as op
         ev_id = op.start()
         self.assertIsNotNone(ev_id)

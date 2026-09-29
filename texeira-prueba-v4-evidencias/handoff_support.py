@@ -252,6 +252,17 @@ def apply_request(ns, result, user_id, channel, question):
         except Exception:
             pass
 
+        from catalog_service import is_deactivated_tour
+        if is_booking and eid and is_deactivated_tour(eid):
+            disp_name = tour_name or eid
+            result['response'] = (
+                f"*{disp_name}* no figura actualmente en nuestro catálogo activo. Puedes explorar otros tours o consultar este destino con un asesor."
+                if not en else
+                f"*{disp_name}* is not currently in our active catalog. You can explore other tours or consult this destination with an advisor."
+            )
+            result.update(route='evidence_inactive_tour', response_route='evidence_inactive_tour', entity_id=eid, resolved_autonomously=False, handoff_registered=False)
+            return
+
         ticket_question = question
         if is_booking:
             if tour_name and tour_name.lower() not in question.lower():

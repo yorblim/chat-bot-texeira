@@ -123,51 +123,132 @@ CAT_SPECS_DICT = {
 }
 CAT_SPECS = list(CAT_SPECS_DICT.values())
 
+
+def classify_tour_category(entity_id: str, name: str = "") -> str:
+    """Clasifica dinámicamente un tour en una de las 3 categorías oficiales:
+    1. 'treks': Machu Picchu y Treks
+    2. 'reg': Rutas Regionales (Puno, Titicaca, Colca, Arequipa, etc.)
+    3. 'cusco': Montañas y Clásicos (Cusco)
+    """
+    eid = (entity_id or "").lower()
+    nm = (name or "").lower()
+    combined = f"{eid} {nm}"
+
+    if any(k in combined for k in [
+        'machu', 'picchu', 'trek', 'camino', 'inka', 'inca',
+        'salkantay', 'jungle', 'choquequirao', 'caminata', 'hike'
+    ]):
+        return 'treks'
+
+    if any(k in combined for k in [
+        'titicaca', 'puno', 'colca', 'arequipa', 'ruta-del-sol',
+        'ruta del sol', 'regional', 'chivay', 'chacapi'
+    ]):
+        return 'reg'
+
+    return 'cusco'
+
+
+def get_dynamic_cat_specs(active_tours_dict: dict) -> dict:
+    """Construye las especificaciones de categorías a partir de todos los tours activos vigentes en el catálogo."""
+    specs = {
+        'treks': {
+            'key': 'treks',
+            'title_es': '🏔️ *Machu Picchu y Treks*',
+            'title_en': '🏔️ *Machu Picchu & Treks*',
+            'btn_id': 'btn_cat:treks',
+            'btn_title_es': '🏔️ Machu Picchu',
+            'btn_title_en': '🏔️ Machu Picchu',
+            'tours': [],
+        },
+        'cusco': {
+            'key': 'cusco',
+            'title_es': '🌄 *Montañas y Clásicos (Cusco)*',
+            'title_en': '🌄 *Mountains & Classics (Cusco)*',
+            'btn_id': 'btn_cat:cusco',
+            'btn_title_es': '🌄 Clásicos Cusco',
+            'btn_title_en': '🌄 Cusco Classics',
+            'tours': [],
+        },
+        'reg': {
+            'key': 'reg',
+            'title_es': '🚌 *Rutas Regionales*',
+            'title_en': '🚌 *Regional Routes*',
+            'btn_id': 'btn_cat:reg',
+            'btn_title_es': '🚌 Rutas Regionales',
+            'btn_title_en': '🚌 Regional Routes',
+            'tours': [],
+        }
+    }
+
+    # 1. Agregar primero los tours canónicos en su orden oficial si están activos
+    seen = set()
+    for cat_k, base_cat in CAT_SPECS_DICT.items():
+        if cat_k in specs:
+            for b_eid, b_name, b_dur in base_cat.get('tours', []):
+                if b_eid in active_tours_dict:
+                    t_data = active_tours_dict[b_eid]
+                    name = t_data.get('name', b_name)
+                    dur = t_data.get('duration', b_dur) or b_dur
+                    specs[cat_k]['tours'].append((b_eid, name, dur))
+                    seen.add(b_eid)
+
+    # 2. Agregar dinámicamente nuevos tours activos
+    for eid, t_data in active_tours_dict.items():
+        if eid not in seen:
+            name = t_data.get('name', eid)
+            dur = t_data.get('duration', '')
+            cat_key = classify_tour_category(eid, name)
+            if cat_key in specs:
+                specs[cat_key]['tours'].append((eid, name, dur))
+                seen.add(eid)
+
+    return specs
+
+
 def install(ns, support, original):
     catalog = support.CATALOG
+    from catalog_service import is_deactivated_tour
 
-    def get_current_tours():
+    def get_current_tours_status():
         try:
             from catalog_service import get_all_tours
             dynamic_all = get_all_tours(active_only=False, strict=True)
+            if dynamic_all is None:
+                return {}, True, False
             dynamic_active = [t for t in dynamic_all if t.get('is_active')]
-            if dynamic_all is not None:
-                res = {}
-                for dt in dynamic_active:
-                    res[dt['entity_id']] = {
-                        'entity_id': dt['entity_id'],
-                        'name': dt['name'],
-                        'confirmed_product': True,
-                        'official_price': dt.get('official_price', ''),
-                        'currency': dt.get('currency', 'USD'),
-                        'schedule': dt.get('schedule', ''),
-                        'duration': dt.get('duration', ''),
-                        'includes': dt.get('includes', ''),
-                        'excludes': dt.get('excludes', ''),
-                        'photo_filename': dt.get('photo_filename', ''),
-                        'brochure_filename': dt.get('brochure_filename', ''),
-                        'overridden_fields': dt.get('overridden_fields', []),
-                    }
-                return res
+            res = {}
+            for dt in dynamic_active:
+                res[dt['entity_id']] = {
+                    'entity_id': dt['entity_id'],
+                    'name': dt['name'],
+                    'confirmed_product': True,
+                    'official_price': dt.get('official_price', ''),
+                    'currency': dt.get('currency', 'USD'),
+                    'schedule': dt.get('schedule', ''),
+                    'duration': dt.get('duration', ''),
+                    'includes': dt.get('includes', ''),
+                    'excludes': dt.get('excludes', ''),
+                    'photo_filename': dt.get('photo_filename', ''),
+                    'brochure_filename': dt.get('brochure_filename', ''),
+                    'overridden_fields': dt.get('overridden_fields', []),
+                    'aliases': dt.get('aliases', []),
+                }
+            return res, False, len(res) == 0
         except Exception:
-            pass
-        # No volver a ofrecer el catálogo estático si falla la fuente vigente.
-        return {}
+            return {}, True, False
 
-    def is_deactivated_tour(eid: str) -> bool:
-        if not eid:
-            return False
-        try:
-            from catalog_service import get_tour_by_id
-            t = get_tour_by_id(eid)
-            if t is not None:
-                return not bool(t.get("is_active", 1))
-        except Exception:
-            pass
-        return False
+    def get_current_tours():
+        res, _, _ = get_current_tours_status()
+        return res
 
     tours = get_current_tours()
-    aliases = {eid:[support.normalize(t['name'])] for eid,t in tours.items()}
+    aliases = {eid: [support.normalize(t['name'])] for eid, t in tours.items()}
+    for eid, t in tours.items():
+        for a in t.get('aliases', []):
+            a_norm = support.normalize(a)
+            if a_norm and a_norm not in aliases[eid]:
+                aliases[eid].append(a_norm)
     aliases.update({
         'machu-picchu-car':['machu picchu by car','machu picchu en auto','machu picchu en carro'],
         'machu-picchu-tren':['machu picchu en tren','machu picchu by train','machu picchu','machupicchu'],
@@ -229,7 +310,7 @@ def install(ns, support, original):
         q=support.normalize(question); lang=ns['detect_language'](question); en=lang=='en'
         prior=list(ns['get_history'](user_id))
         phone=' / '.join(catalog['agency']['phones'])
-        active_tours = get_current_tours()
+        active_tours, is_read_error, is_empty = get_current_tours_status()
 
         # --- SOCIAL / CONVERSACIONAL: respuesta corta, sin NOTICES, sin LLM ---
         social_key = _SOCIAL_INTENTS.get(q.strip(' ?¿!.'))
@@ -263,10 +344,51 @@ def install(ns, support, original):
             msg = f"Ese dato lo confirmamos directamente en la agencia. 💬\n\nEscribe 👉 *asesor* y te ayudamos ahora mismo 😊"
             return finish(msg,'evidence_unknown',True,entity_id=entity_id)
 
-        if not active_tours:
-            msg = ('The active catalog is unavailable. Please ask an advisor.' if en else
-                   'El catálogo activo no está disponible ahora. Escribe asesor para consultar con la agencia.')
-            return finish(msg, 'catalog_unavailable', pending=True)
+        # 1. Fallo técnico al consultar la base de datos: no afirmar que tours fueron desactivados
+        if is_read_error:
+            msg = (
+                "Tuvimos un inconveniente técnico temporal al consultar el catálogo. Puedes comunicarte directamente con un asesor o intentar nuevamente en unos instantes."
+                if not en else
+                "We encountered a temporary technical issue accessing the catalog. You can contact an advisor directly or try again in a moment."
+            )
+            return finish(msg, 'evidence_catalog_error', pending=True)
+
+        # 2. Catálogo vacío confirmado (lectura exitosa pero 0 tours activos)
+        if is_empty:
+            msg = (
+                "Actualmente no disponemos de tours activos en nuestro catálogo. Puedes consultar opciones personalizadas con un asesor."
+                if not en else
+                "Currently there are no active tours available in our catalog. You can check custom options with an advisor."
+            )
+            return finish(msg, 'evidence_catalog_empty', pending=True)
+
+        # 3. Detección de referencias ambiguas ("el otro", "del otro", "the other", etc.)
+        is_ambiguous_ref = bool(re.search(
+            r'\b((?:d?el|de la)\s+otr[oa]s?|el demas|los demas|otro tour|otra opcion|the other( one)?|the second( one)?)\b',
+            q
+        ))
+        if is_ambiguous_ref and not support.detect_entity_from_question(q):
+            recent_eids = []
+            for h in reversed(prior):
+                if h.get('role') == 'human':
+                    norm_h = support.normalize(h.get('content', ''))
+                    for aeid, aa in aliases.items():
+                        if any(support.normalize(a) in norm_h for a in aa if a):
+                            if aeid in active_tours and aeid not in recent_eids:
+                                recent_eids.append(aeid)
+                                if len(recent_eids) >= 2:
+                                    break
+                if len(recent_eids) >= 2:
+                    break
+            if len(recent_eids) >= 2:
+                t1_name = active_tours.get(recent_eids[0], {}).get('name', recent_eids[0])
+                t2_name = active_tours.get(recent_eids[1], {}).get('name', recent_eids[1])
+                msg = (
+                    f"¿A cuál de los tours te refieres? Conversamos sobre *{t1_name}* y *{t2_name}*. Por favor indícame cuál deseas consultar o escribe su nombre 😊"
+                    if not en else
+                    f"Which tour are you referring to? We discussed *{t1_name}* and *{t2_name}*. Please let me know which one you'd like to check or type its name 😊"
+                )
+                return finish(msg, 'evidence_ambiguous', pending=True, sources=[], entity_id=f"{recent_eids[0]},{recent_eids[1]}")
 
         # Catálogo de tours solicitados (antes de evaluar fechas o disponibilidad comercial)
         listing_keywords = {
@@ -281,8 +403,8 @@ def install(ns, support, original):
             'what tours do you offer', 'what tours do you have', 'all tours',
             'show me all options', 'list of tours'
         }
-        # ---- CATÁLOGO NAVEGABLE POR CATEGORÍAS ----
-        CAT_SPECS = CAT_SPECS_DICT
+        # ---- CATÁLOGO NAVEGABLE POR CATEGORÍAS (DINÁMICO) ----
+        CAT_SPECS = get_dynamic_cat_specs(active_tours)
 
         # 1. Petición de categoría específica (ej. "categoria treks", "category treks", "categoria cusco", etc.)
         is_cat_treks = bool(re.search(r'\b(categor[iy]a?\s+treks?|categor[iy]a?\s+machu|categor[iy]a?\s+1|treks?\s+y\s+machu|treks?\s+and\s+machu)\b', q))
@@ -294,20 +416,20 @@ def install(ns, support, original):
         elif is_cat_reg: selected_cat_key = 'reg'
 
         if selected_cat_key:
-            cat_data = CAT_SPECS[selected_cat_key]
+            cat_data = CAT_SPECS.get(selected_cat_key, {})
             active_in_cat = [
                 (eid, default_label, default_dur)
-                for eid, default_label, default_dur in cat_data['tours']
+                for eid, default_label, default_dur in cat_data.get('tours', [])
                 if eid in active_tours and is_product_confirmed(eid)
             ]
             if not active_in_cat:
-                cat_name = cat_data['title_es'] if not en else cat_data['title_en']
+                cat_name = cat_data.get('title_es', selected_cat_key) if not en else cat_data.get('title_en', selected_cat_key)
                 msg = (f"Actualmente no hay tours disponibles en la categoría {cat_name}. 📋\n\nPuedes explorar otras categorías o comunicarte con un asesor 😊"
                        if not en else
                        f"Currently there are no tours available in the category {cat_name}. 📋\n\nYou can explore other categories or contact an advisor 😊")
                 return finish(msg, 'evidence_category_empty', sources=['CATALOGO_OFICIAL'], entity_id=f"cat_{selected_cat_key}")
 
-            cat_title = cat_data['title_es'] if not en else cat_data['title_en']
+            cat_title = cat_data.get('title_es', '') if not en else cat_data.get('title_en', '')
             lines = [f"{cat_title} disponibles:\n" if not en else f"{cat_title} available:\n"]
             for eid, default_label, default_dur in active_in_cat:
                 t_obj = active_tours[eid]
@@ -319,9 +441,9 @@ def install(ns, support, original):
                 dur = english_duration(t_obj.get('duration') or default_dur) if en else (t_obj.get('duration') or default_dur)
                 lines.append(f"• *{tour_name}* ({dur})")
 
-            footer = ("\n_Escribe directamente el nombre del tour para ver detalles completos, o selecciona una opción abajo:_\nEscribe 👉 *asesor* si necesitas ayuda personalizada 😊"
+            footer = ("\n_Escribe directamente el nombre de cualquier tour para ver detalles completos, o selecciona una opción abajo:_\nEscribe 👉 *asesor* si necesitas ayuda personalizada 😊"
                       if not en else
-                      "\n_Type the name of the tour for full details, or select an option below:_\nWrite 👉 *advisor* for personalized help 😊")
+                      "\n_Type the name of any tour for full details, or select an option below:_\nWrite 👉 *advisor* for personalized help 😊")
             lines.append(footer)
             return finish("\n".join(lines), 'evidence_category_tours', sources=['CATALOGO_OFICIAL'], entity_id=f"cat_{selected_cat_key}")
 
@@ -329,12 +451,12 @@ def install(ns, support, original):
         is_listing_request = (
             q.strip(' ?¿!.') in listing_keywords or
             bool(re.search(r'\b(muestr\w*|meustr\w*|mostr\w*|ver|view|show|dime|tell\s+me|cuales|which|what|tienen?|do\s+you\s+have|hay)\b.*?\b(tours?|opciones?|options?|paquetes?|packages?|destinos?|destinations?|viajes?|trips?|rutas?|routes?|circuitos?|paseos?|categorias?|categories)\b', q) and
-                 not re.search(r'\b(precio|precios|cuesta|cuanto|costo|costos|tarifa|tarifas|price|prices|cost|costs|rate|rates|soles|dolares|\busd\b|\bpen\b|horario|hora|duracion|duration|schedule|incluye|includes?|itinerario|itinerary|fotos?|photos?|imagen|image|imagenes|images|brochure|folleto|cancel|reembols|refund|yape|paypal|pagar|pay|pago|payment|adelant|deposit|descuento|discount|reserva|book|booking|cupos?|manana|tomorrow|7d|7\s*d[ií]as?|7.day)\b|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}', q) and
-                 support.detect_entity_from_question(q) is None) or
+                  not re.search(r'\b(precio|precios|cuesta|cuanto|costo|costos|tarifa|tarifas|price|prices|cost|costs|rate|rates|soles|dolares|\busd\b|\bpen\b|horario|hora|duracion|duration|schedule|incluye|includes?|itinerario|itinerary|fotos?|photos?|imagen|image|imagenes|images|brochure|folleto|cancel|reembols|refund|yape|paypal|pagar|pay|pago|payment|adelant|deposit|descuento|discount|reserva|book|booking|cupos?|manana|tomorrow|7d|7\s*d[ií]as?|7.day)\b|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}', q) and
+                  support.detect_entity_from_question(q) is None) or
             bool(re.search(r'\b(es el unic\w|es la unic\w|es lo unic\w|hay mas|tienen mas|otros? tours?|otras? opciones?|otros? lugares?|otros? destinos?|otros? paquetes?|que m[aá]s tienen|que mas tienen|mas opciones|m[aá]s opciones|other tours?|other options?|more tours?|more options?|anything else)\b', q) and
-                 not re.search(r'\b(cancel|reembols|yape|paypal|pagar|pago|manana|tomorrow)\b', q) and
-                 (support.detect_entity_from_question(q) is None or
-                  bool(re.search(r'\b(aparte\s+de|adem[aá]s\s+de|fuera\s+de|other\s+than|besides|apart\s+from)\b', q)))) or
+                  not re.search(r'\b(cancel|reembols|yape|paypal|pagar|pago|manana|tomorrow)\b', q) and
+                  (support.detect_entity_from_question(q) is None or
+                   bool(re.search(r'\b(aparte\s+de|adem[aá]s\s+de|fuera\s+de|other\s+than|besides|apart\s+from)\b', q)))) or
             (bool(re.search(r'\b(tours?|viajes?|opciones?|paquetes?|cuales?|muestr\w*|ver|dime)\b.*?\bdisponibles?\b', q) or
                   re.search(r'\bdisponibles?\b.*?\b(tours?|viajes?|opciones?|paquetes?)\b', q)) and
              not re.search(r'\b(manana|tomorrow|hoy|today|enero|febrero|marzo|abril|mayo|junio|julio|agosto|setiembre|septiembre|octubre|noviembre|diciembre)\b|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}', q) and
@@ -342,17 +464,15 @@ def install(ns, support, original):
             bool(re.search(r'^\s*(tours?|viajes?|opciones?|options?|destinos?|destinations?|categorias?|categories|ver\s+categorias?|view\s+categories?|view\s+tour\s+categories|ver\s+tours?|view\s+tours?)\s*$', q))
         )
         if is_listing_request:
-            # Comprobar si el catálogo está completamente vacío
             has_any_active = any(
-                eid in active_tours and is_product_confirmed(eid)
+                len(cat.get('tours', [])) > 0
                 for cat in CAT_SPECS.values()
-                for eid, _, _ in cat['tours']
             )
             if not has_any_active:
                 msg = ("Actualmente no disponemos de tours activos en el catálogo. Por favor consulta con un asesor."
                        if not en else
                        "Currently we have no active tours in the catalog. Please consult with an advisor.")
-                return finish(msg, 'evidence_listing', sources=['CATALOGO_OFICIAL'])
+                return finish(msg, 'evidence_catalog_empty', pending=True, sources=['CATALOGO_OFICIAL'])
 
             is_asking_unique = bool(re.search(r'\b(es el unic\w|es la unic\w|es lo unic\w|hay mas|tienen mas|otros? tours?|otras? opciones?|otros? lugares?|otros? destinos?|que m[aá]s tienen|mas opciones|m[aá]s opciones|other tours?|more tours?|more options?|anything else)\b', q))
             if en:
@@ -515,9 +635,9 @@ def install(ns, support, original):
                         pass
                     name_deact = tour_info.get('name', eid_comercial) if tour_info else eid_comercial
                     if en:
-                        msg = f"Currently, *{name_deact}* is not available in our active catalog.\n\nWrite 👉 *advisor* to check alternative options 😊"
+                        msg = f"*{name_deact}* is not currently in our active catalog. You can explore other tours or consult this destination with an advisor."
                     else:
-                        msg = f"Actualmente *{name_deact}* no se encuentra disponible en nuestro catálogo activo. 📋\n\nEscribe 👉 *asesor* si deseas consultar opciones alternativas 😊"
+                        msg = f"*{name_deact}* no figura actualmente en nuestro catálogo activo. Puedes explorar otros tours o consultar este destino con un asesor."
                     return finish(msg, 'evidence_inactive_tour', pending=True, entity_id=eid_comercial)
 
                 tour_obj_com = active_tours.get(eid_comercial, {})
@@ -573,7 +693,7 @@ def install(ns, support, original):
                 except Exception:
                     pass
                 tour_name = tour_info.get('name', eid) if tour_info else eid
-                msg = f"Currently, *{tour_name}* is not available in our active catalog, so photos are not available online.\n\nWrite 👉 *advisor* for assistance 😊" if en else f"Actualmente *{tour_name}* no se encuentra disponible en nuestro catálogo activo. 📋\n\nEscribe 👉 *asesor* y te brindamos más opciones 😊"
+                msg = f"*{tour_name}* is not currently in our active catalog. You can explore other tours or consult this destination with an advisor." if en else f"*{tour_name}* no figura actualmente en nuestro catálogo activo. Puedes explorar otros tours o consultar este destino con un asesor."
                 return finish(msg, 'evidence_inactive_tour', pending=True, sources=[], entity_id=eid)
 
             img_data = get_tour_image_data(question, user_msg=question, entity_id=eid or "")
@@ -596,7 +716,7 @@ def install(ns, support, original):
                 except Exception:
                     pass
                 tour_name = tour_info.get('name', eid) if tour_info else eid
-                msg = f"Currently, *{tour_name}* is not available in our active catalog, so no brochure is available.\n\nWrite 👉 *advisor* for assistance 😊" if en else f"Actualmente *{tour_name}* no se encuentra disponible en nuestro catálogo activo. 📋\n\nEscribe 👉 *asesor* y te brindamos más opciones 😊"
+                msg = f"*{tour_name}* is not currently in our active catalog. You can explore other tours or consult this destination with an advisor." if en else f"*{tour_name}* no figura actualmente en nuestro catálogo activo. Puedes explorar otros tours o consultar este destino con un asesor."
                 return finish(msg, 'evidence_inactive_tour', pending=True, sources=[], entity_id=eid)
 
             doc_data = get_tour_brochure_data(question, user_msg=question, entity_id=eid or "")
@@ -623,9 +743,9 @@ def install(ns, support, original):
                 pass
             tour_name = tour_info.get('name', eid) if tour_info else eid
             if en:
-                msg = f"Currently, *{tour_name}* is not available in our active catalog.\n\nWrite 👉 *advisor* if you would like to inquire about special dates or alternative tours 😊"
+                msg = f"*{tour_name}* is not currently in our active catalog. You can explore other tours or consult this destination with an advisor."
             else:
-                msg = f"Actualmente *{tour_name}* no se encuentra disponible en nuestro catálogo activo. 📋\n\nEscribe 👉 *asesor* si deseas consultar fechas especiales o tours alternativos 😊"
+                msg = f"*{tour_name}* no figura actualmente en nuestro catálogo activo. Puedes explorar otros tours o consultar este destino con un asesor."
             return finish(msg, 'evidence_inactive_tour', pending=True, sources=[], entity_id=eid)
 
         fld=field(q)

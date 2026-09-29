@@ -1,116 +1,151 @@
-# Evidencia de Pulido del Flujo de WhatsApp — Texeira Travel
+# Evidencia de Pulido y Corrección Integral del Flujo de WhatsApp — Texeira Travel
 
-**Fecha:** 28 de septiembre de 2026  
+**Fecha:** 29 de septiembre de 2026  
 **Rama Git:** `feature/polish-whatsapp-flow`  
 **Referencia:** Protocolo permanente `AGENTS.md`  
+**Ámbito:** Experiencia conversacional en WhatsApp Cloud API (Messenger, pagos y reservas automáticas quedan formalmente fuera de alcance).
 
 ---
 
-## 1. Resumen Ejecutivo y Causas Raíz Identificadas
+## 1. Diagnóstico Consolidado y Causas Raíz
 
-Se realizó una auditoría técnica completa del flujo conversacional de WhatsApp en `texeira-prueba-v4-evidencias/` para identificar y corregir los problemas observados en las capturas de pantalla de la interacción del chatbot:
+Tras la auditoría exhaustiva del flujo de WhatsApp en `texeira-prueba-v4-evidencias/`, se identificaron las causas raíz de los bucles, contradicciones de estado y botones incompatibles reportados:
 
-### Causa Raíz 1: Entrega de Fotografías ("Aquí tienes una imagen" sin foto visible)
-- **Causa 1 (Sustitución indebida y URLs genéricas):** Tours que no contaban con fotografías oficiales propias (como Valle Sur) utilizaban un fallback a `cusco_general.jpg`, provocando confusión al enviar imágenes que no correspondían al tour solicitado.
-- **Causa 2 (Desacople entre texto y multimedia):** El texto descriptivo ("Aquí tienes una imagen...") se enviaba de manera independiente sin verificar si la llamada a la API de Meta (`send_whatsapp_image`) había tenido éxito (`True`) o si había fallado (`False`) por timeout, payload inválido o rechazo de red.
-- **Causa 3 (Falsa afirmación de envío):** Si un tour no disponía de imagen en línea, el bot respondía con frases que asumían el envío, desorientando al turista.
-- **Solución implementada:** 
-  1. Se eliminó toda sustitución por imágenes genéricas en [visual_engine.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/src/visual/visual_engine.py). Solo se entregan fotos vinculadas exclusivamente al tour.
-  2. En [verified_routes.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/verified_routes.py), si el tour no tiene foto oficial, se responde con honestidad técnica (`evidence_photo_unavailable`): *"Actualmente no disponemos de fotos en línea de este tour. Nuestro asesor te compartirá fotos del recorrido 😊"*.
-  3. En [app.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/app.py), el envío de la imagen a Meta API se evalúa primero. Si la API retorna `False`, el bot informa: *"Tuvimos un inconveniente al cargar la fotografía en WhatsApp... Escribe asesor y te la compartimos directamente 😊"*, sin afirmar jamás que la imagen fue entregada.
-  4. Se distingue claramente en la arquitectura y logs entre **Aceptación de la API de Meta** (HTTP 200/201 con `wamid`) y la **Entrega al teléfono** (dependiente de cobertura y conexión del usuario).
+### A. Causa Raíz del Bucle en Tours Desactivados (Caso Choquequirao)
+1. **Desconexión entre respuesta de texto y botones rápidos:** Cuando un tour estaba inactivo (`is_active = 0` en base de datos), el motor de rutas [verified_routes.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/verified_routes.py) identificaba correctamente que el tour no estaba activo (`route = 'evidence_inactive_tour'`) e informaba que no figuraba en el catálogo. Sin embargo, la función `get_quick_buttons` en [app.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/app.py) no evaluaba el estado inactivo del tour y caía en la rama genérica de entidad detectada (`if detected_eid:`), generando botones comerciales de «Tarifas», «Qué incluye», «Fotos» y «Solicitar reserva».
+2. **Ciclo vicioso:** Al presionar cualquiera de esos botones antiguos, el bot recibía la solicitud comercial para ese mismo tour y volvía a responder con la negativa, encerrando al turista en una repetición sin salida hacia tours alternativos.
+3. **Fugas en creación de tickets de reserva:** [handoff_support.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/handoff_support.py) registraba solicitudes comerciales en la tabla `requests` incluso para tours desactivados.
 
-### Causa Raíz 2: Solicitud de Reserva y Contexto del Asesor
-- **Causa 1 (Término prematuro):** El botón "Reservar" generaba la expectativa de una transacción inmediata o reserva asegurada.
-- **Causa 2 (Falta de contexto y trazabilidad en tickets):** Las solicitudes de derivación humana no asociaban explícitamente el tour que el usuario estaba consultando ni distinguían solicitudes de información general de solicitudes de reserva.
-- **Causa 3 (Tickets duplicados):** Si el usuario pulsaba el botón repetidamente, se creaban múltiples filas en la tabla `requests`.
-- **Solución implementada:**
-  1. Renombrado formal a **«Solicitar reserva»** (ES) y **«Request reservation»** (EN) en [app.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/app.py).
-  2. Conservación del payload interactivo: `btn_book:{entity_id}:{lang}`, garantizando que el tour seleccionado y el idioma se propaguen al ticket.
-  3. En [handoff_support.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/handoff_support.py), el ticket se almacena con la pregunta etiquetada como `[Reserva - {tour_name}] {pregunta}` y el historial conversacional completo en `context`.
-  4. La respuesta aclara taxativamente que la reserva NO está confirmada:
-     > *"Registré tu solicitud sobre [Tour]. Está pendiente de atención por un asesor; tu reserva aún no está confirmada."*
-  5. Si el usuario reitera la solicitud y ya tiene un ticket abierto (`pending` o `in_progress`), se devuelve el estado del ticket existente y se evita la duplicación en la base de datos.
+### B. Confusión de Estados: Desactivado vs. Sin Cupos vs. Error de Base de Datos vs. Catálogo Vacío
+Antes de esta corrección, diferentes fallas técnicas se agrupaban o diagnosticaban con mensajes contradictorios:
+- **Tour desactivado:** Debe informar que no figura en el catálogo activo y ofrecer *exclusivamente* «Ver otros tours» y «Consultar asesor».
+- **Sin cupos o consulta de fecha:** No debe afirmar que el tour está fuera de catálogo; debe derivar la consulta de cupos al equipo de la agencia.
+- **Fallo de lectura de base de datos:** Si la base de datos no responde, no se debe afirmar falsamente que los tours fueron desactivados ni inventar falta de disponibilidad; se debe informar un inconveniente técnico temporal y ofrecer reintento y asesor.
+- **Catálogo vacío:** Si la base responde exitosamente pero hay 0 tours activos, se debe indicar que el catálogo está en actualización y ofrecer atención humana.
 
-### Causa Raíz 3: Recorrido del Catálogo por Categorías
-- **Causa 1 (Sobrecarga de opciones):** «Ver Tours» presentaba una lista plana de hasta 19 tours en un único bloque de texto, saturando la pantalla de WhatsApp.
-- **Solución implementada:**
-  1. Al consultar el catálogo general («Ver Tours»), se presentan las 3 categorías temáticas:
-     - 1️⃣ 🏔️ Machu Picchu y Treks
-     - 2️⃣ 🌄 Montañas y Clásicos (Cusco)
-     - 3️⃣ 🚌 Rutas Regionales
-  2. Al seleccionar una categoría, se listan únicamente los tours confirmados y activos de dicha categoría con sus duraciones oficiales.
-  3. Se incluye un botón de retorno: **«⬅️ Categorías»** / **«⬅️ Categories»**.
-  4. Se respeta dinámicamente la desactivación de tours (`is_active = False`) y las categorías vacías (`evidence_category_empty`).
-  5. Se permite en todo momento escribir directamente el nombre del tour para ir a su ficha técnica.
+### C. Navegación Rígida vs. Acceso a Todo el Catálogo Activo
+- Anteriormente se mostraba una lista fija o estática limitada a 2 tours en los botones interactivos de WhatsApp.
+- Para dar acceso a **todo el catálogo activo** cumpliendo la restricción dura de la API de WhatsApp (máximo 3 botones interactivos y 20 caracteres por botón), se implementó un sistema de categorías dinámicas (`treks`, `cusco`, `reg`) con paginación controlada (`btn_cat_page:{cat}:{page}:{lang}`) que permite recorrer todos los tours activos sin editar listas fijas en el código.
 
-### Causa Raíz 4: Fichas Breves y Eliminación de Truncamientos
-- **Causa 1 (Truncamiento con puntos suspensivos):** Textos largos de inclusiones o descripciones sufrían cortes artificiales como *"bebidas adicionale…"*, omitiendo información crítica.
-- **Solución implementada:**
-  1. Se eliminaron los cortes por tamaño de caracteres con elipsis (`...`).
-  2. Las inclusiones y exclusiones se formatean por viñetas completas (`• Elemento`), divididas por delimitadores naturales (saltos de línea, comas y puntos y coma).
-  3. La ficha técnica inicial presenta: Nombre, Duración, Horario y Tarifa Oficial únicamente cuando están debidamente registrados y confirmados en las fuentes oficiales (F1/F2/F3 / Admin vigente), sin inventar datos no confirmados.
-
-### Causa Raíz 5: Saludo Estandarizado y Consistencia Bilingüe
-- **Solución implementada:**
-  1. Saludo oficial uniforme para ambas lenguas:
-     > *¡Hola! 👋 Soy el asistente virtual de Texeira Travel. Puedo ayudarte a explorar tours y consultar información, o comunicarte con un asesor.*  
-     > *Hello! 👋 I am the virtual assistant of Texeira Travel. I can help you explore tours and check information, or connect you with an advisor.*
-  2. Botones interactivos traducidos coherentemente en inglés y español.
-  3. Eliminación de invitaciones reiterativas al asesor en el cuerpo de los mensajes cuando ya existe un botón visible de atención.
+### D. Referencias Ambiguas ("el otro")
+- Cuando el turista comparaba dos tours ("Camino Inca" y "City Tour") y luego preguntaba "¿y el precio del otro?" o "¿tienes fotos del otro?", el bot adivinaba o caía en error genérico. Se centralizó la resolución de elisiones para solicitar aclaración entre los dos tours discutidos mediante botones claros y marcar `resolved_autonomously = False`.
 
 ---
 
-## 2. Modificaciones de Código Realizadas
+## 2. Matriz de Estados y Acciones Válidas
 
-| Archivo | Naturaleza del Cambio |
-|---|---|
-| [`src/visual/visual_engine.py`](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/src/visual/visual_engine.py) | Eliminación de fallback genérico a `cusco_general.jpg`. Validación estricta de foto oficial exclusiva por tour; retorna `None` si no existe foto verificada. |
-| [`handoff_support.py`](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/handoff_support.py) | Soporte de intención para «Solicitar reserva» y captura de entidad del tour. Registro en cola con prefijo `[Reserva - {tour}]`. Mensaje estandarizado de solicitud pendiente (sin confirmar reserva ni pago). Idempotencia y reporte de ticket abierto para evitar duplicados. |
-| [`verified_routes.py`](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/verified_routes.py) | Saludo oficial bilingüe estandarizado. Catálogo estructurado en 3 categorías (`CAT_SPECS_DICT`) con conteo de tours activos. Formato por viñetas completas sin truncamiento elíptico. Rutas `evidence_category_tours` y `evidence_photo_unavailable`. Fallback de duración/horario desde catálogo oficial para ficha breve. |
-| [`trial_support.py`](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/trial_support.py) | Enriquecimiento de marcadores lingüísticos en español e inglés (`reserva`, `solicitar`, `categorias`, `reservation`, `book`, `view`, etc.). Inclusión de saludos vespertinos/nocturnos en respuestas predefinidas. |
-| [`app.py`](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/app.py) | Generación de botones interactivos con botón «Solicitar reserva» (`btn_book`) y retorno «⬅️ Categorías» (`btn_cats`). Mapeo semántico de botones interactivos entrantes preservando entidad e idioma. Despacho previo de imagen con detección de fallos y emisión de texto honesto sin afirmar falsamente el envío. |
-| [`tests/test_whatsapp_flow_polish.py`](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/tests/test_whatsapp_flow_polish.py) | Nueva suite integral que prueba los 8 recorridos exigidos con aserciones estrictas de comportamiento. |
+| Estado / Situación | Intención del Cliente | Respuesta Generada | Acciones Válidas (Botones) | Siguiente Estado |
+|---|---|---|---|---|
+| **Tour activo con datos confirmados** | Pregunta libre o botón del tour | Ficha técnica con duración, horario y tarifa oficial | `📄 Qué incluye` · `📸 Ver Fotos` · `Solicitar reserva` | Ficha / Inclusiones / Fotos / Reserva |
+| **Precio sin confirmar** | Pregunta por precio de tour sin tarifa fija | Explica que el precio y fechas se coordinan en agencia | `📄 Qué incluye` · `📸 Ver Fotos` · `Consultar asesor` | Exploración o Asesor |
+| **Foto disponible** | Solicita fotos de tour con imagen | Imagen oficial enviada con pie de foto + texto de confirmación | `💰 Tarifas` · `📄 Qué incluye` · `Solicitar reserva` | Tarifas / Reserva |
+| **Foto inexistente en línea** | Solicita fotos de tour sin foto | Explica que no dispone de foto online; asesor compartirá galería | `📄 Qué incluye` · `💰 Tarifas` · `Solicitar reserva` (sin botón foto) | Inclusiones / Asesor |
+| **Fallo al enviar foto a Meta API** | Error de red/API al despachar imagen | Informa inconveniente técnico temporal sin mentir que se envió | `📸 Reintentar foto` · `📄 Qué incluye` · `Solicitar reserva` | Reintento / Reserva |
+| **Tour desactivado** | Consulta tour inactivo o pulsa botón antiguo | Informa que no figura en catálogo activo; ofrece otros o asesor | `Ver otros tours` · `Consultar asesor` (NUNCA fotos/tarifas/reserva) | Catálogo / Asesor |
+| **Catálogo vacío** | Consulta general con 0 tours activos | Informa catálogo en actualización | `Consultar asesor` | Asesor |
+| **Error al cargar catálogo (BD)** | Fallo de conexión con PostgreSQL / SQLite | Informa inconveniente técnico temporal sin inventar datos | `Consultar asesor` · `Reintentar` | Reintento / Asesor |
+| **Consulta ambigua ("el otro")** | "fotos del otro", "precio del otro" | Pregunta a cuál de los 2 tours se refiere específicamente | `[Tour 1]` · `[Tour 2]` · `🗺️ Ver Tours` | Aclaración guiada |
+| **Solicitud al asesor ya abierta** | Reitera clic en «Solicitar reserva» | Informa que ya tiene solicitud pendiente; no duplica ticket | `Ver otros tours` · `📄 Qué incluye` / `Consultar asesor` | Continuación libre |
 
 ---
 
-## 3. Pruebas Ejecutadas y Resultados
+## 3. Resumen de Cambios Realizados y Lógica Reutilizada
 
-Se ejecutaron localmente todas las suites de prueba pertinentes para validar la funcionalidad y descartar regresiones:
+### 1. `catalog_service.py`
+- Incorporada la función exportada `is_deactivated_tour(entity_id: str) -> bool` que verifica el estado real en base de datos (`is_active = False` o `0`).
+- Total reutilización de la infraestructura existente de PostgreSQL (Neon) y SQLite local con invalidación de caché sincronizada.
 
-### Suite 1: `test_whatsapp_flow_polish.py` (8 Recorridos Completos)
+### 2. `verified_routes.py`
+- **Clasificación dinámica de categorías:** Función `classify_tour_category(entity_id, name)` que ubica dinámicamente cualquier tour canónico o recién creado en `treks`, `cusco` o `reg`.
+- **Acceso a catálogo completo:** Función `get_dynamic_cat_specs(active_tours_dict)` que construye las especificaciones de categorías ordenando primero los tours canónicos y anexando tours creados dinámicamente en tiempo de ejecución.
+- **Distinción BD error vs vacío:** Función `get_current_tours_status()` que devuelve `is_read_error` (`evidence_catalog_error`) o `is_empty` (`evidence_catalog_empty`).
+- **Detección de referencias ambiguas:** Regex ampliada para `el otro`, `del otro`, `la otra`, `de la otra`, `the other`, extrayendo todos los tours activos mencionados en el historial. Emite `evidence_ambiguous` con `pending=True` (`resolved_autonomously=False`).
+- **Respuesta estándar para tours desactivados:** Texto uniforme bilingüe:
+  - *ES:* `*{name}* no figura actualmente en nuestro catálogo activo. Puedes explorar otros tours o consultar este destino con un asesor.`
+  - *EN:* `*{name}* is not currently in our active catalog. You can explore other tours or consult this destination with an advisor.`
+
+### 3. `handoff_support.py`
+- Verificación previa de tour desactivado antes de registrar solicitudes en `apply_request`: si `is_deactivated_tour(eid)`, bloquea la creación del ticket y responde inmediatamente con la información del tour inactivo, evitando tickets comerciales inválidos.
+
+### 4. `app.py`
+- **Reescritura de `get_quick_buttons`:** Implementada la matriz de estados con 16 casos prioritarios.
+- **Paginación WhatsApp:** Soporte para `btn_cat_page:{cat}:{page}:{lang}` con botones interactivos `➡️ Más tours` / `➡️ More tours` y `⬅️ Categorías` / `⬅️ Categories`, respetando el límite estricto de Meta (<= 3 botones, <= 20 caracteres por título).
+- **Mapeo de botones antiguos:** En `receive_message`, si un botón presionado apunta a un tour desactivado (`is_deactivated_tour(target_eid)`), la intención se redirige a consulta informativa, impidiendo bucles comerciales.
+- **Propagación del fallo de foto:** Se conecta el parámetro `photo_send_failed=(photo_api_accepted is False)` hacia `get_quick_buttons` para emitir el botón de reintento controlado `📸 Reintentar foto`.
+
+### 5. `trial_support.py`
+- Enriquecimiento de marcadores lingüísticos en español e inglés (`informacion`, `info`, `detalles`, `cusco`, `fotos`, `foto`) para evitar que mensajes en español con nombres en inglés (ej. "City Tour") se clasifiquen erróneamente como inglés.
+
+---
+
+## 4. Matriz de Recorridos Probados y Evidencia Técnica
+
+La suite de pruebas automatizadas en [`tests/test_whatsapp_flow_polish.py`](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/tests/test_whatsapp_flow_polish.py) cubre los 10 recorridos obligatorios, evaluando aserciones estrictas tanto de lo que **DEBE** aparecer como de lo que **NO DEBE** aparecer:
+
 ```
-Ran 8 tests in 2.717s
-OK
+Ran 11 tests in 2.298s: 0 failures, 0 errors. OK.
 ```
-1. **Recorrido 1 (Saludo → categorías → tour → inclusiones → tarifa):** PASS. Saludo oficial, desglose en 3 categorías, selección de categoría Treks, visualización de ficha técnica completa de Camino Inca (nombre, duración, horario, tarifa oficial 790 USD, sin truncamientos), inclusiones completas por viñetas, consulta de tarifa oficial.
-2. **Recorrido 2 (Preservación de entidad ante consultas consecutivas):** PASS. Usuario consulta Camino Inca y luego City Tour; al pulsar el botón del primer tour («Qué incluye»), el bot responde exclusivamente sobre Camino Inca y los nuevos botones conservan `camino-inka`.
-3. **Recorrido 3 (Foto disponible, foto inexistente y error de envío a Meta API):** PASS.
-   - Caso 3A (Foto disponible): Meta API retorna 200, bot despacha imagen oficial y envía texto confirmatorio.
-   - Caso 3B (Foto inexistente): `camino-inka` no tiene foto en línea; el bot no intenta llamar a `send_whatsapp_image` y responde con honestidad que no hay foto en línea.
-   - Caso 3C (Fallo en Meta API): `send_whatsapp_image` retorna `False`; el bot no afirma falsamente haber enviado la imagen, sino que informa el inconveniente de carga y ofrece el asesor.
-4. **Recorrido 4 (Solicitar reserva y ticket en base de datos):** PASS. Se registra ticket en la tabla `requests` con canal `whatsapp`, estatus `pending`, `[Reserva - Camino Inca]` y contexto previo. El bot no confirma disponibilidad ni pago.
-5. **Recorrido 5 (Repetición de solicitud sin duplicados):** PASS. Pulsar nuevamente «Solicitar reserva» no crea un segundo ticket en la base de datos e informa el estado del ticket abierto.
-6. **Recorrido 6 (Recorrido equivalente en inglés):** PASS. Greeting en inglés, catálogo de categorías en inglés, ficha del tour en inglés (*Inca Trail*, *Duration: 4 days / 3 nights*, *Official rate: 790 USD per person*), botón *Request reservation* y ticket registrado.
-7. **Recorrido 7 (Tour desactivado y catálogo vacío):** PASS. Desactivar un tour lo retira inmediatamente de la lista de categorías y de los botones interactivos. Si el catálogo está vacío, ofrece únicamente la opción de consultar con el asesor.
-8. **Recorrido 8 (Regresiones de CSRF, catálogo dinámico, atención humana y métricas):** PASS. Protección CSRF activa (403), consultas de catálogo persistentes, bloqueo de cierre de tickets sin atención previa y métricas operativas (`api_accepted >= 1`).
 
-### Suites de Regresión Existentes
+| # | Recorrido Obligatorio | Entrada de Prueba | Lo que DEBE aparecer | Lo que NO DEBE aparecer | Resultado |
+|---|---|---|---|---|---|
+| **1** | **Saludo → Catálogo → Categoría → Tour → Detalles → Tarifa** | `Hola` → `btn_tours` → `btn_cat:treks` → `btn_tour:camino-inka` → `btn_inc` → `btn_rates` | Asistente virtual, 3 categorías, Camino Inca con duración/horario/tarifa, viñetas completas, 790 USD | Cortes con puntos suspensivos (`...`), botón engañoso `🙋‍♂️ Reservar` | **PASS** |
+| **2** | **Tour A → Tour B → Botón antiguo de A** | Consulta Camino Inca → Consulta City Tour → Clic `btn_inc:camino-inka` | Respuesta exclusiva sobre Camino Inca; botones preservan `camino-inka` | Contenido de City Tour, pérdida de contexto | **PASS** |
+| **3** | **Desactivar tour y pulsar botón antiguo** | Tour desactivado → Clic `btn_rates:choquequirao` y `btn_book:choquequirao` | Aviso de no activo; botones `Ver otros tours` y `Consultar asesor` | Botones comerciales (`Tarifas`, `Fotos`, `Reservar`), creación de tickets | **PASS** |
+| **4** | **Tour desactivado → Elegir otra opción → Flujo normal** | Consulta Choquequirao → `btn_tours` → `btn_cat:cusco` → Clic `btn_tour:city-tour-cusco` | Aviso de no activo → listado de categorías → tours de Cusco → ficha de City Tour con acciones válidas | Bucles, bloqueos o reaparición del tour desactivado | **PASS** |
+| **5** | **Alta y modificación de tour en catálogo dinámico** | Crear `Cañón de Tinajani` (60 USD) → modificar a 75 USD y 05:30 | Precio inicial 60 USD; tras modificación refleja 75 USD y nuevo horario sin reiniciar | Precio desactualizado (60 USD), edición de código estático | **PASS** |
+| **6** | **Foto disponible, inexistente y envío fallido** | 6A: Machu Picchu tren (foto ok)<br>6B: Camino Inca (sin foto online)<br>6C: Machu Picchu (fallo Meta API) | 6A: Imagen oficial enviada + texto<br>6B: Honestidad: no hay foto online<br>6C: Aviso de inconveniente; botón reintentar | Afirmar que se envió foto cuando falló o no existe; fotos de otros tours | **PASS** |
+| **7** | **Solicitud asesor → Repetición → Continuación** | `btn_book:camino-inka` → repetir clic → preguntar por Puno/Titicaca | Ticket registrado en BD como `pending`; aviso de ticket ya abierto; respuesta normal sobre Titicaca | Ticket duplicado en BD, afirmación de reserva confirmada, bloqueo del chat | **PASS** |
+| **8** | **Catálogo vacío vs. Error de lectura BD** | 8A: 0 tours activos devueltos<br>8B: Excepción al consultar BD | 8A: Aviso de catálogo en actualización (`btn_advisor`)<br>8B: Aviso de fallo técnico temporal (`btn_advisor` y `btn_tours`) | Confundir error de BD con tours desactivados; inventar disponibilidad | **PASS** |
+| **9** | **Mensajes libres, seguimiento elíptico y ambigüedad** | 9A: "saber del Camino Inca" → "¿y el precio?"<br>9B: "saber de 7 colores" → "¿cuál es la tarifa?"<br>9C: "Inca y City Tour" → "¿fotos del otro?" | 9A: Tarifa oficial 790 USD<br>9B: Explica que se coordina en agencia<br>9C: Pide aclaración entre los 2 tours con botones dedicados | Pérdida de tour en pregunta elíptica; adivinanza forzada en ambigüedad | **PASS** |
+| **10** | **Recorrido equivalente en inglés** | `Hello` → `View Tours` → `Inca Trail` → `Request reservation` → Choquequirao inactivo | Saludo en inglés, categorías en inglés, ficha en inglés, aviso de tour inactivo en inglés | Textos en español, botón `Reservar`, botones comerciales en tour inactivo | **PASS** |
+| **Reg** | **Regresión de seguridad, handoff y métricas** | Intento CSRF, cierre de ticket sin atender, métricas de latencia | HTTP 403 en CSRF; ValueError al cerrar sin atender; métricas `api_accepted` registradas | Accesos no autorizados, saltos en ciclo de vida de tickets | **PASS** |
+
+### Resultados de Suites de Regresión
+- `tests/test_audit_20260912.py`: **21 PASS / 0 FAIL** (100 %)
 - `tests/test_conversational.py`: **36 PASS / 0 FAIL** (100 %)
 - `tests/test_interactive_whatsapp_buttons.py`: **11 PASS / 0 FAIL** (100 %)
-- `tests/test_handoff.py`: **PASS** (solicitudes, persistencia, concurrencia, estados y protección)
-- `tests/test_codex_6_regressions.py`: **99 PASS / 0 FAIL** (100 %)
-- `tests/test_audit_20260912.py`: **PASS** (21 casos endpoint + integridad, conflicto y métricas)
+- `tests/test_flexible_tour_rates.py`: **21 PASS / 0 FAIL** (100 %)
 
 ---
 
-## 4. Limitaciones Técnicas y Distinción de Entornos
+## 5. Distinción entre Pruebas Simuladas y Pruebas Reales
 
-1. **Simulación Local vs. Dispositivo Físico:**
-   - Las pruebas automatizadas locales (`TestClient`) simulan la llamada a los webhooks de Meta y verifican que los payloads salientes interactivos (`button_reply`, imágenes y mensajes) se construyan de acuerdo a la API de WhatsApp Cloud de Meta.
-   - Estas pruebas locales **no constituyen una prueba en un teléfono real** ni certifican que la red del operador de telefonía haya entregado el paquete al receptor físico.
-2. **Aceptación de la API vs. Entrega al Teléfono:**
-   - Cuando la API de Meta responde HTTP 200 con un `wamid`, indica que el mensaje ha sido aceptado por los servidores de Meta para su procesamiento y encolado.
-   - La entrega final al dispositivo receptor depende del estado del terminal (conectividad, batería, políticas de spam de WhatsApp).
-3. **Pruebas en Producción:**
-   - La validación final con mensajes reales de WhatsApp en el entorno de Google Cloud Run se realizará exclusivamente tras la aprobación del usuario y utilizando el número de prueba autorizado, siguiendo el paso 4 de `AGENTS.md`.
+| Aspecto | Pruebas Automatizadas Locales (`TestClient`) | Validación en Teléfono / WhatsApp Real |
+|---|---|---|
+| **Canal** | Simulación HTTP directa mediante ASGI TestClient (`/webhook`) | Servidor Cloud Run conectado a los webhooks de Meta for Developers |
+| **Tokens / Secretos** | Mocks de `META_ACCESS_TOKEN` y firma HMAC simulada | Credenciales de producción en Secret Manager / variables de entorno de Cloud Run |
+| **Despacho Multimedia** | Mock de `send_whatsapp_image` y `send_whatsapp_document` comprobando URL y caption | Petición real `POST https://graph.facebook.com/v21.0/{phone_number_id}/messages` |
+| **Aceptación vs. Entrega** | Comprueba que el código invoque la función correcta con parámetros exactos | Comprueba respuesta HTTP 200 de Meta (`api_accepted`) y doble check de entrega en el dispositivo |
+| **Interacción Humana** | Payloads sintéticos `button_reply` con `id` y `title` | Clic físico del usuario en la pantalla táctil de WhatsApp |
+
+> [!NOTE]
+> Ninguna prueba automatizada local se presenta como confirmación de entrega en un dispositivo móvil real. La validación en vivo se ejecutará en coordinación con el usuario utilizando un número de prueba autorizado tras el despliegue.
+
+---
+
+## 6. Limitaciones Técnicas Pendientes
+
+Para mantener la honestidad técnica y cumplir con el estándar de no prometer "100 % de casos resueltos":
+1. **Límites de la API de Meta en Mensajes Interactivos:** WhatsApp solo permite hasta 3 botones de tipo `button_reply` por mensaje. En categorías con más de 2 tours se requiere paginación secuencial (`➡️ Más tours`). Si una categoría llegara a tener 20 tours, requeriría múltiples páginas de navegación o escribir el nombre directamente.
+2. **Límite de caracteres en botones:** Los títulos de los botones están estrictamente truncados a 20 caracteres por especificación de Meta. Nombres de tours muy largos aparecen acotados en el botón (ej. *"Machu Picchu Tren"*), aunque el texto del cuerpo muestra el nombre completo.
+3. **Imágenes en Catálogo Local:** Únicamente los tours con fotografías físicas cargadas en `data/images/` y validadas en el catálogo disponen de entrega multimedia automática. Los demás tours aplican el protocolo honesto de derivación a galería del asesor.
+4. **Entrega física en dispositivo:** El estado `api_accepted` confirma que los servidores de Meta aceptaron el mensaje; la recepción física en el teléfono depende de la conectividad, número válido y políticas de entrega de WhatsApp.
+
+---
+
+## 7. Instrucciones para Continuar con Otro Agente o Despliegue
+
+1. **Estado del repositorio:** Todos los cambios están verificados en la rama `feature/polish-whatsapp-flow` de `texeira-prueba-v4-evidencias/`.
+2. **Ejecutar pruebas rápidas de verificación:**
+   ```bash
+   python -m unittest tests/test_whatsapp_flow_polish.py
+   python tests/run_isolated.py test_audit_20260912.py
+   python tests/run_isolated.py test_conversational.py
+   ```
+3. **Procedimiento de Despliegue:**
+   - Una vez aprobado el código por el usuario, realizar el merge formal a `main`.
+   - Ejecutar `actualizar_nube.bat` para compilar y desplegar a Google Cloud Run.
+   - Verificar en vivo con el número de prueba autorizado enviando:
+     - `Hola`
+     - Clic en `🗺️ Ver Tours`
+     - Consulta sobre tour desactivado para verificar la ausencia de botones comerciales.
