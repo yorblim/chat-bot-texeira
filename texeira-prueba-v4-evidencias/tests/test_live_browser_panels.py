@@ -21,52 +21,59 @@ def _create_scoped_auth_extension(base_url: str, auth_b64: str) -> str:
 
     Authorization: Basic exclusivamente en peticiones hacia base_url/*.
     Cualquier petición externa (ej. fonts.googleapis.com) queda exenta de la cabecera.
+    Si ocurre cualquier fallo durante la escritura de archivos, se garantiza la limpieza
+    del directorio temporal antes de propagar la excepción.
     """
     ext_dir = tempfile.mkdtemp(prefix="edge_scoped_auth_")
-    manifest = {
-        "name": "ScopedBotAuth",
-        "version": "1.0",
-        "manifest_version": 3,
-        "declarative_net_request": {
-            "rule_resources": [
-                {
-                    "id": "ruleset_1",
-                    "enabled": True,
-                    "path": "rules.json"
-                }
-            ]
-        },
-        "permissions": ["declarativeNetRequest"],
-        "host_permissions": [f"{base_url}/*"]
-    }
-    rules = [
-        {
-            "id": 1,
-            "priority": 1,
-            "action": {
-                "type": "modifyHeaders",
-                "requestHeaders": [
+    try:
+        manifest = {
+            "name": "ScopedBotAuth",
+            "version": "1.0",
+            "manifest_version": 3,
+            "declarative_net_request": {
+                "rule_resources": [
                     {
-                        "header": "Authorization",
-                        "operation": "set",
-                        "value": f"Basic {auth_b64}"
+                        "id": "ruleset_1",
+                        "enabled": True,
+                        "path": "rules.json"
                     }
                 ]
             },
-            "condition": {
-                "urlFilter": f"{base_url}/*",
-                "resourceTypes": [
-                    "main_frame", "sub_frame", "stylesheet", "script",
-                    "image", "xmlhttprequest", "other"
-                ]
-            }
+            "permissions": ["declarativeNetRequest"],
+            "host_permissions": [f"{base_url}/*"]
         }
-    ]
-    with open(os.path.join(ext_dir, "manifest.json"), "w", encoding="utf-8") as f:
-        json.dump(manifest, f)
-    with open(os.path.join(ext_dir, "rules.json"), "w", encoding="utf-8") as f:
-        json.dump(rules, f)
-    return ext_dir
+        rules = [
+            {
+                "id": 1,
+                "priority": 1,
+                "action": {
+                    "type": "modifyHeaders",
+                    "requestHeaders": [
+                        {
+                            "header": "Authorization",
+                            "operation": "set",
+                            "value": f"Basic {auth_b64}"
+                        }
+                    ]
+                },
+                "condition": {
+                    "urlFilter": f"{base_url}/*",
+                    "resourceTypes": [
+                        "main_frame", "sub_frame", "stylesheet", "script",
+                        "image", "xmlhttprequest", "other"
+                    ]
+                }
+            }
+        ]
+        with open(os.path.join(ext_dir, "manifest.json"), "w", encoding="utf-8") as f:
+            json.dump(manifest, f)
+        with open(os.path.join(ext_dir, "rules.json"), "w", encoding="utf-8") as f:
+            json.dump(rules, f)
+        return ext_dir
+    except Exception:
+        shutil.rmtree(ext_dir, ignore_errors=True)
+        raise
+
 
 
 def main():
