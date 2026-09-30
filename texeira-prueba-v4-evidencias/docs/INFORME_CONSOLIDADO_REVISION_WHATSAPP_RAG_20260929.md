@@ -98,26 +98,27 @@ Al inspeccionar el entorno real cargado:
 
 ---
 
-## 5. Propuesta de Evaluación Real Pequeña (Sin Cambiar de Proveedor ni Desplegar)
+## 5. Resultados de la Evaluación Real del LLM y Cobertura Documental
 
-Para validar la inferencia semántica real del modelo `qwen/qwen3.8-27b` sobre Groq sin incurrir en costos ni agotar los límites del free tier, se propone una batería sintética controlada de **4 consultas clave**:
+La evaluación sintética real con el proveedor efectivo de runtime (`groq` / `qwen/qwen3.8-27b`) fue ejecutada mediante [tests/test_live_llm_evaluation.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/tests/test_live_llm_evaluation.py) con exactamente 4 llamadas al LLM real (registro íntegro en [docs/EVIDENCIA_EVALUACION_REAL_LLM_20260930.json](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/docs/EVIDENCIA_EVALUACION_REAL_LLM_20260930.json) e informe en [docs/INFORME_EVALUACION_REAL_LLM_20260930.md](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/docs/INFORME_EVALUACION_REAL_LLM_20260930.md)):
 
-### 5.1 Las 4 Consultas Propuestas
-1. **Consulta 1 (Pregunta abierta de aventura):**
-   - *Entrada:* *"¿Cómo es el descenso en bicicleta por el Abra Málaga y qué actividades de aventura se hacen en el Inka Jungle?"*
-   - *Objetivo de validación:* Comprobar que el LLM real redacte con precisión a partir de los chunks de Inka Jungle sin inventar actividades ajenas ni alterar altitudes.
-2. **Consulta 2 (Seguimiento contextual de Humantay):**
-   - *Turno 1:* *"¿Tienen información de la Laguna Humantay?"*
-   - *Turno 2:* *"¿A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie?"*
-   - *Objetivo de validación:* Comprobar que el modelo real responda citando la altitud (4,200 msnm) y el tiempo de subida (1.5 - 2 horas) a partir del chunk de Humantay recuperado contextualmente.
-3. **Consulta 3 (Cambio de tour tras Humantay):**
-   - *Turno 3 (mismo usuario):* *"¿Cómo es el recorrido y qué lugares se visitan en el City Tour Cusco?"*
-   - *Objetivo de validación:* Comprobar que el modelo real describa Sacsayhuamán, Qorikancha, etc., sin mezclar datos de Humantay.
-4. **Consulta 4 (Comparación entre dos tours):**
-   - *Entrada:* *"¿Qué diferencias hay entre el Camino Inca Clásico y el Salkantay Trek en duración y precio?"*
-   - *Objetivo de validación:* Comprobar que el modelo real sintetice ambos treks comparando los 4 días de duración y destacando la tarifa oficial de 790 USD para Camino Inca frente a la confirmación con asesor para Salkantay.
+### 5.1 Matriz de Resultados Reales
+| Caso | Consulta Evaluada | Comportamiento Efectivo | Clasificación del Resultado |
+| :--- | :--- | :--- | :--- |
+| **Inka Jungle** | Descenso en bicicleta por Abra Málaga y actividades de aventura | Se abstuvo de detallar bicicleta y aventura; derivó al asesor. | **Consulta no resuelta por falta de información en el contexto.** |
+| **Laguna Humantay** | Altitud máxima y exigencia de la subida a pie | Recuperó el tour correcto por contexto, pero se abstuvo de detallar altitud y exigencia; derivó al asesor. | **Consulta no resuelta por falta de información en el contexto.** |
+| **City Tour Cusco** | Recorrido y lugares visitados | Detalló los 5 centros arqueológicos, inclusiones y horarios oficiales. | **Respuesta informativa completa respaldada en fuentes.** |
+| **Comparación** | Camino Inca vs Salkantay Trek en duración y precio | Diferenció duración (4 días) y tarifa confirmada (790 USD vs precio por confirmar con asesor). | **Respuesta informativa parcial con derivación de lo no publicado.** |
 
-### 5.2 Protocolo de Ejecución de la Evaluación Real
-- **Control de límites y cuotas:** Pausar entre turnos no garantiza por sí solo evitar límites de uso (TPM/RPM del proveedor) ni demuestra costo cero. Por tanto, el script instrumenta y captura los metadatos de respuesta, uso de tokens reportado (`usage_metadata`), latencia y posibles códigos de error HTTP/API. Si se detecta un error de cuota o rate limit (`429`), la prueba se detiene inmediatamente sin bucles de reintento.
-- **Registro integral y auditoría:** Las respuestas generadas por el LLM real se registrarán íntegras en un documento de evidencias con sus documentos fuente efectivos, evaluando la fidelidad y exactitud semántica contra el catálogo oficial (F1/F2/F3) sin asumir corrección solo por ausencia de excepciones.
-- **Restricción cumplida:** Máximo 4 llamadas reales a Groq (`qwen/qwen3.8-27b`), sin servicios de pago alternativos, sin mensajes por WhatsApp, sin merge a `main` y sin despliegue en Cloud Run (`actualizar_nube.bat`). Todo permanece local y respaldado bajo la rama `feature/polish-whatsapp-flow`.
+### 5.2 Balance Técnico y Comprobación de Fuentes Originales
+- **Balance sobrio:** El resultado arroja **dos respuestas informativas y dos abstenciones por falta de evidencia**. Abstenerse es preferible a inventar datos no confirmados, pero **no equivale a resolver la consulta**. Cuatro casos constituyen una muestra acotada que demuestra la aplicación de las reglas anti-alucinación, sin implicar infalibilidad.
+- **Alcance de la latencia:** El promedio de **0.913 segundos** corresponde estrictamente a la llamada de inferencia a la API de Groq según el script instrumentado; **no representa el tiempo completo de respuesta por WhatsApp** (que abarca webhook de Meta, red, persistencia y despacho del mensaje saliente).
+- **Auditoría acotada en materiales originales (PDFs F1/F2/F3):**
+  - *Humantay:* En F2 pág. 9 figura `Laguna Humantay 4200 m.s.n.m.`; sin embargo, el tiempo de caminata (1.5-2h) y la exigencia del ascenso **no existen en ningún documento oficial de la agencia**.
+  - *Inka Jungle:* En F2 pág. 17 figura `Abra Malaga 4350 m.s.n.m.` e itinerario de 4 días; sin embargo, las actividades de aventura (*descenso en bicicleta, canotaje, tirolina*) **no existen en ningún texto oficial de la agencia**.
+  - *Causa de la omisión en el índice:* La ingesta histórica a `evidence_facts.json` extrajo campos de confirmación, horarios e inclusiones, omitiendo las cotas altimétricas de las infografías de ruta de F2.
+  - *Criterio de cero alucinaciones:* Siguiendo la regla de no inventar datos ni agregar fuentes externas sin autorización, se conserva la abstención honesta y se documenta la limitación documental de la agencia para el piloto.
+
+### 5.3 Control de Despliegue y Estado GitOps
+- Código y evidencias formalmente respaldados en la rama `feature/polish-whatsapp-flow`.
+- **No se ha ejecutado merge a `main` ni `actualizar_nube.bat`**. Todo permanece listo para decisión de despliegue del piloto con sus limitaciones explícitas.

@@ -1,118 +1,131 @@
-# Informe de Evaluación Real del LLM: Groq (Qwen 3.8-27B)
+# Informe de Evaluación Real del LLM: Groq (Qwen 3.8-27B) y Cobertura Documental
 
 **Fecha:** 30 de Septiembre de 2026  
 **Proyecto:** Texeira Travel Chatbot (`texeira-prueba-v4-evidencias/`)  
 **Rama activa:** `feature/polish-whatsapp-flow`  
 **Proveedor evaluado:** Groq (`groq`)  
 **Modelo evaluado:** `qwen/qwen3.8-27b`  
-**Estado:** Evaluación real completada (4/4 llamadas reales al LLM ejecutadas, 0 errores de API/cuota).  
+**Estado:** Evaluación real completada y auditoría documental de fuentes oficiales finalizada.  
 
 ---
 
-## 1. Resumen Ejecutivo de la Evaluación Real
+## 1. Resumen Ejecutivo y Clasificación de Resultados
 
-Se ejecutó la batería sintética controlada de **4 llamadas reales al LLM** utilizando el proveedor y modelo efectivos configurados en el entorno de runtime (`groq` / `qwen/qwen3.8-27b`), más el turno preparatorio determinista para el contexto conversacional.
+Se ejecutó la batería sintética controlada de **4 llamadas reales al LLM** utilizando el proveedor y modelo efectivos configurados en el entorno de runtime (`groq` / `qwen/qwen3.8-27b`), precedida por el turno preparatorio determinista para el contexto conversacional.
 
-### Métricas Globales de Inferencia
-- **Total llamadas reales al LLM:** 4 / 4 (cumplimiento estricto del límite máximo).
-- **Latencia promedio:** 0.913 segundos por respuesta (rango: 0.443s – 1.410s).
-- **Consumo total reportado:**
-  - Prompt tokens: 4,449
-  - Completion tokens: 252
-  - Tokens totales: 4,701
-- **Errores de cuota / Rate Limit (HTTP 429):** 0 errores.
-- **Llamadas a servicios de pago alternativos:** 0.
-- **Mensajes emitidos por WhatsApp:** 0 (entorno de pruebas en local).
-- **Merge a main o despliegue a Cloud Run:** Ninguno.
+### Matriz de Resultados Reales
+| Caso | Consulta Evaluada | Comportamiento Efectivo | Clasificación del Resultado |
+| :--- | :--- | :--- | :--- |
+| **Inka Jungle** | Descenso en bicicleta por Abra Málaga y actividades de aventura | Se abstuvo de detallar bicicleta y aventura; derivó al asesor. | **Consulta no resuelta por falta de información en el contexto.** |
+| **Laguna Humantay** | Altitud máxima y exigencia de la subida a pie | Recuperó el tour correcto por contexto, pero se abstuvo de detallar altitud y exigencia; derivó al asesor. | **Consulta no resuelta por falta de información en el contexto.** |
+| **City Tour Cusco** | Recorrido y lugares visitados | Respondió detallando los 5 centros arqueológicos, inclusiones y horarios oficiales. | **Respuesta informativa completa respaldada en fuentes.** |
+| **Comparación** | Camino Inca vs Salkantay Trek en duración y precio | Diferenció duración (4 días) y tarifa oficial confirmada (790 USD vs precio por confirmar con asesor). | **Respuesta informativa parcial con derivación de lo no publicado.** |
+
+### Balance Técnico y Alcance
+- **Interpretación equilibrada:** El resultado consiste en **dos respuestas informativas y dos abstenciones por falta de evidencia**. Abstenerse de responder es preferible a inventar datos ficticios, pero **no equivale a resolver la consulta del cliente**. Cuatro casos constituyen una muestra de validación acotada que comprueba el funcionamiento del pipeline y el acatamiento del modo estricto; no demuestran infalibilidad general.
+- **Alcance de la latencia registrada:** La latencia promedio de **0.913 segundos** (rango: 0.443s – 1.410s) corresponde exclusivamente al tiempo de inferencia de la API de Groq en la llamada al modelo, según el script de prueba instrumentado. **No representa el tiempo de respuesta completo de WhatsApp**, el cual incluye la recepción del webhook de Meta, procesamiento en Cloud Run, consultas a base de datos y despacho del mensaje saliente.
+- **Consumo reportado (4 llamadas):**
+  - Prompt tokens: 4,449 | Completion tokens: 252 | Total tokens: 4,701
+  - Errores de API / Cuota (HTTP 429): 0 errores.
+  - Llamadas a servicios de pago / cambios de proveedor: 0.
 
 ---
 
-## 2. Registro Íntegro de Casos y Evaluación Semántica contra Fuentes
+## 2. Comprobación Acotada de Fuentes Originales (PDFs F1, F2 y F3)
+
+A solicitud de la auditoría, se revisaron exhaustivamente los materiales y PDFs originales provistos por la agencia en `data/agency_sources/`:
+- **F1:** Folleto físico Texeira Travel (`brochure_page_1.jpeg`, `brochure_page_2.jpeg`).
+- **F2:** Catálogo general `TOURS - Agencia TEXEIRA TRAVEL.pdf` (25 páginas).
+- **F3:** Folleto promocional `Texeira Travel - Tours (1).pdf` (8 páginas).
+
+### 2.1 Laguna Humantay
+- **¿Qué datos aparecen en las fuentes originales?**
+  - En **F2 (Página 9)** figura el mapa infográfico del tour con los puntos de ruta y sus altitudes:
+    - *Limatambo 2554 m.s.n.m.*
+    - *Cruz Pata 3400 m.s.n.m.*
+    - *Soraypampa 3920 m.s.n.m.*
+    - *Cusco 3360 m.s.n.m.*
+    - **`Laguna Humantay 4200 m.s.n.m.`**
+    - *Incluye: Transporte ida y vuelta, Guía Profesional Bilingüe, Almuerzo.*
+  - En **F1 (Página 2)** figura el horario: *04:30 - 17:00*.
+- **¿Qué datos NO aparecen en las fuentes originales?**
+  - En ninguna de las fuentes oficiales (F1, F2 ni F3) existe texto que detalle la duración de la subida a pie (las *1.5 a 2 horas*) ni el nivel de esfuerzo o pendiente del sendero (*exigencia moderada a fuerte*).
+- **¿Por qué no llegó la altitud (4,200 msnm) al índice?**
+  - En la ingesta histórica a `data/evidence_facts.json`, solo se extrajeron para Humantay los campos de existencia (`confirmed_product: True`), horario (`schedule: 04:30-17:00`) e inclusiones. Los valores de altitud y waypoints plasmados en los diagramas gráficos de la página 9 de F2 no fueron modelados como hechos en `evidence_facts.json`.
+- **Determinación técnica:**
+  - Como la exigencia del sendero y el tiempo de subida a pie **no existen documentalmente en el material de la agencia**, no deben inventarse ni incorporarse desde fuentes externas no autorizadas.
+  - La respuesta de abstención (*«Ese dato no está en el contexto, lo confirmamos con el equipo»*) preserva la integridad de la agencia y queda formalmente documentada como una consulta no resuelta por falta de información.
+
+### 2.2 Inka Jungle to Machu Picchu
+- **¿Qué datos aparecen en las fuentes originales?**
+  - En **F2 (Página 17)** figura el esquema del circuito con sus paradas y altitudes:
+    - *Cusco 3360 msnm, Chinchero 3762 msnm, Urubamba 2870 msnm, Ollantaytambo 2790 msnm.*
+    - **`Abra Malaga 4350 m.s.n.m.`**
+    - *Huamanmarka 1900 msnm, Santa Maria 1450 msnm, Santa Teresa 1810 msnm, Aguas Calientes 2000 msnm, Machu Picchu 2400 msnm.*
+    - Itinerario esquemático de 4 días: *Día 1: Cusco - Santa María; Día 2: Santa María - Santa Teresa; Día 3: Santa Teresa - Aguas Calientes; Día 4: Aguas Calientes - Machu Picchu.*
+- **¿Qué datos NO aparecen en las fuentes originales?**
+  - En ninguna de las 25 páginas de F2 ni en F1/F3 existe texto que describa las actividades de *"descenso en bicicleta"*, *"canotaje/rafting"* o *"tirolina/zipline"*. El material de la agencia presenta únicamente el mapa de ruta y el itinerario general de paradas.
+- **¿Por qué no llegó `Abra Malaga` al índice?**
+  - En `data/evidence_facts.json`, para Inka Jungle solo se modelaron `confirmed_product: True` y `duration: 4 días`. Las cotas altimétricas de las paradas no fueron indexadas.
+- **Determinación técnica:**
+  - Las actividades de aventura solicitadas en la pregunta (*bicicleta, canotaje, tirolina*) **no forman parte del acervo documental oficial**.
+  - Inventarlas violaría el principio de cero alucinaciones de la tesis.
+  - La abstención del modelo real es la respuesta honesta ante la ausencia de evidencia y se clasifica como consulta no resuelta por falta de información en las fuentes.
+
+---
+
+## 3. Registro Detallado de Respuestas Reales Obtenidas
 
 ### Caso 1: Inka Jungle (Pregunta Abierta de Aventura)
-- **Consulta del usuario:** `¿Cómo es el descenso en bicicleta por el Abra Málaga y qué actividades de aventura se hacen en el Inka Jungle?`
-- **Ruta RAG:** `rag_llm`
-- **Retriever Query ejecutada:** `Cómo es el descenso en bicicleta por el Abra Málaga y qué actividades de aventura se hacen en el Inka Jungle`
-- **Documentos recuperados de ChromaDB:** 5 chunks (`inka-jungle`, `laguna-humantay`, `camino-inka`, `machu-picchu-tren`, `city-tour-cusco`).
-  - *Contenido del chunk `inka-jungle`:* `"Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Inka Jungle to Machu Picchu - confirmed_product: sí (fuente: F2) - duration: 4 días (itinerario publicado)"`
-- **Respuesta íntegra del modelo real:**
+- **Pregunta:** *«¿Cómo es el descenso en bicicleta por el Abra Málaga y qué actividades de aventura se hacen en el Inka Jungle?»*
+- **Ruta:** `rag_llm` | **Latencia:** 0.903s | **Tokens:** 1,174 prompt / 33 completion
+- **Documento efectivo inyectado:** Chunk `inka-jungle` de F2 (duración 4 días, sin descripción de bicicleta ni aventura).
+- **Respuesta real del LLM Groq:**
   > *"Ese dato no está en el contexto. Lo confirmamos con el equipo.*  
   > *Escribe 👉 \*asesor\* para reservar o más información 😊"*
-- **Latencia:** 0.903s | **Consumo:** 1,174 prompt tokens, 33 completion tokens.
-- **Evaluación semántica contra fuentes:**
-  - **Comportamiento observado:** El fragmento indexado en ChromaDB para Inka Jungle contiene únicamente duración (4 días) y confirmación de tour; **no incluye el texto descriptivo del Abra Málaga ni la lista de actividades de aventura**.
-  - **Fidelidad al System Prompt estricto:** El modelo real `qwen/qwen3.8-27b` obedeció rigurosamente la instrucción de no alucinar: al no encontrar el detalle en los chunks inyectados, admitió honestamente que el dato no está en el contexto y orientó al asesor.
-  - **Conclusión técnica:** Aprobado en veracidad y respeto a las fuentes (cero invenciones). Enriquecer la base documental si se desea que detalle el descenso en bicicleta.
-
----
+- **Evaluación:** Acata la regla anti-alucinación. No inventa actividades ajenas al contexto disponible.
 
 ### Caso 2: Laguna Humantay (Seguimiento Contextual Elíptico)
-- **Historial previo (Turno 0 determinista):** User: *«¿Tienen información de la Laguna Humantay?»* → Bot: Catálogo oficial Humantay.
-- **Consulta elíptica de seguimiento:** `¿A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie?`
-- **Ruta RAG:** `rag_llm`
-- **Recuperación contextual:**
-  - *Retriever Query enriquecida:* `Laguna Humantay A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie`
-  - *Chunk #1 recuperado:* **`laguna-humantay`** (`Laguna Humantay`).
-  - *Contenido del chunk `laguna-humantay`:* `"Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Laguna Humantay - confirmed_product: sí (fuente: F2) - schedule: 04:30-17:00 (fuente: F1)"`
-- **Mensaje enviado al LLM:** Conservó **estrictamente intacta** la pregunta original del usuario: `messages[-1] = ("human", "¿A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie?")`.
-- **Respuesta íntegra del modelo real:**
+- **Pregunta de seguimiento:** *«¿A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie?»* (con turno previo determinista de Humantay).
+- **Ruta:** `rag_llm` | **Latencia:** 0.443s | **Tokens:** 1,070 prompt / 33 completion
+- **Recuperación contextual:** Retriever query enriquecida: *`"Laguna Humantay A qué altura máxima..."`*. Pregunta original conservada intacta.
+- **Documento efectivo inyectado:** Chunk #1 `laguna-humantay` (contiene horario e inclusiones; no contiene altitud ni dificultad física).
+- **Respuesta real del LLM Groq:**
   > *"Ese dato no está en el contexto, lo confirmamos con el equipo.*  
   > *Escribe 👉 \*asesor\* para reservar o más información 😊"*
-- **Latencia:** 0.443s | **Consumo:** 1,070 prompt tokens, 33 completion tokens.
-- **Evaluación semántica contra fuentes:**
-  - **Hallazgo crítico de la auditoría:** El mock simulado en pruebas anteriores inyectaba una respuesta inventada con *4,200 msnm y 1.5–2 horas de subida*. Sin embargo, el chunk documental registrado en ChromaDB para Humantay en esta base de evidencias solo contiene horario (04:30–17:00) y confirmación de tour.
-  - **Veracidad comprobada del modelo real:** El LLM real se negó a fabricar la altitud y la exigencia física sin respaldo documental, derivando al asesor.
-  - **Conclusión técnica:** La recuperación contextual funcionó a la perfección (incorporó a Humantay como chunk prioritario y conservó la pregunta del usuario). El comportamiento del modelo real fue 100% leal al contexto sin alucinación.
-
----
+- **Evaluación:** El modelo simulado anterior afirmaba 4,200 msnm porque el texto venía preescrito en el test; el modelo real reveló que el chunk indexado no contenía esa información y se abstuvo con honestidad.
 
 ### Caso 3: Cambio de Tour tras Humantay (City Tour Cusco)
-- **Historial previo:** Turno 0 (Humantay) + Turno 2 (Humantay seguimiento).
-- **Consulta con cambio de tour:** `¿Cómo es el recorrido y qué lugares se visitan en el City Tour Cusco?`
-- **Ruta RAG:** `rag_llm`
-- **Retriever Query ejecutada:** `Cómo es el recorrido y qué lugares se visitan en el City Tour Cusco` (**cero contaminación de Humantay**).
-- **Documentos recuperados de ChromaDB:** Chunk #1: `city-tour-cusco` (junto con catálogo oficial de City Tour).
-- **Respuesta íntegra del modelo real:**
+- **Pregunta de cambio:** *«¿Cómo es el recorrido y qué lugares se visitan en el City Tour Cusco?»*
+- **Ruta:** `rag_llm` | **Latencia:** 0.897s | **Tokens:** 1,112 prompt / 107 completion
+- **Recuperación contextual:** Retriever query: *`"Cómo es el recorrido y qué lugares se visitan en el City Tour Cusco"`* (sin contaminación de Humantay).
+- **Documento efectivo inyectado:** Chunk `city-tour-cusco` y catálogo oficial.
+- **Respuesta real del LLM Groq:**
   > *"El \*City Tour Cusco\* incluye visitas a \*Koricancha\*, \*Sacsayhuamán\*, \*Q'enqo\*, \*Puka Pukara\* y \*Tambomachay\*.*  
   > *Incluye \*bus turístico\* y \*guía profesional\*.*  
   > *Horarios: \*10:00-14:00\* o \*13:30-18:30\*.*  
   > *Escribe 👉 \*asesor\* para reservar o más información 😊"*
-- **Latencia:** 0.897s | **Consumo:** 1,112 prompt tokens, 107 completion tokens.
-- **Evaluación semántica contra fuentes:**
-  - **Exactitud total:** Detalló los 5 atractivos arqueológicos oficiales registrados en el catálogo de Texeira Travel (Koricancha, Sacsayhuamán, Q'enqo, Puka Pukara y Tambomachay), las inclusiones oficiales (bus y guía) y los horarios exactos confirmados (10:00–14:00 y 13:30–18:30).
-  - **Aislamiento contextual:** Cero mezcla con Humantay; la transición entre destinos fue limpia y sin confusión.
-
----
+- **Evaluación:** Respuesta informativa completa respaldada en las fuentes oficiales registradas. Transición limpia sin interferencias del tour previo.
 
 ### Caso 4: Comparación entre Dos Tours (Camino Inca vs Salkantay Trek)
-- **Consulta comparativa:** `¿Qué diferencias hay entre el Camino Inca Clásico y el Salkantay Trek en duración y precio?`
-- **Ruta RAG:** `rag_llm`
-- **Retriever Query ejecutada:** `Qué diferencias hay entre el Camino Inca Clásico y el Salkantay Trek en duración y precio`
-- **Documentos recuperados de ChromaDB:** Contiene chunks de **ambos** treks (`camino-inka` y `salkantay-trek`), además del bloque dinámico de tarifas de catálogo.
-- **Respuesta íntegra del modelo real:**
+- **Pregunta comparativa:** *«¿Qué diferencias hay entre el Camino Inca Clásico y el Salkantay Trek en duración y precio?»*
+- **Ruta:** `rag_llm` | **Latencia:** 1.410s | **Tokens:** 1,093 prompt / 79 completion
+- **Documentos efectivos inyectados:** Chunks de `camino-inka` y `salkantay-trek` junto con tarifas de catálogo.
+- **Respuesta real del LLM Groq:**
   > *"Camino Inca Clásico\*: \*4 días / 3 noches\* por \*790 USD\*.*  
   > *\*Salkantay Trek\*: \*4 días\* (noches por confirmar) y precio por confirmar.*  
   > *Lo validamos con el equipo para darte el dato exacto. ✅*  
   > *Escribe 👉 \*asesor\* para reservar o más información 😊"*
-- **Latencia:** 1.410s | **Consumo:** 1,093 prompt tokens, 79 completion tokens.
-- **Evaluación semántica contra fuentes:**
-  - **Fidelidad estricta:**
-    - Cita duración (4 días / 3 noches) y tarifa oficial confirmada de **790 USD** para Camino Inca Clásico.
-    - Cita duración (4 días) para Salkantay Trek e indica con honestidad que la tarifa no está publicada en catálogo y se confirma con el asesor.
-  - **Cero alucinación:** No inventó precios para Salkantay ni confundió las tarifas.
+- **Evaluación:** Diferencia con precisión la tarifa oficial confirmada de Camino Inca (790 USD) y declara con honestidad que la de Salkantay no está publicada en catálogo y requiere confirmación con el asesor.
 
 ---
 
-## 3. Conclusiones de la Evaluación Real
+## 4. Conclusiones y Estado para el Piloto
 
-1. **Eficacia del RAG y Recuperación Contextual:**
-   - La recuperación contextual probó su eficacia: enriqueció la búsqueda en el seguimiento sin deformar la pregunta que llega al LLM.
-   - En el cambio de tour, eliminó toda interferencia del historial previo.
-   - En la comparación, suministró documentos de ambos tours al prompt.
-2. **Comportamiento del Modelo Real (`qwen/qwen3.8-27b` en Groq):**
-   - El modelo real acata de forma ejemplar el modo estricto: cuando la información está en el contexto (City Tour, tarifas de Camino Inca), responde con precisión y formato impecable; cuando la información no está en el chunk (detalles de aventura de Inka Jungle o altitud de Humantay), se abstiene de inventar y deriva al asesor.
-   - Latencias sub-segundo en el 75% de las llamadas (promedio 0.913s).
-3. **Disciplina de Despliegue:**
-   - No se alteró ningún proveedor.
-   - Todo el código y evidencia están registrados en Git en la rama `feature/polish-whatsapp-flow`.
-   - Se mantiene la prohibición de merge a `main` y de despliegue a Cloud Run hasta la revisión y decisión final del usuario.
+1. **Cobertura Documental y Honestidad del Bot:**
+   - La evaluación real con `qwen/qwen3.8-27b` demostró que el bot no inventa información cuando los documentos de la agencia carecen de detalles específicos.
+   - Las limitaciones documentales de Texeira Travel (ausencia de tiempos de caminata y descripciones de aventura) quedan formalmente documentadas.
+2. **Preparación para Despliegue del Piloto:**
+   - La suite de WhatsApp (13/13 PASS), la suite de no regresión (99/99 PASS) y la recuperación contextual RAG se encuentran probadas y respaldadas en Git.
+   - La integración con IA real está verificada con parámetros controlados.
+   - **No se ha realizado merge a `main` ni se ha ejecutado `actualizar_nube.bat`**. Todo permanece confinado en la rama `feature/polish-whatsapp-flow` a la espera de la autorización final para desplegar el piloto con sus limitaciones explícitas.
