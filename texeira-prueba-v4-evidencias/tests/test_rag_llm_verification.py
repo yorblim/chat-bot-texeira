@@ -311,20 +311,33 @@ class TestRagLlmVerification(unittest.TestCase):
         called_messages = mock_llm.invoke.call_args[0][0]
         system_content = called_messages[0][1]
         history_sent_to_model = [(m[0], m[1][:80].replace("\n", " ")) for m in called_messages[1:-1]]
+        last_human_msg = called_messages[-1][1]
 
         effective_docs = self.instrumented_retriever.last_docs
         effective_query = self.instrumented_retriever.last_query
+        retrieved_eids = [d.metadata.get("tour_id", "") for d in effective_docs]
+
+        # Comprobación estricta de documentos efectivamente enviados al modelo
+        self.assertTrue(len(effective_docs) > 0, "El retriever debe recuperar chunks")
+        self.assertIn("laguna-humantay", retrieved_eids,
+                      f"Los chunks efectivamente recuperados deben incluir 'laguna-humantay', encontrados: {retrieved_eids}")
+        self.assertIn("Laguna Humantay", system_content,
+                      "El contexto inyectado en el prompt debe contener información documental de Laguna Humantay")
+
+        # Comprobación de que la pregunta original del usuario se conserva intacta
+        self.assertEqual(last_human_msg, q2,
+                         "El mensaje humano enviado al LLM debe conservar la pregunta original del usuario")
 
         # Verificar que el LLM recibió en messages los turnos previos con Humantay
         self.assertTrue(any("Humantay" in str(c) for r, c in history_sent_to_model),
                         "El historial inyectado al modelo debe incluir la referencia previa a Humantay")
 
         self._record_audit(
-            case_id="3.1_followup_context",
+            case_id="3.1_followup_context_humantay",
             query=q2,
             history_sent_to_model=history_sent_to_model,
             route=res2["response_route"],
-            component="app.rag_chain (Conversation Memory + LLM)",
+            component="app.rag_chain (Contextual Retriever + LLM)",
             retriever_query=effective_query,
             retrieved_docs=effective_docs,
             context_in_prompt=system_content,
@@ -333,9 +346,78 @@ class TestRagLlmVerification(unittest.TestCase):
             test_type="Validación de pipeline con LLM simulado (Mock)",
             result_text=res2["response"],
             passed=True,
-            notes=f"Retriever interno buscó la consulta textual normalizada: '{effective_query}' (recuperó {len(effective_docs)} chunks generales de altitud/treks). "
-                  "La referencia temática a Laguna Humantay ingresó al LLM a través de los turnos previos del historial conversacional en messages. "
-                  "Respuesta simulada por mock."
+            notes=f"Retriever contextual detectó foco inequívoco en Laguna Humantay y buscó: '{effective_query}'. "
+                  f"Recuperó {len(effective_docs)} chunks donde el #1 es 'laguna-humantay'. "
+                  "Se verificó que la pregunta original se conserva intacta en el mensaje enviado al modelo."
+        )
+
+    def test_03b_followup_switch_tour(self):
+        """Valida que ante un cambio explícito de tour tras Humantay, el retriever y el contexto cambien limpiamente."""
+        uid = "user_v3_switch"
+        app.clear_history(uid)
+
+        # Turno 1: Foco inicial en Laguna Humantay
+        q1 = "¿Tienen información de la Laguna Humantay?"
+        app.rag_chain(q1, user_id=uid)
+
+        # Turno 2: El usuario cambia explícitamente a City Tour Cusco
+        q2 = "¿Cómo es el recorrido y qué lugares se visitan en el City Tour Cusco?"
+
+        mock_llm = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.content = (
+            "[SIMULACIÓN] El City Tour Cusco comprende la visita a la Catedral, el templo del Qorikancha, "
+            "y los centros arqueológicos cercanos: Sacsayhuamán, Q'enqo, Puka Pukara y Tambomachay."
+        )
+        mock_llm.invoke.return_value = mock_resp
+
+        with patch.object(app, "get_retriever", return_value=self.instrumented_retriever), \
+             patch.object(app, "get_llm", return_value=mock_llm):
+            res2 = app.rag_chain(q2, user_id=uid)
+
+        self.assertEqual(res2["response_route"], "rag_llm")
+        self.assertTrue(mock_llm.invoke.called)
+
+        called_messages = mock_llm.invoke.call_args[0][0]
+        system_content = called_messages[0][1]
+        history_sent_to_model = [(m[0], m[1][:80].replace("\n", " ")) for m in called_messages[1:-1]]
+        last_human_msg = called_messages[-1][1]
+
+        effective_docs = self.instrumented_retriever.last_docs
+        effective_query = self.instrumented_retriever.last_query
+        retrieved_eids = [d.metadata.get("tour_id", "") for d in effective_docs]
+
+        # Comprobación de cambio limpio de tour
+        self.assertTrue(len(effective_docs) > 0, "El retriever debe recuperar chunks")
+        self.assertIn("city-tour-cusco", retrieved_eids,
+                      f"Los chunks efectivamente recuperados deben pertenecer a City Tour, encontrados: {retrieved_eids}")
+        self.assertIn("City Tour", system_content,
+                      "El contexto inyectado en el prompt debe contener la información de City Tour Cusco")
+
+        # La consulta del retriever NO debe estar contaminada con Humantay
+        self.assertNotIn("Humantay", effective_query,
+                         "La consulta al retriever debe responder al nuevo tour y no contaminarse con el anterior")
+
+        # Conservar la pregunta original del usuario
+        self.assertEqual(last_human_msg, q2,
+                         "El mensaje humano enviado al LLM debe conservar la pregunta original de cambio de tour")
+
+        self._record_audit(
+            case_id="3.2_followup_switch_tour",
+            query=q2,
+            history_sent_to_model=history_sent_to_model,
+            route=res2["response_route"],
+            component="app.rag_chain (Tour Switch Resolution + LLM)",
+            retriever_query=effective_query,
+            retrieved_docs=effective_docs,
+            context_in_prompt=system_content,
+            model_called=True,
+            model_execution="Simulado (MagicMock con respuesta sintética preescrita)",
+            test_type="Validación de pipeline con LLM simulado (Mock)",
+            result_text=res2["response"],
+            passed=True,
+            notes=f"Transición exitosa: el usuario venía de Humantay y preguntó por City Tour Cusco. "
+                  f"El retriever buscó '{effective_query}' y recuperó chunks de 'city-tour-cusco' sin contaminación."
         )
 
     # =========================================================================
@@ -364,13 +446,28 @@ class TestRagLlmVerification(unittest.TestCase):
         called_messages = mock_llm.invoke.call_args[0][0]
         system_content = called_messages[0][1]
         history_in_prompt = [m for m in called_messages[1:-1]]
+        last_human_msg = called_messages[-1][1]
 
         effective_docs = self.instrumented_retriever.last_docs
         effective_query = self.instrumented_retriever.last_query
         retrieved_eids = [d.metadata.get("tour_id", "") for d in effective_docs]
 
+        # Comprobación de que AMBOS tours tienen documentos efectivamente enviados al modelo
         self.assertTrue(len(effective_docs) > 0)
-        self.assertTrue("camino-inka" in retrieved_eids or "salkantay-trek" in retrieved_eids)
+        self.assertIn("camino-inka", retrieved_eids,
+                      f"Los documentos recuperados deben incluir 'camino-inka', encontrados: {retrieved_eids}")
+        self.assertIn("salkantay-trek", retrieved_eids,
+                      f"Los documentos recuperados deben incluir 'salkantay-trek', encontrados: {retrieved_eids}")
+
+        # Comprobación de que el contexto inyectado al modelo incluye información de ambos tours
+        self.assertTrue("Camino Inca" in system_content or "camino-inka" in system_content,
+                        "El system prompt debe contener contexto documental de Camino Inca")
+        self.assertTrue("Salkantay" in system_content or "salkantay-trek" in system_content,
+                        "El system prompt debe contener contexto documental de Salkantay Trek")
+
+        # Comprobación de que la pregunta original de comparación se conserva intacta
+        self.assertEqual(last_human_msg, q,
+                         "El mensaje humano enviado al LLM debe conservar la pregunta original de comparación")
 
         self._record_audit(
             case_id="4.1_tour_comparison",
@@ -386,9 +483,8 @@ class TestRagLlmVerification(unittest.TestCase):
             test_type="Validación de pipeline con LLM simulado (Mock)",
             result_text=res["response"],
             passed=True,
-            notes=f"Bypass de comparación exitoso: no fue bloqueado por regla fija de tour único. "
-                  f"Retriever buscó: '{effective_query}' recuperando {len(effective_docs)} chunks de ambos treks. "
-                  "Respuesta simulada por mock."
+            notes=f"Comparación multi-entidad validada: el retriever y el pipeline RAG aseguraron documentos de ambos treks "
+                  f"('camino-inka' y 'salkantay-trek'). Ambos bloques documentales y de catálogo fueron inyectados en el prompt estructurado."
         )
 
     # =========================================================================

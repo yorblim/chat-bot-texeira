@@ -1267,6 +1267,140 @@ def _filter_conflicting_facts_from_context(context: str, entity_id: str) -> str:
 
 
 # ============================================================
+# RESOLUCIÓN CONTEXTUAL DEL RETRIEVER Y ENTIDADES (Memoria RAG)
+# ============================================================
+
+def resolve_contextual_retriever_query(question: str, history: list) -> tuple:
+    """
+    Analiza la consulta actual y el historial para contextualizar la búsqueda RAG.
+    Retorna: (retriever_query, explicit_entities, contextual_entity_id, is_ambiguous, clarif_msg)
+    - Si la consulta tiene una o más entidades explícitas:
+        Usa la consulta normalizada original. No contamina con tours pasados del historial.
+    - Si la consulta no tiene entidad explícita (pregunta de seguimiento):
+        Examina el historial reciente en busca de tours activos.
+        - Si hay 1 tour inequívoco en el contexto inmediato:
+            Retorna ese tour y una query contextual enriquecida para el retriever,
+            manteniendo la pregunta original intacta para el modelo.
+        - Si hay 2 o más tours en conflicto/competencia sin referencia clara:
+            Marca is_ambiguous = True para solicitar aclaración en lugar de inventar.
+    """
+    import re
+    from trial_support import normalize
+    try:
+        from catalog_service import get_active_entity_keywords, get_tour_by_id
+        kw_map = get_active_entity_keywords()
+    except Exception:
+        kw_map = None
+
+    norm_q = normalize(question)
+    normalized_query_text = normalize_query(question)
+
+    # 1. Detectar todas las entidades nombradas explícitamente en la pregunta actual
+    explicit_in_q = []
+    if kw_map:
+        for eid, kws in kw_map.items():
+            for kw in kws:
+                if kw and normalize(kw) in norm_q:
+                    if eid not in explicit_in_q:
+                        explicit_in_q.append(eid)
+                    break
+    else:
+        from trial_support import detect_entity_from_question
+        single = detect_entity_from_question(question)
+        if single:
+            explicit_in_q.append(single)
+
+    if explicit_in_q:
+        # Caso A: Pregunta con tour explícito o comparación directa (ej. "¿Y qué incluye City Tour?")
+        # No se contamina con tours del historial
+        return normalized_query_text, explicit_in_q, explicit_in_q[0], False, None
+
+    # Caso B: Pregunta sin tour explícito -> Evaluar historial conversacional
+    is_ambiguous_ref = bool(re.search(
+        r'\b((?:d?el|de la)\s+otr[oa]s?|el demas|los demas|otro tour|otra opcion|the other( one)?|the second( one)?)\b',
+        norm_q
+    ))
+
+    # Recolectar entidades mencionadas en los turnos recientes del historial (últimos 6 mensajes)
+    recent_eids_by_turn = []
+    for h in reversed(history[-6:]):
+        h_text = normalize(h.get("content", ""))
+        turn_eids = []
+        if kw_map:
+            for eid, kws in kw_map.items():
+                for kw in kws:
+                    if kw and normalize(kw) in h_text:
+                        if eid not in turn_eids:
+                            turn_eids.append(eid)
+                        break
+        else:
+            from trial_support import detect_entity_from_question
+            e = detect_entity_from_question(h.get("content", ""))
+            if e:
+                turn_eids.append(e)
+        if turn_eids:
+            recent_eids_by_turn.append(turn_eids)
+
+    # Entidades únicas en el historial reciente ordenadas por recencia
+    candidate_eids = []
+    for turn in recent_eids_by_turn:
+        for eid in turn:
+            if eid not in candidate_eids:
+                candidate_eids.append(eid)
+
+    # Detección de ambigüedad:
+    # 1) Si dice explícitamente "el otro" / "the other" y hay >= 2 candidatos
+    # 2) O si el último turno previo mencionó >= 2 candidatos a la vez y la pregunta actual es elíptica
+    last_turn_had_multiple = bool(recent_eids_by_turn and len(recent_eids_by_turn[0]) >= 2)
+    if (is_ambiguous_ref and len(candidate_eids) >= 2) or (last_turn_had_multiple and len(candidate_eids) >= 2):
+        t1, t2 = candidate_eids[0], candidate_eids[1]
+        try:
+            from catalog_service import get_tour_by_id
+            t1_obj = get_tour_by_id(t1)
+            t2_obj = get_tour_by_id(t2)
+            t1_name = t1_obj.get("name", t1) if t1_obj else t1
+            t2_name = t2_obj.get("name", t2) if t2_obj else t2
+        except Exception:
+            t1_name, t2_name = t1, t2
+        is_en = detect_language(question) == "en"
+        clarif = (
+            f"Which tour are you referring to? We discussed *{t1_name}* and *{t2_name}*. Please let me know which one you'd like to check or type its name 😊"
+            if is_en else
+            f"¿A cuál de los tours te refieres? Conversamos sobre *{t1_name}* y *{t2_name}*. Por favor indícame cuál deseas consultar o escribe su nombre 😊"
+        )
+        return normalized_query_text, [], None, True, clarif
+
+    # Caso C: Tour inequívoco en el historial reciente
+    if len(candidate_eids) == 1:
+        contextual_eid = candidate_eids[0]
+        contextual_tour_name = None
+        try:
+            from catalog_service import get_tour_by_id
+            t_info = get_tour_by_id(contextual_eid)
+            contextual_tour_name = t_info.get("name") if t_info else contextual_eid
+        except Exception:
+            contextual_tour_name = contextual_eid
+
+        retriever_query = f"{contextual_tour_name} {normalized_query_text}" if contextual_tour_name else normalized_query_text
+        return retriever_query, [contextual_eid], contextual_eid, False, None
+
+    if len(candidate_eids) > 1 and not is_ambiguous_ref:
+        # Foco activo más reciente
+        contextual_eid = candidate_eids[0]
+        try:
+            from catalog_service import get_tour_by_id
+            t_info = get_tour_by_id(contextual_eid)
+            contextual_tour_name = t_info.get("name") if t_info else contextual_eid
+        except Exception:
+            contextual_tour_name = contextual_eid
+        retriever_query = f"{contextual_tour_name} {normalized_query_text}" if contextual_tour_name else normalized_query_text
+        return retriever_query, [contextual_eid], contextual_eid, False, None
+
+    # Caso D: Sin tour en consulta ni en historial
+    return normalized_query_text, [], None, False, None
+
+
+# ============================================================
 # CADENA RAG — VERSIÓN CORREGIDA (Correcciones #1, #3, #4)
 # ============================================================
 
@@ -1276,7 +1410,7 @@ def rag_chain(question: str, user_id: str = "default") -> dict:
 
     CORRECCIÓN #1: System prompt estricto (cero alucinaciones)
     CORRECCIÓN #3: Lógica correcta de resolved_autonomously
-    CORRECCIÓN #4: Conversation history (memoria de corto plazo)
+    CORRECCIÓN #4: Conversation history (memoria de corto plazo y recuperación contextual)
 
     Pipeline:
       1. Verificar respuesta predefinida
@@ -1347,8 +1481,38 @@ def rag_chain(question: str, user_id: str = "default") -> dict:
         return result
 
     try:
-        normalized_query_text = normalize_query(question)
-        docs = retriever.invoke(normalized_query_text)
+        retriever_query, explicit_eids, entity_detected, is_ambiguous, clarif_msg = (
+            resolve_contextual_retriever_query(question, history)
+        )
+
+        if is_ambiguous and clarif_msg:
+            add_to_history(user_id, "human", question)
+            add_to_history(user_id, "ai", clarif_msg)
+            return {
+                "response": clarif_msg,
+                "context_used": False,
+                "is_fallback": False,
+                "is_predefined": True,
+                "response_route": "evidence_ambiguous",
+                "evidence_status": "ambiguous",
+                "needs_confirmation": True,
+                "conflict_detected": False,
+                "sources_used": [],
+                "entity_id": ",".join(explicit_eids) if explicit_eids else "ambiguous",
+            }
+
+        docs = retriever.invoke(retriever_query)
+
+        # Si es comparación multi-entidad, asegurar que documentos de ambas entidades estén en docs
+        if len(explicit_eids) >= 2:
+            docs_eids = {d.metadata.get("tour_id") for d in docs}
+            for comp_eid in explicit_eids:
+                if comp_eid not in docs_eids:
+                    extra_docs = retriever.invoke(comp_eid)
+                    for ed in extra_docs:
+                        if ed.metadata.get("tour_id") == comp_eid and ed not in docs:
+                            docs.append(ed)
+                            break
 
         # Formatear contexto con metadata + imágenes incluidas
         context_parts = []
@@ -1396,29 +1560,34 @@ def rag_chain(question: str, user_id: str = "default") -> dict:
         # PASO 4: Construir el LLM (solo se llama cuando SÍ hay contexto)
         llm = get_llm()
 
-        # v4-evidencias: filtrar facts conflictivos del contexto antes del LLM
-        entity_detected = detect_entity_from_question(question)
-        if entity_detected:
-            context = _filter_conflicting_facts_from_context(context, entity_detected)
+        # v4-evidencias: filtrar facts conflictivos del contexto antes del LLM y agregar datos vigentes
+        eids_to_enrich = explicit_eids if len(explicit_eids) >= 2 else ([entity_detected] if entity_detected else [])
+        if eids_to_enrich:
+            for cur_eid in eids_to_enrich:
+                context = _filter_conflicting_facts_from_context(context, cur_eid)
             try:
                 from catalog_service import get_tour_by_id
-                dyn_tour = get_tour_by_id(entity_detected)
-                if dyn_tour and dyn_tour.get("is_active", 1):
-                    dyn_lines = [
-                        f"[DATOS OFICIALES Y TARIFAS VIGENTES DE LA AGENCIA PARA {dyn_tour.get('name', entity_detected).upper()}]",
-                        f"Tour: {dyn_tour.get('name')}",
-                    ]
-                    if dyn_tour.get("official_price"):
-                        dyn_lines.append(f"Tarifa Oficial: {dyn_tour.get('official_price')} {dyn_tour.get('currency', 'USD')} por persona")
-                    if dyn_tour.get("schedule"):
-                        dyn_lines.append(f"Horario Oficial: {dyn_tour.get('schedule')}")
-                    if dyn_tour.get("duration"):
-                        dyn_lines.append(f"Duración: {dyn_tour.get('duration')}")
-                    if dyn_tour.get("includes"):
-                        dyn_lines.append(f"Incluye: {dyn_tour.get('includes')}")
-                    if dyn_tour.get("excludes"):
-                        dyn_lines.append(f"No incluye: {dyn_tour.get('excludes')}")
-                    context = "\n".join(dyn_lines) + "\n\n" + context
+                dyn_blocks = []
+                for cur_eid in eids_to_enrich:
+                    dyn_tour = get_tour_by_id(cur_eid)
+                    if dyn_tour and dyn_tour.get("is_active", 1):
+                        dyn_lines = [
+                            f"[DATOS OFICIALES Y TARIFAS VIGENTES DE LA AGENCIA PARA {dyn_tour.get('name', cur_eid).upper()}]",
+                            f"Tour: {dyn_tour.get('name')}",
+                        ]
+                        if dyn_tour.get("official_price"):
+                            dyn_lines.append(f"Tarifa Oficial: {dyn_tour.get('official_price')} {dyn_tour.get('currency', 'USD')} por persona")
+                        if dyn_tour.get("schedule"):
+                            dyn_lines.append(f"Horario Oficial: {dyn_tour.get('schedule')}")
+                        if dyn_tour.get("duration"):
+                            dyn_lines.append(f"Duración: {dyn_tour.get('duration')}")
+                        if dyn_tour.get("includes"):
+                            dyn_lines.append(f"Incluye: {dyn_tour.get('includes')}")
+                        if dyn_tour.get("excludes"):
+                            dyn_lines.append(f"No incluye: {dyn_tour.get('excludes')}")
+                        dyn_blocks.append("\n".join(dyn_lines))
+                if dyn_blocks:
+                    context = "\n\n".join(dyn_blocks) + "\n\n" + context
             except Exception:
                 pass
 

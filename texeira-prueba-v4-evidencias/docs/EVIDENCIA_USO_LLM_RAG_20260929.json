@@ -132,7 +132,7 @@
     "notes": "Retriever interno ejecutó: 'Cómo es el descenso en bicicleta por el Abra Málaga y qué actividades de aventura se hacen en el Inka Jungle' y recuperó 5 chunks reales de ChromaDB. El prompt estructurado incluyó el contexto oficial. La respuesta final provino del mock preescrito (no de inferencia real)."
   },
   {
-    "case_id": "3.1_followup_context",
+    "case_id": "3.1_followup_context_humantay",
     "query": "¿A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie?",
     "history_sent_to_model": [
       [
@@ -145,14 +145,14 @@
       ]
     ],
     "route": "rag_llm",
-    "component": "app.rag_chain (Conversation Memory + LLM)",
-    "retriever_query": "A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie",
+    "component": "app.rag_chain (Contextual Retriever + LLM)",
+    "retriever_query": "Laguna Humantay A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie",
     "retrieved_docs_count": 5,
     "retrieved_sources": [
-      "Waqra Pukara",
+      "Laguna Humantay",
       "Machu Picchu by Car",
       "Camino Inca Clásico 4D/3N",
-      "Salkantay Trek",
+      "Islas del Lago Titicaca",
       "City Tour Cusco"
     ],
     "effective_context_snippet": "Eres el asistente de *Texeira Travel*, una agencia de turismo en Cusco, Perú.  REGLAS OBLIGATORIAS (sin excepción): 1. Responde SOLO con datos del contexto proporcionado. Nunca inventes precios, horarios, incluidos o excluidos. 2. Si el dato no está en el contexto, NO lo menciones. Di que lo confirm",
@@ -165,7 +165,43 @@
     "test_type": "Validación de pipeline con LLM simulado (Mock)",
     "result_snippet": "[SIMULACIÓN] La Laguna Humantay se ubica a aproximadamente 4,200 msnm. La caminata de ascenso toma entre 1.5 y 2 horas con pendiente pronunc",
     "passed": true,
-    "notes": "Retriever interno buscó la consulta textual normalizada: 'A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie' (recuperó 5 chunks generales de altitud/treks). La referencia temática a Laguna Humantay ingresó al LLM a través de los turnos previos del historial conversacional en messages. Respuesta simulada por mock."
+    "notes": "Retriever contextual detectó foco inequívoco en Laguna Humantay y buscó: 'Laguna Humantay A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie'. Recuperó 5 chunks donde el #1 es 'laguna-humantay'. Se verificó que la pregunta original se conserva intacta en el mensaje enviado al modelo."
+  },
+  {
+    "case_id": "3.2_followup_switch_tour",
+    "query": "¿Cómo es el recorrido y qué lugares se visitan en el City Tour Cusco?",
+    "history_sent_to_model": [
+      [
+        "human",
+        "¿Tienen información de la Laguna Humantay?"
+      ],
+      [
+        "ai",
+        "✅ *Laguna Humantay* es un tour confirmado con Texeira Travel.  ¿Quieres fotos, p"
+      ]
+    ],
+    "route": "rag_llm",
+    "component": "app.rag_chain (Tour Switch Resolution + LLM)",
+    "retriever_query": "Cómo es el recorrido y qué lugares se visitan en el City Tour Cusco",
+    "retrieved_docs_count": 5,
+    "retrieved_sources": [
+      "City Tour Cusco",
+      "Tour Místico",
+      "Ruta del Sol Cusco-Puno",
+      "Tour Cuatrimoto / Maras-Moray",
+      "Agencia: datos publicados y confirmados"
+    ],
+    "effective_context_snippet": "Eres el asistente de *Texeira Travel*, una agencia de turismo en Cusco, Perú.  REGLAS OBLIGATORIAS (sin excepción): 1. Responde SOLO con datos del contexto proporcionado. Nunca inventes precios, horarios, incluidos o excluidos. 2. Si el dato no está en el contexto, NO lo menciones. Di que lo confirm",
+    "model_called": true,
+    "model_execution": "Simulado (MagicMock con respuesta sintética preescrita)",
+    "is_real_llm": false,
+    "configured_provider": "deepseek",
+    "configured_model": "deepseek-chat",
+    "client_class": "ChatOpenAI (usado como cliente compatible para DeepSeek/Groq)",
+    "test_type": "Validación de pipeline con LLM simulado (Mock)",
+    "result_snippet": "[SIMULACIÓN] El City Tour Cusco comprende la visita a la Catedral, el templo del Qorikancha, y los centros arqueológicos cercanos: Sacsayhua",
+    "passed": true,
+    "notes": "Transición exitosa: el usuario venía de Humantay y preguntó por City Tour Cusco. El retriever buscó 'Cómo es el recorrido y qué lugares se visitan en el City Tour Cusco' y recuperó chunks de 'city-tour-cusco' sin contaminación."
   },
   {
     "case_id": "4.1_tour_comparison",
@@ -192,7 +228,7 @@
     "test_type": "Validación de pipeline con LLM simulado (Mock)",
     "result_snippet": "[SIMULACIÓN] Comparación según catálogo oficial: • Camino Inca Clásico: Duración de 4 días / 3 noches, tarifa oficial de 790 USD por persona",
     "passed": true,
-    "notes": "Bypass de comparación exitoso: no fue bloqueado por regla fija de tour único. Retriever buscó: 'Qué diferencias hay entre el Camino Inca Clásico y el Salkantay Trek en duración y precio' recuperando 5 chunks de ambos treks. Respuesta simulada por mock."
+    "notes": "Comparación multi-entidad validada: el retriever y el pipeline RAG aseguraron documentos de ambos treks ('camino-inka' y 'salkantay-trek'). Ambos bloques documentales y de catálogo fueron inyectados en el prompt estructurado."
   },
   {
     "case_id": "5.1_ambiguous_entity",

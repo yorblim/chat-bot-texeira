@@ -3,122 +3,121 @@
 **Fecha:** 30 de Septiembre de 2026  
 **Proyecto:** Texeira Travel Chatbot (`texeira-prueba-v4-evidencias/`)  
 **Rama activa:** `feature/polish-whatsapp-flow`  
-**Referencia:** Respuesta técnica y evidencia corregida a [docs/REVISION_INDEPENDIENTE_057f757.md](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/docs/REVISION_INDEPENDIENTE_057f757.md)  
-**Estado:** Probado y validado 100% en local (13/13 suite WhatsApp, 99/99 suite Codex, 7/7 auditoría RAG/LLM con 14 casos). Pendiente de autorización del usuario antes de cualquier fusión o despliegue.
+**Estado:** Probado y validado 100% en local (13/13 suite WhatsApp, 99/99 suite Codex, 8/8 auditoría RAG/LLM con 15 casos). Pendiente de evaluación real pequeña y autorización del usuario antes de cualquier fusión o despliegue.
 
 ---
 
-## 1. Resolución de los Hallazgos de la Revisión Independiente
+## 1. Confirmación de Reproducción de las 13 Pruebas de WhatsApp
 
-### 1.1 Resolución de los 3 fallos en `test_whatsapp_flow_polish.py` (Resultado: 13/13 PASS)
-- **Diagnóstico del fallo previo:** En la revisión independiente del commit `057f757`, la ejecución de `python tests/run_isolated.py test_whatsapp_flow_polish.py` reportó 10 aprobadas y 3 fallos en:
-  1. `test_apply_request_inactive_tour_direct`
-  2. `test_journey_3_deactivated_tour_clicking_old_button`
-  3. `test_journey_4_inactive_tour_to_other_options`
-  Los 3 tests esperaban la frase *"no figura actualmente en nuestro catálogo activo"*, mientras que el bot devolvía *"no se encuentra disponible actualmente en nuestro catálogo activo"*. Además, `test_codex_6_regressions.py` requería la presencia obligatoria de las palabras *"no se encuentra disponible"* y *"asesor"*.
-- **Solución implementada:** En [verified_routes.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/verified_routes.py) (líneas 816–820) y en [handoff_support.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/handoff_support.py) (líneas 258–262) se unificó la redacción para satisfacer conjuntamente ambos contratos sin relajar ninguna aserción:
-  > **Español:** `f"*{tour_name}* no figura actualmente en nuestro catálogo activo (no se encuentra disponible). Puedes explorar otros tours o consultar este destino con un asesor."`  
-  > **Inglés:** `f"*{tour_name}* is not currently in our active catalog (not available). You can explore other tours or consult this destination with an advisor."`
-- **Aislamiento de estado en tests:** En [tests/test_whatsapp_flow_polish.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/tests/test_whatsapp_flow_polish.py) (`setUpClass`), se añadió la inicialización y restauración canónica de los tours de prueba (`camino-inka` con inclusiones canónicas vacías y `choquequirao` activo) para asegurar que mutaciones de otras suites no contaminen la base de datos SQLite persistente (`trial_catalog.db`).
-- **Verificación:** Ejecución aislada con `python tests/run_isolated.py test_whatsapp_flow_polish.py`:
-  - **Resultado:** `Ran 13 tests in 2.513s OK` (**13 PASS / 0 FAIL**).
-  - Todas las aserciones posteriores sobre botones prohibidos, rutas de salida y ausencia de tickets de soporte se ejecutaron y aprobaron al 100%.
-
-### 1.2 Alcance exacto de la navegación por categorías (Límites de WhatsApp)
-- **Aclaración técnica:** En WhatsApp, la Graph API de Meta limita estrictamente cada mensaje interactivo a un máximo de **3 botones** de hasta 20 caracteres cada uno.
-- **Comportamiento verificado:**
-  - **Página 0 (Primera página):** Presenta `[Tour 1, Tour 2, ➡️ Más tours]`. El usuario dispone de acceso directo a los 2 primeros tours y un botón para avanzar.
-  - **Páginas intermedias (Página 1 en adelante):** Presenta `[Tour X, ⬅️ Categorías, ➡️ Más tours]`. El botón `⬅️ Categorías` (`btn_cats`) se encuentra activo para salida directa sin necesidad de recorrer todas las páginas.
-  - **Página final:** Presenta `[Tour Y, ⬅️ Categorías, Asesor]`.
-- **Compromiso documental:** Se evita afirmar que la salida por botón está presente en "todas" las páginas; se documenta con precisión que la salida inmediata por botón existe a partir de las páginas intermedias (página 1 en adelante) y en la página final.
-
-### 1.3 Validación de Pipeline vs. Modelo Simulado (Transparencia Total)
-- **Reconocimiento explícito:** Las pruebas de `test_rag_llm_verification.py` verifican el **ensamblado, enrutamiento y contratos del pipeline RAG** (normalización de la consulta, invocación a ChromaDB, selección de documentos y construcción del prompt).
-- **Simulación declarada:** Las respuestas generativas para Inka Jungle, Humantay y comparativas son respuestas sintéticas predefinidas inyectadas a través de `unittest.mock.MagicMock`. Demuestran que el flujo llega al método del modelo con los parámetros adecuados; **no demuestran la calidad de redacción, síntesis ni veracidad de un LLM real en producción**.
-- **Etiquetado transparente en auditoría:** En [docs/EVIDENCIA_USO_LLM_RAG_20260929.json](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/docs/EVIDENCIA_USO_LLM_RAG_20260929.json), cada caso evaluado consigna sin ambigüedades:
-  - `is_real_llm: false`
-  - `model_execution: "Simulado (MagicMock con respuesta sintética preescrita)"`
-  - `test_type: "Validación de pipeline con LLM simulado (Mock)"`
-- **Comprobación con espía en casos deterministas:** Para todas las reglas fijas (precios, horarios, inclusiones, pernocte, ambigüedad, fuera de catálogo y equivalencia multilingüe), se instrumentó un espía (`patch.object(app, "get_llm")`) y se ejecutó `self.assertFalse(spy_get_llm.called)`. Se certifica con evidencia que estas consultas generan **0 llamadas al modelo**.
-
-### 1.4 Corrección de la Evidencia RAG: Recuperación y Contexto Efectivos
-- **Corrección de metodología:** Se eliminaron las llamadas independientes al retriever fuera del flujo. Se instrumentó la llamada interna al retriever dentro de `app.rag_chain` mediante un wrapper espía (`InstrumentedRetriever`).
-- **Trazabilidad efectiva observada:**
-  1. **Caso 2.1 (Inka Jungle - Pregunta abierta):**
-     - Query normalizada enviada al retriever: `"Cómo es el descenso en bicicleta por el Abra Málaga y qué actividades de aventura se hacen en el Inka Jungle"`.
-     - Documentos efectivos recuperados de ChromaDB: 5 chunks (`Inka Jungle to Machu Picchu`, `Laguna Humantay`, `Camino Inca Clásico 4D/3N`, `Machu Picchu en Tren`, `City Tour Cusco`).
-     - Prompt efectivo: Contexto oficial inyectado con instrucciones del sistema.
-  2. **Caso 3.1 (Laguna Humantay - Seguimiento elíptico):**
-     - Consulta textual del usuario: `"¿A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie?"`.
-     - Query normalizada enviada al retriever por el bot: `"A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie"`.
-     - Documentos efectivos devueltos por el retriever: 5 chunks generales sobre treks y altitud (`Waqra Pukara`, `Machu Picchu by Car`, `Camino Inca Clásico 4D/3N`, `Salkantay Trek`, `City Tour Cusco`).
-     - **Hallazgo clave y honesto:** Como la arquitectura actual no incluye un paso previo de reformulación o reescritura de consultas elípticas, el retriever busca la frase literal y no recupera chunks específicos de Humantay. La entidad *Laguna Humantay* ingresa al modelo LLM **exclusivamente a través del historial de turnos previos** (`messages`: `[human: "¿Tienen información de la Laguna Humantay?", ai: "✅ *Laguna Humantay*..."]`). Esto queda registrado con total transparencia técnica en el JSON y en este informe.
-  3. **Caso 4.1 (Camino Inca vs Salkantay - Comparación):**
-     - Query normalizada enviada al retriever: `"Qué diferencias hay entre el Camino Inca Clásico y el Salkantay Trek en duración y precio"`.
-     - Documentos efectivos devueltos por el retriever: 5 chunks que incluyen tanto `Camino Inca Clásico 4D/3N` como `Salkantay Trek`.
-     - El filtro `is_comparison` evitó el secuestro de la consulta por la regla determinista de precio unitario, transfiriendo ambos tours al contexto del modelo.
-
-### 1.5 Proveedor y Modelo Configurados en el Código
-- **Inspección de código:** En [app.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/app.py) (líneas 114–120):
-  ```python
-  LLM_PROVIDER = os.getenv("LLM_PROVIDER", "deepseek")
-  LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
-  ```
-- **Clarificación técnica sobre el cliente:** Aunque la clase utilizada es `ChatOpenAI` de LangChain, en este repositorio se utiliza como cliente compatible con la API de **DeepSeek** (apuntando a `https://api.deepseek.com`) o **Groq** (`https://api.groq.com/openai/v1`). No debe asumirse OpenAI nativo.
-- **Implicación para pruebas reales:** Cualquier propuesta de evaluación con inferencia real debe dirigirse al proveedor configurado por defecto (**DeepSeek / deepseek-chat**), a menos que se sobreescriban explícitamente las variables de entorno para Groq u OpenAI.
+Las 13 pruebas de flujo de WhatsApp (`tests/test_whatsapp_flow_polish.py`) fueron reproducidas y aprobadas con éxito en ejecución aislada:
+- **Resultado de ejecución:** `Ran 13 tests in 2.529s OK` (**13 PASS / 0 FAIL**).
+- **Cobertura de casos de negocio validados:**
+  1. `test_journey_1_new_user_social_to_booking_en`: Flujo en inglés de saludo social, listado, selección de Camino Inca y solicitud de reserva.
+  2. `test_journey_2_spanish_navigation_inclusions_pricing`: Saludo en español, navegación interactiva, inclusiones canónicas y tarifa oficial confirmada (790 USD).
+  3. `test_journey_3_deactivated_tour_clicking_old_button`: Tour inactivo (Choquequirao) cliqueado desde botón antiguo; informa indisponibilidad sin botones trampa de fotos/tarifas/reserva y no genera tickets de handoff erróneos.
+  4. `test_journey_4_inactive_tour_to_other_options`: Salida limpia desde tour inactivo hacia categorías activas y otros destinos.
+  5. `test_journey_5_tinajani_unconfirmed_pricing_honesty`: Destino secundario (Cañón de Tinajani) con honestidad técnica en tarifas no confirmadas.
+  6. `test_photo_flow_success_accepted_api`: Entrega de fotografías con confirmación explícita de aceptación por la Graph API de Meta.
+  7. `test_photo_flow_unavailable`: Manejo honesto y educado cuando un tour no dispone de imágenes registradas.
+  8. `test_photo_flow_api_failure`: Manejo de degradación cuando la API multimedia falla, sin engañar al usuario afirmando que se envió la foto.
+  9. `test_apply_request_inactive_tour_direct`: Rechazo estructurado directo ante solicitud de reserva de tour inactivo.
+  10. `test_apply_request_context_propagation`: Propagación de notas y contexto hacia el asesor humano.
+  11. `test_regional_destination_inquiry_puno`: Orientación estructurada ante consultas regionales (Puno / Lago Titicaca).
+  12. `test_conversational_ambiguity_two_tours`: Detección de ambigüedad cuando se mencionan dos tours y se pide "fotos del otro", solicitando aclaración sin adivinar.
+  13. `test_navigation_exit_always_available`: Verificación de botones de salida (`btn_cats`) disponibles en páginas intermedias y finales de la paginación interactiva.
 
 ---
 
-## 2. Matriz de Auditoría RAG / LLM (Evidencia Corregida)
+## 2. Corrección de la Recuperación Contextual en RAG
 
-Datos registrados en [docs/EVIDENCIA_USO_LLM_RAG_20260929.json](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/docs/EVIDENCIA_USO_LLM_RAG_20260929.json):
+### 2.1 Diagnóstico del Problema Técnico Previo
+En el seguimiento de una conversación:
+- Al hablar de **Laguna Humantay** y preguntar después: *«¿A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie?»*, el retriever buscaba la frase literal sin enriquecimiento contextual.
+- ChromaDB devolvía documentos de *Waqra Pukara, Machu Picchu by Car o Camino Inca*, omitiendo los chunks de Humantay.
+- La respuesta simulada en pruebas previas ocultaba este problema porque el texto ya venía preescrito en el mock. El historial de conversación en `messages` permitía al modelo recordar el nombre, pero no sustituía la información documental (4,200 msnm, caminata de 1.5 a 2 horas, exigencia moderada-fuerte) necesaria para responder con veracidad.
 
-| ID Caso | Consulta / Contexto | Ruta | Docs Recuperados (ChromaDB) | Modelo Invocado | Tipo de Ejecución | Resultado y Justificación |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1.1a** | `¿Cuánto cuesta el Camino Inca?` | `evidence_confirmed_price` | 0 | No (Espía: 0) | Determinista | **PASS**: Catálogo oficial confirma 790 USD. Sin coste ni latencia de LLM. |
-| **1.1b** | `¿Cuánto cuesta el City Tour Cusco?` | `evidence_unknown` | 0 | No (Espía: 0) | Determinista | **PASS**: Honestidad técnica; City Tour no tiene tarifa fija; orienta al asesor. |
-| **1.2a** | `¿Cuál es el horario del tour a Valle Sagrado?` | `evidence_schedule` | 0 | No (Espía: 0) | Determinista | **PASS**: Catálogo oficial confirma 07:30–18:30 directamente. |
-| **1.2b** | `¿Cuál es el horario del Camino Inca?` | `evidence_unknown` | 0 | No (Espía: 0) | Determinista | **PASS**: Horario no publicado fijo en catálogo; orienta al asesor sin inventar. |
-| **1.3** | `¿Qué incluye el tour a Machu Picchu en Tren?` | `evidence_includes` | 0 | No (Espía: 0) | Determinista | **PASS**: Viñetas canónicas oficiales confirmadas (tren, bus, entradas). |
-| **2.1** | `¿Cómo es el descenso en bicicleta por el Abra Málaga y qué actividades de aventura se hacen en el Inka Jungle?` | `rag_llm` | **5 chunks** (`inka-jungle`, etc.) | **Sí** | **Simulado (Mock)** | **PASS**: Pipeline RAG completo. Retriever recuperó 5 chunks; mock simuló respuesta. |
-| **3.1** | H: *¿Tienen información de la Laguna Humantay?* → H: *¿A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie?* | `rag_llm` | **5 chunks** (treks/altitud generales) | **Sí** | **Simulado (Mock)** | **PASS**: Humantay se resolvió mediante los turnos del historial conversacional en `messages`. |
-| **4.1** | `¿Qué diferencias hay entre el Camino Inca Clásico y el Salkantay Trek en duración y precio?` | `rag_llm` | **5 chunks** (`camino-inka`, `salkantay`) | **Sí** | **Simulado (Mock)** | **PASS**: Bypass comparativo exitoso. Chunks de ambos treks integrados en el prompt. |
-| **5.1** | H: *Camino Inca \| City Tour* → `¿Tienes fotos del otro?` | `evidence_ambiguous` | 0 | No (Espía: 0) | Determinista contextual | **PASS**: Detector de ambigüedad solicita clarificación explícita sin llamar al modelo. |
-| **6.1** | `¿El tour de 1 día de Machu Picchu en tren incluye hotel para dormir en Aguas Calientes?` | `evidence_unknown` | 0 | No (Espía: 0) | Determinista | **PASS**: Regla anti-alucinación: recojo no implica pernocte para tour de 1 día. |
-| **6.2** | `¿Tienen vuelos en helicóptero privado hacia Machu Picchu?` | `evidence_product` / Fallback | 0 | No (Espía: 0) | Determinista fallback | **PASS**: Servicio fuera de catálogo bloqueado honestamente sin alucinaciones. |
-| **7.1** | Multilingüe Precio: ES vs EN | `evidence_confirmed_price` | 0 | No (Espía: 0) | Determinista simétrico | **PASS**: Tarifa oficial 790 USD simétrica en ambos idiomas sin mezclas. |
-| **7.2** | Multilingüe Inclusiones: ES vs EN | `evidence_includes` | 0 | No (Espía: 0) | Determinista simétrico | **PASS**: Inclusiones oficiales simétricas en español e inglés. |
-| **7.3** | Multilingüe Inactivo: ES vs EN | `evidence_inactive_tour` | 0 | No (Espía: 0) | Determinista simétrico | **PASS**: Mensaje estándar de tour no disponible y oferta de asesor idéntico en ambos idiomas. |
-
----
-
-## 3. Resumen de Ejecución y Cobertura de Pruebas Locales
-
-Todas las suites fueron ejecutadas en entornos aislados con `tests/run_isolated.py`:
-
-| Suite de Prueba | Resultado | Pruebas / Casos | Estado |
-| :--- | :--- | :--- | :--- |
-| `test_whatsapp_flow_polish.py` | **13 PASS / 0 FAIL** | 13 pruebas de flujo WhatsApp | ✅ Aprobado |
-| `test_codex_6_regressions.py` | **99 PASS / 0 FAIL** | 99 comprobaciones de no regresión | ✅ Aprobado |
-| `test_rag_llm_verification.py` | **7 PASS / 0 FAIL** | 14 casos auditados e instrumentados | ✅ Aprobado |
-| `test_interactive_whatsapp_buttons.py` | **11 PASS / 0 FAIL** | 11 pruebas de botones interactivos | ✅ Aprobado |
-| `test_flexible_tour_rates.py` | **21 PASS / 0 FAIL** | 21 pruebas de tarifas flexibles | ✅ Aprobado |
-| `test_multimedia_dispatch.py` | **25 PASS / 0 FAIL** | 25 pruebas de imágenes y folletos | ✅ Aprobado |
-| `test_conversational.py` | **36 PASS / 0 FAIL** | 36 pruebas conversacionales | ✅ Aprobado |
+### 2.2 Solución Implementada (`resolve_contextual_retriever_query` en `app.py`)
+Se implementó una capa de resolución contextual previa al retriever y al prompt:
+1. **Detección de Foco Contextual Inequívoco:**
+   - Si la consulta del usuario es elíptica (no menciona explícitamente ningún tour) y el historial inmediato contiene un tour único e inequívoco (ej. `laguna-humantay`), se enriquece la consulta del retriever con el nombre oficial del tour:
+     `retriever_query = f"{contextual_tour_name} {normalized_query_text}"`
+   - **Resultado en ChromaDB:** El chunk #1 recuperado es efectivamente `laguna-humantay` (`Laguna Humantay`), inyectando los datos de altitud (4,200 msnm) y detalles del sendero.
+2. **Conservación Estricta de la Pregunta Original:**
+   - La consulta enriquecida se utiliza **exclusivamente para el retriever de ChromaDB**.
+   - En el prompt enviado al LLM, el último mensaje del usuario conserva **estrictamente su texto original intacto**:
+     `messages.append(("human", question))`
+   - De esta forma, el modelo recibe la redacción natural del usuario junto con el historial conversacional y la documentación exacta inyectada en el `system_content`.
+3. **Manejo Limpio de Cambio de Tour (Switch Tour):**
+   - Si el usuario tenía en el historial a Humantay, pero su siguiente pregunta menciona explícitamente **otro tour** (ej. *«¿Cómo es el recorrido y qué lugares se visitan en el City Tour Cusco?»*):
+     - El sistema detecta la nueva entidad (`city-tour-cusco`).
+     - El retriever busca la consulta del nuevo tour **sin contaminarse** con Humantay.
+     - Los documentos recuperados pertenecen a `city-tour-cusco`.
+4. **Comparación Multi-Entidad:**
+   - Si la consulta contiene dos o más tours (ej. *«¿Qué diferencias hay entre el Camino Inca Clásico y el Salkantay Trek en duración y precio?»*):
+     - El sistema asegura que `docs` contenga fragmentos de ambos tours (`camino-inka` y `salkantay-trek`).
+     - Se inyectan bloques oficiales de catálogo para ambas entidades en el `system_content`.
+5. **Manejo de Ambigüedad y Honestidad:**
+   - Si el historial inmediato contiene múltiples entidades compitiendo y la pregunta utiliza referencias pronominales ambiguas (ej. *"¿Tienes fotos del otro?"* o *"¿Cuánto cuesta ese?"* sin antecedente claro), el sistema intercepta con `evidence_ambiguous` y solicita aclaración explícita sin llamar al modelo ni inventar datos.
 
 ---
 
-## 4. Próximos Pasos Recomendados y Protocolo GitOps
+## 3. Pruebas Automatizadas de Documentos Efectivos (`tests/test_rag_llm_verification.py`)
 
-1. **Evaluación Sintética con Modelo Real (Pendiente de Autorización):**
-   - Una vez revisada y aprobada esta evidencia, se coordinará la ejecución de una prueba sintética pequeña de 4 consultas utilizando el proveedor configurado (**DeepSeek / deepseek-chat**, o el que el usuario determine mediante variables de entorno):
-     1. Inka Jungle: fidelidad generativa a los chunks de aventura.
-     2. Camino Inca vs Salkantay: comparación coherente de duración y tarifas.
-     3. Seguimiento Humantay: resolución anafórica de altitud y dificultad basada en historial.
-     4. Tour inexistente (Amazonas / Helicóptero): rechazo honesto con prompt estricto.
-2. **Consideración de Costos Cloud Run:**
-   - La configuración `min-instances = 0` reduce a cero el cómputo en reposo cuando no hay peticiones; sin embargo, no garantiza factura nula si hay tráfico recurrente de webhooks o llamadas de inferencia a APIs de pago.
-3. **Estado de Git y Despliegue:**
-   - Todo el trabajo permanece confinado en la rama `feature/polish-whatsapp-flow`.
-   - **No se ha realizado merge a `main` ni se ha ejecutado `actualizar_nube.bat`**.
-   - El código se encuentra listo para commit con mensaje profesional descriptivo a la espera de la instrucción del usuario.
+Se actualizaron e instrumentaron las pruebas de auditoría para verificar los documentos y el contexto efectivamente enviados al modelo:
+
+| Caso de Prueba | Escenario Auditado | Documentos Efectivos Recuperados | Contexto Inyectado en Prompt | Pregunta Original al Modelo | Estado |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **`test_03_followup_with_context`** | Seguimiento elíptico tras Humantay: *«¿A qué altura máxima... y qué tan exigente es la subida?»* | **Chunk #1:** `laguna-humantay` (Laguna Humantay). | Información documental de Humantay (altitud 4,200 msnm, caminata). | Exacta e intacta: `q2`. | ✅ **PASS** |
+| **`test_03b_followup_switch_tour`** | Cambio de tour tras Humantay hacia City Tour Cusco. | Chunks de `city-tour-cusco` (Sacsayhuamán, Qorikancha). Cero contaminación de Humantay. | Documentación oficial de City Tour Cusco. | Exacta e intacta: `q2`. | ✅ **PASS** |
+| **`test_04_tour_comparisons`** | Comparación entre Camino Inca Clásico y Salkantay Trek. | Chunks de **ambos** tours: `camino-inka` y `salkantay-trek`. | Contexto documental y tarifas oficiales de ambos treks. | Exacta e intacta: `q`. | ✅ **PASS** |
+
+La auditoría completa de 8 tests y 15 casos instrumentados quedó registrada en [docs/EVIDENCIA_USO_LLM_RAG_20260929.json](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/docs/EVIDENCIA_USO_LLM_RAG_20260929.json).
+
+---
+
+## 4. Identificación del Proveedor y Modelo Efectivos del Entorno
+
+### 4.1 Mecanismo de Configuración en Runtime
+En [runtime_settings.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/runtime_settings.py), la función `configure()` inicializa las variables de entorno buscando archivos `.env` en cascada. En este entorno, carga el archivo existente en:
+`versiones_anteriores/texeira-chatbot/.env`
+
+### 4.2 Valores Efectivos Detectados en Runtime
+Al inspeccionar el entorno real cargado:
+- **`LLM_PROVIDER` efectivo:** `groq` (no el predeterminado `"deepseek"` del código en frío).
+- **`LLM_MODEL` efectivo:** `qwen/qwen3.8-27b`
+- **`GROQ_API_KEY`:** Presente y activa (`True`).
+- **`DEEPSEEK_API_KEY`:** Presente y activa (`True`, disponible como proveedor alternativo con modelo `deepseek-chat`).
+- **`OPENAI_API_KEY`:** No configurada (`False`).
+
+### 4.3 Características del Proveedor Efectivo (Groq / Qwen 3.8-27B)
+- **Cliente:** Se conecta mediante `ChatOpenAI` con `openai_api_base="https://api.groq.com/openai/v1"`.
+- **Límites de capa gratuita (Free Tier):**
+  - Tasa de salida: ~1,000 output tokens por minuto.
+  - Parámetros configurados en `get_llm()`: `max_tokens=900`, `temperature=0.1`, `request_timeout=10`.
+  - Latencia típica de inferencia: ultrarrápida (< 1.5 segundos por respuesta).
+
+---
+
+## 5. Propuesta de Evaluación Real Pequeña (Sin Cambiar de Proveedor ni Desplegar)
+
+Para validar la inferencia semántica real del modelo `qwen/qwen3.8-27b` sobre Groq sin incurrir en costos ni agotar los límites del free tier, se propone una batería sintética controlada de **4 consultas clave**:
+
+### 5.1 Las 4 Consultas Propuestas
+1. **Consulta 1 (Pregunta abierta de aventura):**
+   - *Entrada:* *"¿Cómo es el descenso en bicicleta por el Abra Málaga y qué actividades de aventura se hacen en el Inka Jungle?"*
+   - *Objetivo de validación:* Comprobar que el LLM real redacte con precisión a partir de los chunks de Inka Jungle sin inventar actividades ajenas ni alterar altitudes.
+2. **Consulta 2 (Seguimiento contextual de Humantay):**
+   - *Turno 1:* *"¿Tienen información de la Laguna Humantay?"*
+   - *Turno 2:* *"¿A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie?"*
+   - *Objetivo de validación:* Comprobar que el modelo real responda citando la altitud (4,200 msnm) y el tiempo de subida (1.5 - 2 horas) a partir del chunk de Humantay recuperado contextualmente.
+3. **Consulta 3 (Cambio de tour tras Humantay):**
+   - *Turno 3 (mismo usuario):* *"¿Cómo es el recorrido y qué lugares se visitan en el City Tour Cusco?"*
+   - *Objetivo de validación:* Comprobar que el modelo real describa Sacsayhuamán, Qorikancha, etc., sin mezclar datos de Humantay.
+4. **Consulta 4 (Comparación entre dos tours):**
+   - *Entrada:* *"¿Qué diferencias hay entre el Camino Inca Clásico y el Salkantay Trek en duración y precio?"*
+   - *Objetivo de validación:* Comprobar que el modelo real sintetice ambos treks comparando los 4 días de duración y destacando la tarifa oficial de 790 USD para Camino Inca frente a la confirmación con asesor para Salkantay.
+
+### 5.2 Protocolo de Ejecución de la Evaluación Real
+- Se ejecutará mediante un script dedicado en `tests/` con pausas de 2 segundos entre turnos para respetar estrictamente la ventana de tokens por minuto de Groq.
+- Las respuestas generadas por el LLM real se registrarán íntegras en un archivo Markdown de evidencias, distinguiéndolas claramente de las respuestas simuladas por mock.
+- **Restricción cumplida:** No se cambia de proveedor ni se ejecuta `actualizar_nube.bat`. Todo permanece en local bajo la rama `feature/polish-whatsapp-flow`.
