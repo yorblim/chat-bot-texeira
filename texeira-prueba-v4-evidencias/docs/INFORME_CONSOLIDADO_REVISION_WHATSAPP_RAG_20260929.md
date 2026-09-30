@@ -118,6 +118,6 @@ Para validar la inferencia semántica real del modelo `qwen/qwen3.8-27b` sobre G
    - *Objetivo de validación:* Comprobar que el modelo real sintetice ambos treks comparando los 4 días de duración y destacando la tarifa oficial de 790 USD para Camino Inca frente a la confirmación con asesor para Salkantay.
 
 ### 5.2 Protocolo de Ejecución de la Evaluación Real
-- Se ejecutará mediante un script dedicado en `tests/` con pausas de 2 segundos entre turnos para respetar estrictamente la ventana de tokens por minuto de Groq.
-- Las respuestas generadas por el LLM real se registrarán íntegras en un archivo Markdown de evidencias, distinguiéndolas claramente de las respuestas simuladas por mock.
-- **Restricción cumplida:** No se cambia de proveedor ni se ejecuta `actualizar_nube.bat`. Todo permanece en local bajo la rama `feature/polish-whatsapp-flow`.
+- **Control de límites y cuotas:** Pausar entre turnos no garantiza por sí solo evitar límites de uso (TPM/RPM del proveedor) ni demuestra costo cero. Por tanto, el script instrumenta y captura los metadatos de respuesta, uso de tokens reportado (`usage_metadata`), latencia y posibles códigos de error HTTP/API. Si se detecta un error de cuota o rate limit (`429`), la prueba se detiene inmediatamente sin bucles de reintento.
+- **Registro integral y auditoría:** Las respuestas generadas por el LLM real se registrarán íntegras en un documento de evidencias con sus documentos fuente efectivos, evaluando la fidelidad y exactitud semántica contra el catálogo oficial (F1/F2/F3) sin asumir corrección solo por ausencia de excepciones.
+- **Restricción cumplida:** Máximo 4 llamadas reales a Groq (`qwen/qwen3.8-27b`), sin servicios de pago alternativos, sin mensajes por WhatsApp, sin merge a `main` y sin despliegue en Cloud Run (`actualizar_nube.bat`). Todo permanece local y respaldado bajo la rama `feature/polish-whatsapp-flow`.

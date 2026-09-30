@@ -1,0 +1,250 @@
+{
+  "metadata": {
+    "timestamp": "2026-09-30 18:36:16",
+    "llm_provider": "groq",
+    "llm_model": "qwen/qwen3.8-27b",
+    "total_real_llm_calls": 4,
+    "total_prompt_tokens": 4449,
+    "total_completion_tokens": 252,
+    "total_tokens": 4701,
+    "average_latency_seconds": 0.913
+  },
+  "cases": [
+    {
+      "case_id": "1_inka_jungle_open",
+      "name": "Inka Jungle (Pregunta abierta de aventura)",
+      "query": "¿Cómo es el descenso en bicicleta por el Abra Málaga y qué actividades de aventura se hacen en el Inka Jungle?",
+      "route": "rag_llm",
+      "llm_response": "Ese dato no está en el contexto. Lo confirmamos con el equipo.\nEscribe 👉 *asesor* para reservar o más información 😊",
+      "latency_seconds": 0.903,
+      "token_usage": {
+        "completion_tokens": 33,
+        "prompt_tokens": 1174,
+        "total_tokens": 1207,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null,
+        "queue_time": 0.00435315,
+        "prompt_time": 0.097648834,
+        "completion_time": 0.067139444,
+        "total_time": 0.164788278
+      },
+      "retriever_query": "Cómo es el descenso en bicicleta por el Abra Málaga y qué actividades de aventura se hacen en el Inka Jungle",
+      "retrieved_docs": [
+        {
+          "tour_id": "inka-jungle",
+          "tour_name": "Inka Jungle to Machu Picchu",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Inka Jungle to Machu Picchu - confirmed_product: sí (fuente: F2) - duration: 4 días (itinerario public"
+        },
+        {
+          "tour_id": "laguna-humantay",
+          "tour_name": "Laguna Humantay",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Laguna Humantay - confirmed_product: sí (fuente: F2) - schedule: 04:30-17:00 (fuente: F1, página: None"
+        },
+        {
+          "tour_id": "camino-inka",
+          "tour_name": "Camino Inca Clásico 4D/3N",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Camino Inca Clásico 4D/3N - confirmed_product: sí (fuente: F2)"
+        },
+        {
+          "tour_id": "machu-picchu-tren",
+          "tour_name": "Machu Picchu en Tren",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Machu Picchu en Tren - confirmed_product: sí (fuente: F1) - includes/traslado_cusco_ollanta_cusco: con"
+        },
+        {
+          "tour_id": "city-tour-cusco",
+          "tour_name": "City Tour Cusco",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. City Tour Cusco - confirmed_product: sí (fuente: F2) - schedule: 10:00-14:00 / 13:30-18:30 (fuente: F1"
+        }
+      ],
+      "evaluation_criteria": {
+        "cites_abra_malaga": false,
+        "cites_bici_cycling": false,
+        "cites_adventure_activities": false,
+        "avoids_hallucinations": true
+      }
+    },
+    {
+      "case_id": "2_humantay_contextual_followup",
+      "name": "Laguna Humantay (Seguimiento elíptico contextual)",
+      "query": "¿A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie?",
+      "route": "rag_llm",
+      "llm_response": "Ese dato no está en el contexto, lo confirmamos con el equipo.\nEscribe 👉 *asesor* para reservar o más información 😊",
+      "latency_seconds": 0.443,
+      "token_usage": {
+        "completion_tokens": 33,
+        "prompt_tokens": 1070,
+        "total_tokens": 1103,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null,
+        "queue_time": 0.064202525,
+        "prompt_time": 0.07342017,
+        "completion_time": 0.062798884,
+        "total_time": 0.136219054
+      },
+      "retriever_query": "Laguna Humantay A qué altura máxima sobre el nivel del mar se encuentra y qué tan exigente es la subida a pie",
+      "retrieved_docs": [
+        {
+          "tour_id": "laguna-humantay",
+          "tour_name": "Laguna Humantay",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Laguna Humantay - confirmed_product: sí (fuente: F2) - schedule: 04:30-17:00 (fuente: F1, página: None"
+        },
+        {
+          "tour_id": "machu-picchu-car",
+          "tour_name": "Machu Picchu by Car",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Machu Picchu by Car - confirmed_product: sí (fuente: F2)"
+        },
+        {
+          "tour_id": "camino-inka",
+          "tour_name": "Camino Inca Clásico 4D/3N",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Camino Inca Clásico 4D/3N - confirmed_product: sí (fuente: F2)"
+        },
+        {
+          "tour_id": "islas-titicaca",
+          "tour_name": "Islas del Lago Titicaca",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Islas del Lago Titicaca - confirmed_product: sí (fuente: F2)"
+        },
+        {
+          "tour_id": "city-tour-cusco",
+          "tour_name": "City Tour Cusco",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. City Tour Cusco - confirmed_product: sí (fuente: F2) - schedule: 10:00-14:00 / 13:30-18:30 (fuente: F1"
+        }
+      ],
+      "evaluation_criteria": {
+        "retains_original_question": true,
+        "retrieved_humantay_doc": true,
+        "cites_altitude_4200": false,
+        "cites_hike_duration": false,
+        "identifies_humantay": false
+      }
+    },
+    {
+      "case_id": "3_switch_to_city_tour",
+      "name": "Cambio de tour tras Humantay (City Tour Cusco)",
+      "query": "¿Cómo es el recorrido y qué lugares se visitan en el City Tour Cusco?",
+      "route": "rag_llm",
+      "llm_response": "El *City Tour Cusco* incluye visitas a *Koricancha*, *Sacsayhuamán*, *Q'enqo*, *Puka Pukara* y *Tambomachay*.\nIncluye *bus turístico* y *guía profesional*.\nHorarios: *10:00-14:00* o *13:30-18:30*.\nEscribe 👉 *asesor* para reservar o más información 😊",
+      "latency_seconds": 0.897,
+      "token_usage": {
+        "completion_tokens": 107,
+        "prompt_tokens": 1112,
+        "total_tokens": 1219,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null,
+        "queue_time": 0.367405886,
+        "prompt_time": 0.100093537,
+        "completion_time": 0.210022477,
+        "total_time": 0.310116014
+      },
+      "retriever_query": "Cómo es el recorrido y qué lugares se visitan en el City Tour Cusco",
+      "retrieved_docs": [
+        {
+          "tour_id": "city-tour-cusco",
+          "tour_name": "City Tour Cusco",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. City Tour Cusco - confirmed_product: sí (fuente: F2) - schedule: 10:00-14:00 / 13:30-18:30 (fuente: F1"
+        },
+        {
+          "tour_id": "tour-mistico",
+          "tour_name": "Tour Místico",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Tour Místico - confirmed_product: sí (fuente: F2)"
+        },
+        {
+          "tour_id": "ruta-del-sol",
+          "tour_name": "Ruta del Sol Cusco-Puno",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Ruta del Sol Cusco-Puno - confirmed_product: sí (fuente: F2)"
+        },
+        {
+          "tour_id": "maras-moray-cuatrimoto",
+          "tour_name": "Tour Cuatrimoto / Maras-Moray",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Tour Cuatrimoto / Maras-Moray - confirmed_product: sí (fuente: F3) - includes/cuatrimotos_modernas: co"
+        },
+        {
+          "tour_id": "agency",
+          "tour_name": "Agencia: datos publicados y confirmados",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Contacto Texeira Travel: +51 953 767 860 / +51 984 679 715 | texeiratraveltour@hotmail.com, eugeniotej"
+        }
+      ],
+      "evaluation_criteria": {
+        "retains_original_question": true,
+        "retrieved_city_tour_doc": true,
+        "retriever_query_without_humantay": true,
+        "cites_key_sites": true,
+        "avoids_humantay_contamination": true
+      }
+    },
+    {
+      "case_id": "4_comparison_camino_vs_salkantay",
+      "name": "Comparación entre dos tours (Camino Inca vs Salkantay)",
+      "query": "¿Qué diferencias hay entre el Camino Inca Clásico y el Salkantay Trek en duración y precio?",
+      "route": "rag_llm",
+      "llm_response": "*Camino Inca Clásico*: *4 días / 3 noches* por *790 USD*.\n*Salkantay Trek*: *4 días* (noches por confirmar) y precio por confirmar.\nLo validamos con el equipo para darte el dato exacto. ✅\nEscribe 👉 *asesor* para reservar o más información 😊",
+      "latency_seconds": 1.41,
+      "token_usage": {
+        "completion_tokens": 79,
+        "prompt_tokens": 1093,
+        "total_tokens": 1172,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null,
+        "queue_time": 0.93227211,
+        "prompt_time": 0.098388733,
+        "completion_time": 0.155395496,
+        "total_time": 0.253784229
+      },
+      "retriever_query": "Qué diferencias hay entre el Camino Inca Clásico y el Salkantay Trek en duración y precio",
+      "retrieved_docs": [
+        {
+          "tour_id": "camino-inka",
+          "tour_name": "Camino Inca Clásico 4D/3N",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Camino Inca Clásico 4D/3N - confirmed_product: sí (fuente: F2)"
+        },
+        {
+          "tour_id": "salkantay-trek",
+          "tour_name": "Salkantay Trek",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Salkantay Trek - confirmed_product: sí (fuente: F2) - duration: 4 días (itinerario publicado; confirma"
+        },
+        {
+          "tour_id": "choquequirao",
+          "tour_name": "Choquequirao Trek",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Choquequirao Trek - confirmed_product: sí (fuente: F2) - duration: 4 días (itinerario publicado; confi"
+        },
+        {
+          "tour_id": "canon-colca",
+          "tour_name": "Cañón del Colca / Baños Termales de Chacapi",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. Cañón del Colca / Baños Termales de Chacapi - confirmed_product: sí (fuente: F2)"
+        },
+        {
+          "tour_id": "city-tour-cusco",
+          "tour_name": "City Tour Cusco",
+          "source": "evidence-v4-2026-09-11",
+          "content_snippet": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia. City Tour Cusco - confirmed_product: sí (fuente: F2) - schedule: 10:00-14:00 / 13:30-18:30 (fuente: F1"
+        }
+      ],
+      "evaluation_criteria": {
+        "retains_original_question": true,
+        "retrieved_camino_doc": true,
+        "retrieved_salkantay_doc": true,
+        "cites_camino_official_price": true,
+        "cites_duration_comparison": true,
+        "avoids_inventing_salkantay_price": true
+      }
+    }
+  ]
+}
