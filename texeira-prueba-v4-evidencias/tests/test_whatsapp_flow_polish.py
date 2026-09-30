@@ -35,10 +35,25 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
     def setUpClass(cls):
         os.environ["META_ACCESS_TOKEN"] = "EAABtest_token_valid_12345"
         os.environ["META_PHONE_NUMBER_ID"] = "109876543210"
-        os.environ["META_APP_SECRET"] = "test_meta_secret_123"
         database.init_db(app.SQLITE_DB_PATH)
         try:
             catalog_service.init_catalog_db()
+            catalog_service.upsert_tour({
+                "entity_id": "camino-inka",
+                "name": "Camino Inca Clásico 4D/3N",
+                "official_price": "790",
+                "currency": "USD",
+                "schedule": "",
+                "duration": "4 días / 3 noches",
+                "includes": "",
+                "excludes": "",
+                "is_active": True
+            })
+            catalog_service.upsert_tour({
+                "entity_id": "choquequirao",
+                "name": "Choquequirao Trek",
+                "is_active": True
+            })
         except Exception:
             pass
 

@@ -364,10 +364,22 @@ def install(ns, support, original):
                 needs_confirmation=pending,conflict_detected=conflict,evidence_status='conflict' if conflict else ('unknown' if pending else 'documented'),
                 sources_used=sorted(set(sources)),route=route,response_route=route,entity_id=entity_id)
         def unknown(subject, entity_id=None):
-            if en:
-                msg = f"That information is confirmed directly at the agency.\n\nWrite 👉 *advisor* and we'll help you right away 😊"
-                return finish(msg,'evidence_unknown',True,entity_id=entity_id)
-            msg = f"Ese dato lo confirmamos directamente en la agencia. 💬\n\nEscribe 👉 *asesor* y te ayudamos ahora mismo 😊"
+            t_name = ""
+            if entity_id and entity_id in active_tours:
+                t_name = active_tours[entity_id].get('name', entity_id)
+            elif entity_id and entity_id in catalog.get('tours', {}):
+                t_name = catalog['tours'][entity_id].get('name', entity_id)
+
+            if t_name:
+                if en:
+                    msg = f"💬 That detail for *{t_name}* is confirmed directly with our team.\n\nWrite 👉 *advisor* and we'll help you 😊"
+                else:
+                    msg = f"💬 Ese detalle de *{t_name}* lo confirmamos contigo directamente.\n\nEscribe 👉 *asesor* y te ayudamos 😊"
+            else:
+                if en:
+                    msg = f"That information is confirmed directly at the agency.\n\nWrite 👉 *advisor* and we'll help you right away 😊"
+                else:
+                    msg = f"Ese dato lo confirmamos directamente en la agencia. 💬\n\nEscribe 👉 *asesor* y te ayudamos ahora mismo 😊"
             return finish(msg,'evidence_unknown',True,entity_id=entity_id)
 
         # 1. Fallo técnico al consultar la base de datos: no afirmar que tours fueron desactivados
@@ -814,9 +826,9 @@ def install(ns, support, original):
                 pass
             tour_name = tour_info.get('name', eid) if tour_info else eid
             if en:
-                msg = f"*{tour_name}* is not currently available in our active catalog. You can explore other tours or consult this destination with an advisor."
+                msg = f"*{tour_name}* is not currently in our active catalog (not available). You can explore other tours or consult this destination with an advisor."
             else:
-                msg = f"*{tour_name}* no se encuentra disponible actualmente en nuestro catálogo activo. Puedes explorar otros tours o consultar este destino con un asesor."
+                msg = f"*{tour_name}* no figura actualmente en nuestro catálogo activo (no se encuentra disponible). Puedes explorar otros tours o consultar este destino con un asesor."
             return finish(msg, 'evidence_inactive_tour', pending=True, sources=[], entity_id=eid)
 
         # Si la consulta es una comparación entre tours o una pregunta interpretativa abierta,
