@@ -1824,7 +1824,6 @@ def get_quick_buttons(
 
     # 8. Tours de una categoría con paginación
     if route == "evidence_category_tours":
-        buttons = []
         cat_key = ""
         for ck in ('treks', 'cusco', 'reg'):
             if ck in u_lower:
@@ -1839,28 +1838,34 @@ def get_quick_buttons(
             except Exception:
                 page = 0
 
-        from verified_routes import get_dynamic_cat_specs
+        from verified_routes import get_dynamic_cat_specs, paginate_category_tours
         try:
-            from catalog_service import get_all_tours
-            all_active = {t['entity_id']: t for t in get_all_tours(active_only=True) if t.get('is_active')}
+            from catalog_service import get_all_tours, is_deactivated_tour
+            all_active = {t['entity_id']: t for t in get_all_tours(active_only=True) if t.get('is_active') and not is_deactivated_tour(t['entity_id'])}
         except Exception:
             all_active = {}
         cat_specs = get_dynamic_cat_specs(all_active)
         spec = cat_specs.get(cat_key)
         if spec:
-            tour_ids = [t[0] for t in spec.get('tours', [])]
-            start = page * 2
-            page_slice = tour_ids[start : start + 2]
+            active_tours_cat = [t for t in spec.get('tours', []) if t[0] in all_active]
+            pages = paginate_category_tours(active_tours_cat)
+            if not pages:
+                return [{"id": f"btn_cats:{lang}", "title": "⬅️ Categories" if is_en else "⬅️ Categorías"}]
+            if page >= len(pages):
+                page = 0
+            page_slice = pages[page]
+            buttons = []
             for t in page_slice:
-                title = _get_tour_button_title(t, is_en=is_en)
-                buttons.append({"id": f"btn_tour:{t}:{lang}", "title": title[:20]})
-            if start + 2 < len(tour_ids):
+                eid = t[0]
+                title = _get_tour_button_title(eid, is_en=is_en)
+                buttons.append({"id": f"btn_tour:{eid}:{lang}", "title": title[:20]})
+            if page + 1 < len(pages):
                 buttons.append({"id": f"btn_cat_page:{cat_key}:{page+1}:{lang}", "title": "➡️ More tours" if is_en else "➡️ Más tours"})
-            else:
+            if page > 0 or len(pages) == 1:
                 buttons.append({"id": f"btn_cats:{lang}", "title": "⬅️ Categories" if is_en else "⬅️ Categorías"})
+            return buttons[:3]
         else:
-            buttons.append({"id": f"btn_cats:{lang}", "title": "⬅️ Categories" if is_en else "⬅️ Categorías"})
-        return buttons[:3]
+            return [{"id": f"btn_cats:{lang}", "title": "⬅️ Categories" if is_en else "⬅️ Categorías"}]
 
     # 9. Fallo de envío de foto en Meta API
     if photo_send_failed and detected_eid:

@@ -206,6 +206,32 @@ def get_dynamic_cat_specs(active_tours_dict: dict) -> dict:
     return specs
 
 
+def paginate_category_tours(tour_items: list) -> list:
+    """
+    Particiona la lista de tours de una categoría en páginas compatibles con WhatsApp (máx 3 botones por mensaje):
+    - Si len(tour_items) <= 2: 1 página con todos los tours.
+    - Si len(tour_items) > 2:
+        Página 0: 2 tours (para botones: Tour 0, Tour 1, Más tours)
+        Páginas intermedias: 1 tour por página (para botones: Tour N, Más tours, Categorías)
+        Última página: hasta 2 tours (para botones: Tour final 1, Tour final 2 si hay, Categorías)
+    """
+    if not tour_items:
+        return []
+    if len(tour_items) <= 2:
+        return [tour_items]
+    pages = [tour_items[0:2]]
+    idx = 2
+    while idx < len(tour_items):
+        remaining = len(tour_items) - idx
+        if remaining <= 2:
+            pages.append(tour_items[idx:idx + remaining])
+            break
+        else:
+            pages.append(tour_items[idx:idx + 1])
+            idx += 1
+    return pages
+
+
 def install(ns, support, original):
     catalog = support.CATALOG
     from catalog_service import is_deactivated_tour
@@ -420,7 +446,7 @@ def install(ns, support, original):
             active_in_cat = [
                 (eid, default_label, default_dur)
                 for eid, default_label, default_dur in cat_data.get('tours', [])
-                if eid in active_tours and is_product_confirmed(eid)
+                if eid in active_tours and is_product_confirmed(eid) and not is_deactivated_tour(eid)
             ]
             if not active_in_cat:
                 cat_name = cat_data.get('title_es', selected_cat_key) if not en else cat_data.get('title_en', selected_cat_key)
@@ -430,20 +456,65 @@ def install(ns, support, original):
                 return finish(msg, 'evidence_category_empty', sources=['CATALOGO_OFICIAL'], entity_id=f"cat_{selected_cat_key}")
 
             cat_title = cat_data.get('title_es', '') if not en else cat_data.get('title_en', '')
-            lines = [f"{cat_title} disponibles:\n" if not en else f"{cat_title} available:\n"]
-            for eid, default_label, default_dur in active_in_cat:
-                t_obj = active_tours[eid]
-                if en:
-                    from app import _get_tour_display_name
-                    tour_name = _get_tour_display_name(eid, is_en=True) or default_label
-                else:
-                    tour_name = t_obj.get('name', default_label)
-                dur = english_duration(t_obj.get('duration') or default_dur) if en else (t_obj.get('duration') or default_dur)
-                lines.append(f"• *{tour_name}* ({dur})")
 
-            footer = ("\n_Escribe directamente el nombre de cualquier tour para ver detalles completos, o selecciona una opción abajo:_\nEscribe 👉 *asesor* si necesitas ayuda personalizada 😊"
-                      if not en else
-                      "\n_Type the name of any tour for full details, or select an option below:_\nWrite 👉 *advisor* for personalized help 😊")
+            m_page = re.search(r'\b(?:p[aá]gina|page)\s+(\d+)\b', q)
+            requested_page = int(m_page.group(1)) if m_page else 0
+            pages = paginate_category_tours(active_in_cat)
+            total_pages = len(pages)
+            if requested_page >= total_pages:
+                requested_page = 0
+            page_slice = pages[requested_page] if pages else active_in_cat
+
+            if total_pages <= 1:
+                lines = [f"{cat_title} disponibles:\n" if not en else f"{cat_title} available:\n"]
+                for eid, default_label, default_dur in page_slice:
+                    t_obj = active_tours[eid]
+                    if en:
+                        from app import _get_tour_display_name
+                        tour_name = _get_tour_display_name(eid, is_en=True) or default_label
+                    else:
+                        tour_name = t_obj.get('name', default_label)
+                    dur = english_duration(t_obj.get('duration') or default_dur) if en else (t_obj.get('duration') or default_dur)
+                    lines.append(f"• *{tour_name}* ({dur})")
+                footer = (
+                    "\n_Escribe directamente el nombre de cualquier tour para ver detalles completos, o selecciona una opción abajo:_\nEscribe 👉 *asesor* si necesitas ayuda personalizada 😊"
+                    if not en else
+                    "\n_Type the name of any tour for full details, or select an option below:_\nWrite 👉 *advisor* for personalized help 😊"
+                )
+            else:
+                header = (
+                    f"{cat_title} (Página {requested_page + 1} de {total_pages}):\n"
+                    if not en else
+                    f"{cat_title} (Page {requested_page + 1} of {total_pages}):\n"
+                )
+                lines = [header]
+                for eid, default_label, default_dur in page_slice:
+                    t_obj = active_tours[eid]
+                    if en:
+                        from app import _get_tour_display_name
+                        tour_name = _get_tour_display_name(eid, is_en=True) or default_label
+                    else:
+                        tour_name = t_obj.get('name', default_label)
+                    dur = english_duration(t_obj.get('duration') or default_dur) if en else (t_obj.get('duration') or default_dur)
+                    lines.append(f"• *{tour_name}* ({dur})")
+
+                if requested_page + 1 < total_pages:
+                    nav_note = (
+                        "\n_Usa las opciones abajo para ver detalles, pasar a ➡️ Más tours o volver a ⬅️ Categorías._"
+                        if not en else
+                        "\n_Use the options below for details, go to ➡️ More tours, or return to ⬅️ Categories._"
+                    )
+                else:
+                    nav_note = (
+                        "\n_Has llegado al final de esta categoría. Selecciona un tour o vuelve a ⬅️ Categorías._"
+                        if not en else
+                        "\n_You have reached the end of this category. Select a tour or return to ⬅️ Categories._"
+                    )
+                footer = (
+                    f"{nav_note}\nEscribe 👉 *asesor* si necesitas ayuda personalizada 😊"
+                    if not en else
+                    f"{nav_note}\nWrite 👉 *advisor* for personalized help 😊"
+                )
             lines.append(footer)
             return finish("\n".join(lines), 'evidence_category_tours', sources=['CATALOGO_OFICIAL'], entity_id=f"cat_{selected_cat_key}")
 
@@ -743,18 +814,32 @@ def install(ns, support, original):
                 pass
             tour_name = tour_info.get('name', eid) if tour_info else eid
             if en:
-                msg = f"*{tour_name}* is not currently in our active catalog. You can explore other tours or consult this destination with an advisor."
+                msg = f"*{tour_name}* is not currently available in our active catalog. You can explore other tours or consult this destination with an advisor."
             else:
-                msg = f"*{tour_name}* no figura actualmente en nuestro catálogo activo. Puedes explorar otros tours o consultar este destino con un asesor."
+                msg = f"*{tour_name}* no se encuentra disponible actualmente en nuestro catálogo activo. Puedes explorar otros tours o consultar este destino con un asesor."
             return finish(msg, 'evidence_inactive_tour', pending=True, sources=[], entity_id=eid)
 
-        fld=field(q)
+        # Si la consulta es una comparación entre tours o una pregunta interpretativa abierta,
+        # no debe ser absorbida por reglas deterministas de un solo tour/campo para permitir el uso del RAG.
+        is_comparison = bool(re.search(r'\b(diferencia\w*|compar\w*|versus|\bvs\b|entre\s+\w+.*?(?:y|and)\s+\w+|differ\w*|compare|comparison)\b', q, re.I))
+        is_open_interpretive = bool(re.search(
+            r'\b(c[oó]mo\s+es|qu[eé]\s+actividades|dificultad|preparaci[oó]n|clima|ropa|llevar|experiencia|recomend\w*|por\s+qu[eé]|expl[ií]ca\w*|cu[eé]nta\w*|altura|altitud|exigente|cansado|esfuerzo|subida|caminata|how\s+is|what\s+activities|difficulty|altitude|weather|recommend\w*|explain|tell\s+me\s+about|effort|steep|hike)\b',
+            q, re.I
+        ))
+        if is_comparison or is_open_interpretive:
+            eid = None
+            fld = None
+        else:
+            fld = field(q)
         if eid == 'machu-picchu-tren' and re.search(r'dormir|pernoct|alojamiento|overnight|sleep|accommodation', q):
             detail = ('overnight accommodation is not documented for this train tour; hotel pickup does not mean a hotel stay is included' if en else 'el alojamiento o pernocte no está documentado para este tour en tren; el recojo del hotel no significa que incluya hospedaje')
             return unknown(detail, entity_id=eid)
 
-        # Tour directo o ficha técnica (ej. "camino inka", "· Camino Inca Clásico 4D/3N")
-        if eid and fld is None and lang in {'es', 'en'}:
+        # Tour directo o ficha técnica (ej. "camino inka", "· Camino Inca Clásico 4D/3N", "información de camino inka")
+        # Si la entidad se heredó del historial (no en q), solo activar ficha si pide explícitamente información general
+        direct_in_q = bool(entity(q))
+        wants_overview = direct_in_q or bool(re.search(r'\b(informaci[oó]n|info|detalles|ficha|overview|details)\b', q, re.I))
+        if eid and fld is None and wants_overview and lang in {'es', 'en'}:
             tour_obj = active_tours.get(eid, {})
             name = tour_obj.get('name', eid)
             official_price = str(tour_obj.get("official_price") or "").strip()

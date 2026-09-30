@@ -45,6 +45,11 @@ def run_all_regressions():
     passed = 0
     failed = 0
 
+    try:
+        fastapi_app.database.init_db(fastapi_app.SQLITE_DB_PATH)
+    except Exception:
+        pass
+
     def check(name, condition, detail=""):
         nonlocal passed, failed
         if condition:
@@ -338,11 +343,17 @@ def run_all_regressions():
         check(f"4.4 Positivo EN: '{phrase}' sí escala", handoff_support.requested(phrase))
 
     # 4.5 Prueba de flujo a través de /test-chat
-    r_test_neg = client.post("/test-chat", json={"user_id": "user-neg-test", "message": "No quiero hablar con un asesor"})
-    check("4.5 /test-chat con rechazo de asesor no genera handoff", r_test_neg.status_code == 200 and not r_test_neg.json().get("escalated_to_human"))
+    from unittest.mock import patch, MagicMock
+    mock_llm = MagicMock()
+    mock_resp = MagicMock()
+    mock_resp.content = "Entendido, puedo brindarte información sin derivar a un asesor."
+    mock_llm.invoke.return_value = mock_resp
+    with patch.object(fastapi_app, "get_llm", return_value=mock_llm):
+        r_test_neg = client.post("/test-chat", json={"user_id": "user-neg-test", "message": "No quiero hablar con un asesor"})
+        check("4.5 /test-chat con rechazo de asesor no genera handoff", r_test_neg.status_code == 200 and not r_test_neg.json().get("escalated_to_human"))
 
-    r_test_pos = client.post("/test-chat", json={"user_id": "user-pos-test", "message": "advisor"})
-    check("4.5 /test-chat con 'advisor' genera handoff correctamente", r_test_pos.status_code == 200 and r_test_pos.json().get("escalated_to_human"))
+        r_test_pos = client.post("/test-chat", json={"user_id": "user-pos-test", "message": "advisor"})
+        check("4.5 /test-chat con 'advisor' genera handoff correctamente", r_test_pos.status_code == 200 and r_test_pos.json().get("escalated_to_human"))
 
     # =========================================================================
     # 5. FOTOS RECHAZADAS — src/visual/visual_engine.py

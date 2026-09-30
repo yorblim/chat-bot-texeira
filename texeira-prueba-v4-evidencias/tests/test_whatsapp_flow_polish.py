@@ -134,6 +134,17 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
     # RECORRIDO 1: Saludo → catálogo → categoría → tour → detalles → tarifa
     # =========================================================================
     def test_journey_1_greeting_to_rates(self):
+        # Asegurar estado canónico sin horario registrado para Camino Inca
+        catalog_service.upsert_tour(dict(
+            entity_id="camino-inka",
+            name="Camino Inca Clásico 4D/3N",
+            official_price="790",
+            currency="USD",
+            schedule="",
+            duration="4 días / 3 noches",
+            is_active=True
+        ))
+
         # 1. Saludo
         res1 = self._send_wa_message("Hola")
         self.assertEqual(res1["status_code"], 200)
@@ -158,14 +169,15 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
         self.assertTrue(any("btn_tour:machu-picchu-tren:es" in bid or "btn_tour:camino-inka:es" in bid for bid in btn_ids_3))
         self.assertTrue(any(bid.startswith("btn_cat_page:") or bid.startswith("btn_cats:") for bid in btn_ids_3))
 
-        # 4. Ficha de tour (Pulsar "Camino Inca Clásico")
+        # 4. Ficha de tour: Caso SIN horario registrado (Camino Inca Clásico canónico)
         res4 = self._send_wa_button_reply("btn_tour:camino-inka:es", "Camino Inca")
         self.assertEqual(res4["status_code"], 200)
         text4 = res4["sent_text"]
         self.assertIn("Camino Inca", text4)
         self.assertIn("Duración", text4)
-        self.assertIn("Horario", text4)
         self.assertIn("Tarifa oficial", text4)
+        # Honestidad estricta de fuentes: Camino Inca tiene schedule_status unknown, no debe alucinar horario
+        self.assertNotIn("Horario", text4)
         # Cero cortes con puntos suspensivos en el cuerpo
         self.assertNotIn("...", text4)
         self.assertNotIn("…", text4)
@@ -178,15 +190,32 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
         self.assertTrue(any("Solicitar reserva" in title for title in btn_titles_4))
         self.assertFalse(any(title == "🙋‍♂️ Reservar" for title in btn_titles_4))
 
+        # 4b. Ficha de tour: Caso CON horario registrado (Machu Picchu en Tren)
+        res4_mp = self._send_wa_button_reply("btn_tour:machu-picchu-tren:es", "Machu Picchu")
+        self.assertEqual(res4_mp["status_code"], 200)
+        text4_mp = res4_mp["sent_text"]
+        self.assertIn("Machu Picchu", text4_mp)
+        self.assertIn("Duración", text4_mp)
+        self.assertIn("Horario", text4_mp)
+        self.assertIn("04:00", text4_mp)
+
         # 5. Inclusiones (Pulsar "Qué incluye")
+        # 5a. Caso datos no confirmados en fuentes oficiales (Camino Inca canónico): honestidad sin alucinación
         res5 = self._send_wa_button_reply("btn_inc:camino-inka:es", "📄 Qué incluye")
         self.assertEqual(res5["status_code"], 200)
         text5 = res5["sent_text"]
-        self.assertIn("Incluye", text5)
+        self.assertIn("confirmamos contigo directamente", text5)
         self.assertNotIn("...", text5)
         btn_ids_5 = [b["id"] for b in res5["sent_buttons"]]
         self.assertTrue(any("btn_rates:camino-inka:es" in bid for bid in btn_ids_5))
         self.assertTrue(any("btn_book:camino-inka:es" in bid for bid in btn_ids_5))
+
+        # 5b. Caso datos confirmados en catálogo (Machu Picchu en Tren)
+        res5_mp = self._send_wa_button_reply("btn_inc:machu-picchu-tren:es", "📄 Qué incluye")
+        self.assertEqual(res5_mp["status_code"], 200)
+        text5_mp = res5_mp["sent_text"]
+        self.assertIn("Incluye", text5_mp)
+        self.assertNotIn("...", text5_mp)
 
         # 6. Tarifas (Pulsar "Tarifas")
         res6 = self._send_wa_button_reply("btn_rates:camino-inka:es", "💰 Tarifas")
@@ -288,15 +317,16 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
 
             # 3. Elige categoría Cusco
             res3 = self._send_wa_button_reply("btn_cat:cusco:es", "🌄 Clásicos Cusco", user_id=uid)
-            self.assertIn("City Tour Cusco", res3["sent_text"])
+            self.assertIn("Montañas y Clásicos", res3["sent_text"])
+            self.assertIn("Montaña de 7 Colores", res3["sent_text"])
 
-            # 4. Selecciona un tour activo (City Tour Cusco) y continúa con fluidez
-            res4 = self._send_wa_button_reply("btn_tour:city-tour-cusco:es", "City Tour Cusco", user_id=uid)
-            self.assertIn("City Tour Cusco", res4["sent_text"])
+            # 4. Selecciona un tour activo (Montaña de 7 Colores) y continúa con fluidez
+            res4 = self._send_wa_button_reply("btn_tour:montana-7-colores:es", "Montaña de 7 Colores", user_id=uid)
+            self.assertIn("Montaña de 7 Colores", res4["sent_text"])
             self.assertIn("Duración", res4["sent_text"])
             self.assertIn("Horario", res4["sent_text"])
             btn_ids4 = [b["id"] for b in res4["sent_buttons"]]
-            self.assertTrue(any("btn_book:city-tour-cusco:es" in bid for bid in btn_ids4))
+            self.assertTrue(any("btn_book:montana-7-colores:es" in bid for bid in btn_ids4))
         finally:
             catalog_service.upsert_tour(dict(entity_id="choquequirao", name="Choquequirao Trek", is_active=True))
 
@@ -662,6 +692,129 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
         m = op.summary()
         self.assertIn("api_accepted", m)
         self.assertTrue(m["api_accepted"] >= 1)
+
+    # =========================================================================
+    # REVISIÓN POLISH: Prueba directa de apply_request con tour inactivo
+    # =========================================================================
+    def test_apply_request_inactive_tour_direct(self):
+        """Comprueba directamente la rama de rechazo de tour inactivo en apply_request():
+        - Devuelve dict estructurado (no None)
+        - route == 'evidence_inactive_tour'
+        - handoff_registered == False
+        - resolved_autonomously == False
+        - No crea una reserva ni rompe la respuesta
+        """
+        catalog_service.upsert_tour(dict(entity_id="choquequirao", name="Choquequirao Trek", is_active=False))
+        try:
+            with handoff_support.connection() as conn:
+                before_count = conn.execute("SELECT COUNT(*) FROM requests").fetchone()[0]
+
+            res = handoff_support.apply_request(
+                ns=app.__dict__,
+                result={"handoff_requested": True, "handoff_language": "es"},
+                user_id="direct_inactive_test",
+                channel="whatsapp",
+                question="quiero reservar Choquequirao Trek"
+            )
+
+            self.assertIsNotNone(res)
+            self.assertIsInstance(res, dict)
+            self.assertEqual(res.get("route"), "evidence_inactive_tour")
+            self.assertFalse(res.get("handoff_registered"))
+            self.assertFalse(res.get("resolved_autonomously"))
+            self.assertIn("no figura actualmente en nuestro catálogo activo", res.get("response", ""))
+
+            with handoff_support.connection() as conn:
+                after_count = conn.execute("SELECT COUNT(*) FROM requests").fetchone()[0]
+            self.assertEqual(before_count, after_count)
+        finally:
+            catalog_service.upsert_tour(dict(entity_id="choquequirao", name="Choquequirao Trek", is_active=True))
+
+    # =========================================================================
+    # REVISIÓN POLISH: Navegación de categorías pulsando botones emitidos reales
+    # =========================================================================
+    def test_journey_category_navigation_real_buttons(self):
+        """Navegación interactiva pulsando exclusivamente los botones realmente emitidos:
+        - Acceso a categorías y selección de una categoría con múltiples páginas
+        - En página 0: botones de tours y 'Más tours'
+        - En página intermedia: botón de tour, 'Más tours' y salida inmediata 'Categorías'
+        - Probar salida inmediata pulsando 'Categorías' desde página intermedia sin recorrer todas las páginas
+        - Volver a entrar y recorrer hasta el final comprobando que todos los tours activos sean accesibles,
+          los desactivados no se ofrezcan, y se conserven tour e idioma.
+        """
+        uid = "51977778888"
+        app.clear_history(uid)
+
+        # Desactivamos explícitamente un tour para verificar que los desactivados NO se ofrezcan
+        catalog_service.upsert_tour(dict(entity_id="choquequirao", name="Choquequirao Trek", is_active=False))
+        try:
+            # 1. Solicitar ver categorías
+            res_cat = self._send_wa_button_reply("btn_tours:es", "🗺️ Ver Tours", user_id=uid)
+            self.assertEqual(res_cat["status_code"], 200)
+            btn_ids = [b["id"] for b in res_cat["sent_buttons"]]
+            self.assertTrue(any("btn_cat:treks:es" in bid for bid in btn_ids))
+
+            # 2. Entrar a Treks pulsando el botón real emitido
+            res_p0 = self._send_wa_button_reply("btn_cat:treks:es", "🏔️ Machu Picchu y Treks", user_id=uid)
+            self.assertEqual(res_p0["status_code"], 200)
+            p0_buttons = res_p0["sent_buttons"]
+            p0_ids = [b["id"] for b in p0_buttons]
+            self.assertTrue(any("btn_tour:machu-picchu-tren:es" in bid for bid in p0_ids))
+            self.assertTrue(any("btn_tour:camino-inka:es" in bid for bid in p0_ids))
+            mas_btn = next((b for b in p0_buttons if b["id"].startswith("btn_cat_page:")), None)
+            self.assertIsNotNone(mas_btn)
+
+            # 3. Avanzar a página 1 intermedia pulsando el botón REALMENTE emitido
+            res_p1 = self._send_wa_button_reply(mas_btn["id"], mas_btn["title"], user_id=uid)
+            self.assertEqual(res_p1["status_code"], 200)
+            p1_buttons = res_p1["sent_buttons"]
+            p1_ids = [b["id"] for b in p1_buttons]
+
+            # Comprobar coherencia de texto y botones en página intermedia
+            self.assertIn("Página 2 de", res_p1["sent_text"])
+            self.assertIn("Machu Picchu by Car", res_p1["sent_text"])
+            self.assertTrue(any("btn_tour:machu-picchu-car:es" in bid for bid in p1_ids))
+
+            # Comprobar presencia de salida inmediata 'Categorías' en página intermedia
+            cats_btn = next((b for b in p1_buttons if b["id"].startswith("btn_cats:")), None)
+            self.assertIsNotNone(cats_btn, "En páginas intermedias debe existir el botón ⬅️ Categorías")
+
+            # 4. Probar salida inmediata pulsando el botón emitido 'Categorías' desde página intermedia
+            res_exit = self._send_wa_button_reply(cats_btn["id"], cats_btn["title"], user_id=uid)
+            self.assertEqual(res_exit["status_code"], 200)
+            self.assertIn("Catálogo de Experiencias", res_exit["sent_text"])
+            exit_ids = [b["id"] for b in res_exit["sent_buttons"]]
+            self.assertTrue(any("btn_cat:treks:es" in bid for bid in exit_ids))
+
+            # 5. Volver a entrar y recorrer toda la categoría hasta el final verificando accesibilidad
+            res_curr = self._send_wa_button_reply("btn_cat:treks:es", "🏔️ Machu Picchu y Treks", user_id=uid)
+            visited_tours = set()
+            page_count = 0
+
+            while page_count < 10:
+                page_count += 1
+                curr_buttons = res_curr["sent_buttons"]
+                for b in curr_buttons:
+                    if b["id"].startswith("btn_tour:"):
+                        parts = b["id"].split(":")
+                        visited_tours.add(parts[1])
+                        self.assertEqual(parts[2], "es", "Se debe conservar el idioma")
+
+                next_btn = next((b for b in curr_buttons if b["id"].startswith("btn_cat_page:")), None)
+                if not next_btn:
+                    self.assertTrue(any(b["id"].startswith("btn_cats:") for b in curr_buttons))
+                    break
+                res_curr = self._send_wa_button_reply(next_btn["id"], next_btn["title"], user_id=uid)
+
+            # Comprobar que todos los tours activos de la categoría fueron visitados
+            self.assertIn("machu-picchu-tren", visited_tours)
+            self.assertIn("camino-inka", visited_tours)
+            self.assertIn("salkantay-trek", visited_tours)
+            self.assertIn("inka-jungle", visited_tours)
+            self.assertIn("machu-picchu-car", visited_tours)
+            self.assertNotIn("choquequirao", visited_tours)
+        finally:
+            catalog_service.upsert_tour(dict(entity_id="choquequirao", name="Choquequirao Trek", is_active=True))
 
 
 if __name__ == "__main__":
