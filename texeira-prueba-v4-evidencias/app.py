@@ -282,6 +282,12 @@ Ejemplo CORRECTO: "No dispongo de esa información exacta. Por favor, contacta a
 NUNCA inventes información, precios, itinerarios, horarios o nombres de tours que no estén en el contexto.
 NUNCA uses tu conocimiento general para responder sobre servicios de la agencia.
 
+REGLA #1b — RESPUESTAS PARCIALES EN PREGUNTAS COMPUESTAS:
+Si la consulta del turista incluye varios puntos y el contexto contiene información para responder uno de ellos (por ejemplo, la altitud documentada de Humantay o Abra Málaga) pero carece de datos para otro (por ejemplo, la duración o nivel de dificultad de la subida a pie, o actividades adicionales no registradas):
+- Responde con precisión el dato documentado que sí figura en el contexto.
+- Aclara amablemente que el aspecto no documentado requiere confirmación con un asesor de la agencia.
+- NUNCA rechaces toda la consulta con el mensaje de fallback si puedes responder válidamente una parte con el contexto oficial.
+
 REGLA #2 — DETECCIÓN DE IDIOMA:
 Detecta el idioma en que escribe el turista (español, inglés, portugués o francés) y responde SIEMPRE en ese mismo idioma de forma fluida y nativa.
 
@@ -1585,6 +1591,10 @@ def rag_chain(question: str, user_id: str = "default") -> dict:
                             dyn_lines.append(f"Incluye: {dyn_tour.get('includes')}")
                         if dyn_tour.get("excludes"):
                             dyn_lines.append(f"No incluye: {dyn_tour.get('excludes')}")
+                        if dyn_tour.get("altitude"):
+                            dyn_lines.append(f"Altitud: {dyn_tour.get('altitude')}")
+                        if dyn_tour.get("route"):
+                            dyn_lines.append(f"Ruta: {dyn_tour.get('route')}")
                         dyn_blocks.append("\n".join(dyn_lines))
                 if dyn_blocks:
                     context = "\n\n".join(dyn_blocks) + "\n\n" + context

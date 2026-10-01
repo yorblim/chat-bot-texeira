@@ -26,6 +26,7 @@ FIELD_POLICIES = {
     'email': 'multi_value',
     'address': 'exclusive_or_multi',
     'confirmed_product': 'existence',
+    'altitude': 'exclusive_scalar',
 }
 
 SCALAR_NORMALIZE = {
@@ -334,8 +335,12 @@ def build_context_for_entity(entity_id: str, include_dynamic: bool = True) -> st
             if isinstance(val, bool):
                 lines.append(f"- {field}: {'sí' if val else 'no'} (fuente: {source_str})")
             else:
+                seen_lines = set()
                 for fact in fact_list:
-                    lines.append(f"- {field}: {fact.value} (fuente: {fact.source_id}, página: {fact.source_page})")
+                    line = f"- {field}: {fact.value} (fuente: {fact.source_id}, página: {fact.source_page})"
+                    if line not in seen_lines:
+                        seen_lines.add(line)
+                        lines.append(line)
 
     if conflicts:
         lines.append("")

@@ -98,27 +98,27 @@ Al inspeccionar el entorno real cargado:
 
 ---
 
-## 5. Resultados de la Evaluación Real del LLM y Cobertura Documental
+## 5. Resultados de la Evaluación Real del LLM, Corrección de Ingesta y Cobertura
 
-La evaluación sintética real con el proveedor efectivo de runtime (`groq` / `qwen/qwen3.8-27b`) fue ejecutada mediante [tests/test_live_llm_evaluation.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/tests/test_live_llm_evaluation.py) con exactamente 4 llamadas al LLM real (registro íntegro en [docs/EVIDENCIA_EVALUACION_REAL_LLM_20260930.json](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/docs/EVIDENCIA_EVALUACION_REAL_LLM_20260930.json) e informe en [docs/INFORME_EVALUACION_REAL_LLM_20260930.md](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/docs/INFORME_EVALUACION_REAL_LLM_20260930.md)):
+La evaluación sintética real con el proveedor efectivo de runtime (`groq` / `qwen/qwen3.8-27b`) fue ejecutada mediante [tests/test_live_llm_evaluation.py](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/tests/test_live_llm_evaluation.py) tras corregir la omisión de ingesta en el índice ChromaDB:
 
-### 5.1 Matriz de Resultados Reales
+### 5.1 Matriz de Resultados Reales con Ingesta Corregida
 | Caso | Consulta Evaluada | Comportamiento Efectivo | Clasificación del Resultado |
 | :--- | :--- | :--- | :--- |
-| **Inka Jungle** | Descenso en bicicleta por Abra Málaga y actividades de aventura | Se abstuvo de detallar bicicleta y aventura; derivó al asesor. | **Consulta no resuelta por falta de información en el contexto.** |
-| **Laguna Humantay** | Altitud máxima y exigencia de la subida a pie | Recuperó el tour correcto por contexto, pero se abstuvo de detallar altitud y exigencia; derivó al asesor. | **Consulta no resuelta por falta de información en el contexto.** |
-| **City Tour Cusco** | Recorrido y lugares visitados | Detalló los 5 centros arqueológicos, inclusiones y horarios oficiales. | **Respuesta informativa completa respaldada en fuentes.** |
-| **Comparación** | Camino Inca vs Salkantay Trek en duración y precio | Diferenció duración (4 días) y tarifa confirmada (790 USD vs precio por confirmar con asesor). | **Respuesta informativa parcial con derivación de lo no publicado.** |
+| **Inka Jungle** | Descenso en bicicleta por Abra Málaga y actividades de aventura | Informa el descenso en bicicleta desde *Abra Málaga (4,350 msnm)* hasta *Santa María (1,450 msnm)*. Aclara que las demás actividades de aventura requieren confirmación con el equipo. Cero alucinaciones de canotaje o tirolina. | **Respuesta informativa exacta con derivación de lo no publicado.** |
+| **Laguna Humantay** | Altitud máxima y exigencia de la subida a pie | Informa con exactitud la cota máxima documentada (*4,200 m.s.n.m.* desde Soraypampa a 3,920 msnm). Aclara que la exigencia de la caminata requiere confirmación con el equipo. No rechaza la consulta. | **Respuesta informativa parcial con derivación de lo no publicado.** |
+| **City Tour Cusco** | Recorrido y lugares visitados tras consultar Humantay | Detalla los centros arqueológicos (*Koricancha, Sacsayhuamán, Q'enqo, Puka Pukara, Tambomachay*), inclusiones y horarios oficiales. Cero contaminación contextual de Humantay. | **Respuesta informativa completa respaldada en fuentes.** |
+| **Comparación** | Camino Inca vs Salkantay Trek en duración y precio | Compara la duración (*4 días / 3 noches* vs *4 días*) y tarifa oficial (*790 USD* vs precio por confirmar con asesor). | **Respuesta informativa comparativa con derivación de lo no publicado.** |
 
-### 5.2 Balance Técnico y Comprobación de Fuentes Originales
-- **Balance sobrio:** El resultado arroja **dos respuestas informativas y dos abstenciones por falta de evidencia**. Abstenerse es preferible a inventar datos no confirmados, pero **no equivale a resolver la consulta**. Cuatro casos constituyen una muestra acotada que demuestra la aplicación de las reglas anti-alucinación, sin implicar infalibilidad.
-- **Alcance de la latencia:** El promedio de **0.913 segundos** corresponde estrictamente a la llamada de inferencia a la API de Groq según el script instrumentado; **no representa el tiempo completo de respuesta por WhatsApp** (que abarca webhook de Meta, red, persistencia y despacho del mensaje saliente).
-- **Auditoría acotada en materiales originales (PDFs F1/F2/F3):**
-  - *Humantay:* En F2 pág. 9 figura `Laguna Humantay 4200 m.s.n.m.`; sin embargo, el tiempo de caminata (1.5-2h) y la exigencia del ascenso **no existen en ningún documento oficial de la agencia**.
-  - *Inka Jungle:* En F2 pág. 17 figura `Abra Malaga 4350 m.s.n.m.` e itinerario de 4 días; sin embargo, las actividades de aventura (*descenso en bicicleta, canotaje, tirolina*) **no existen en ningún texto oficial de la agencia**.
-  - *Causa de la omisión en el índice:* La ingesta histórica a `evidence_facts.json` extrajo campos de confirmación, horarios e inclusiones, omitiendo las cotas altimétricas de las infografías de ruta de F2.
-  - *Criterio de cero alucinaciones:* Siguiendo la regla de no inventar datos ni agregar fuentes externas sin autorización, se conserva la abstención honesta y se documenta la limitación documental de la agencia para el piloto.
+### 5.2 Balance Técnico y Verificación Documental
+- **Respuesta parcial en preguntas compuestas:** El modelo responde el dato que sí figura en las fuentes (altitud de Humantay y Abra Málaga con descenso en bicicleta del Día 1) y aclara que los datos no documentados (duración/dificultad de la caminata o actividades adicionales) requieren confirmación con un asesor humano.
+- **Alcance de la latencia:** El promedio de **0.891 segundos** (0.472s a 1.433s) corresponde estrictamente a la llamada de inferencia a la API de Groq según el script instrumentado; **no representa el tiempo completo de respuesta por WhatsApp** (que abarca webhook de Meta, red, persistencia y despacho del mensaje saliente).
+- **Verificación en materiales originales (PDF F2):**
+  - *Humantay (F2 pág. 9):* Incorporados hechos `lh-altitude-f2` (`4,200 m.s.n.m.`) y `lh-route-f2` (ascenso a pie desde Soraypampa 3,920 msnm).
+  - *Inka Jungle (F2 pág. 17):* Incorporados hechos `ij-altitude-f2` (`Abra Málaga a 4,350 m.s.n.m.`) e `ij-route-f2` (descenso en bicicleta Día 1).
+- **Validación del índice:** Vectorstore reconstruido en `chroma_catalogo_20260926_db` con 20 documentos exactos y `test_index_preflight.py` validado con resultado `PASS (100%)`.
 
 ### 5.3 Control de Despliegue y Estado GitOps
 - Código y evidencias formalmente respaldados en la rama `feature/polish-whatsapp-flow`.
 - **No se ha ejecutado merge a `main` ni `actualizar_nube.bat`**. Todo permanece listo para decisión de despliegue del piloto con sus limitaciones explícitas.
+

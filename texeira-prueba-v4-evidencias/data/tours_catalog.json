@@ -122,7 +122,10 @@
       "includes_status": "confirmed",
       "includes_note": "Desayuno documentado en F1; F3 p5 no publica inclusiones.",
       "excludes_status": "unknown",
-      "route_status": "unknown"
+      "route_status": "partial",
+      "route_note": "F2 pág 9 documenta altitud 4,200 msnm (Soraypampa 3,920 msnm) y ascenso a pie; duración o dificultad requieren confirmación.",
+      "altitude": "4,200 m.s.n.m. (Soraypampa a 3,920 m.s.n.m.)",
+      "route": "Ascenso a pie desde Soraypampa (3,920 msnm) hasta Laguna Humantay (4,200 msnm). La duración o dificultad de la subida a pie requieren confirmación con la agencia."
     },
     {
       "entity_id": "waqra-pukara",
@@ -207,7 +210,10 @@
       "duration": "4 días",
       "includes_status": "unknown",
       "excludes_status": "unknown",
-      "route_status": "unknown"
+      "route_status": "partial",
+      "route_note": "F2 pág 17 documenta Abra Málaga (4,350 msnm) y descenso en bicicleta Día 1; otras actividades o caminata requieren confirmación.",
+      "altitude": "Abra Málaga a 4,350 m.s.n.m. (punto más alto del circuito)",
+      "route": "Día 1: Descenso en bicicleta desde Abra Málaga (4,350 msnm) hasta Santa María (1,450 msnm). Otras actividades de aventura y tiempos de caminata requieren confirmación con la agencia."
     },
     {
       "entity_id": "choquequirao",

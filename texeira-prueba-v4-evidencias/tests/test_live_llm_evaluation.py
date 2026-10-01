@@ -194,9 +194,10 @@ def run_live_llm_evaluation():
             "retriever_query": last_ret_rec.get("query"),
             "retrieved_docs": last_ret_rec.get("docs", []),
             "evaluation_criteria": {
-                "cites_abra_malaga": "abra málaga" in res1.get("response", "").lower() or "abra malaga" in res1.get("response", "").lower(),
+                "cites_abra_malaga": "abra málaga" in res1.get("response", "").lower() or "abra malaga" in res1.get("response", "").lower() or "4350" in res1.get("response", "") or "4,350" in res1.get("response", ""),
                 "cites_bici_cycling": "bicicleta" in res1.get("response", "").lower() or "bici" in res1.get("response", "").lower(),
-                "cites_adventure_activities": any(act in res1.get("response", "").lower() for act in ["canotaje", "rafting", "tirolina", "zipline"]),
+                "avoids_undocumented_activities": "canotaje" not in res1.get("response", "").lower() and "tirolina" not in res1.get("response", "").lower() and "rafting" not in res1.get("response", "").lower(),
+                "mentions_confirmation_needed": any(term in res1.get("response", "").lower() for term in ["asesor", "confirmar", "confirmación", "equipo", "consultar"]),
                 "avoids_hallucinations": "vuelo" not in res1.get("response", "").lower() and "helicóptero" not in res1.get("response", "").lower(),
             }
         })
@@ -241,7 +242,8 @@ def run_live_llm_evaluation():
                 "retains_original_question": last_llm_rec2.get("last_human_message") == q2,
                 "retrieved_humantay_doc": any(d.get("tour_id") == "laguna-humantay" for d in last_ret_rec2.get("docs", [])),
                 "cites_altitude_4200": "4200" in res2.get("response", "") or "4,200" in res2.get("response", "") or "4.200" in res2.get("response", ""),
-                "cites_hike_duration": any(t in res2.get("response", "").lower() for t in ["1.5", "2 horas", "hora y media", "1 hora y media", "subida", "ascenso"]),
+                "clarifies_hike_confirmation": any(term in res2.get("response", "").lower() for term in ["confirmar", "confirmación", "asesor", "consultar", "equipo"]),
+                "avoids_full_refusal": "no dispongo de esa información exacta" not in res2.get("response", "").lower(),
                 "identifies_humantay": "humantay" in res2.get("response", "").lower(),
             }
         })

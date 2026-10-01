@@ -677,6 +677,26 @@
       "evidence_status": "confirmed"
     },
     {
+      "fact_id": "lh-altitude-f2",
+      "entity_id": "laguna-humantay",
+      "field": "altitude",
+      "item": null,
+      "value": "4,200 m.s.n.m. (Soraypampa a 3,920 m.s.n.m.)",
+      "source_id": "F2",
+      "source_page": "9",
+      "evidence_status": "confirmed"
+    },
+    {
+      "fact_id": "lh-route-f2",
+      "entity_id": "laguna-humantay",
+      "field": "route",
+      "item": null,
+      "value": "Ascenso a pie desde Soraypampa (3,920 m.s.n.m.) hasta Laguna Humantay (4,200 m.s.n.m.). La duración o dificultad de la subida a pie requieren confirmación con la agencia.",
+      "source_id": "F2",
+      "source_page": "9",
+      "evidence_status": "confirmed"
+    },
+    {
       "fact_id": "wp-product-f2",
       "entity_id": "waqra-pukara",
       "field": "confirmed_product",
@@ -880,6 +900,26 @@
       "field": "duration",
       "item": null,
       "value": "4 días (itinerario publicado; confirmar variante y noches)",
+      "source_id": "F2",
+      "source_page": "17",
+      "evidence_status": "confirmed"
+    },
+    {
+      "fact_id": "ij-altitude-f2",
+      "entity_id": "inka-jungle",
+      "field": "altitude",
+      "item": null,
+      "value": "Abra Málaga a 4,350 m.s.n.m. (punto más alto del circuito)",
+      "source_id": "F2",
+      "source_page": "17",
+      "evidence_status": "confirmed"
+    },
+    {
+      "fact_id": "ij-route-f2",
+      "entity_id": "inka-jungle",
+      "field": "route",
+      "item": null,
+      "value": "Día 1: Descenso en bicicleta desde Abra Málaga (4,350 m.s.n.m.) hasta Santa María (1,450 m.s.n.m.). Otras actividades de aventura y tiempos de caminata requieren confirmación con la agencia.",
       "source_id": "F2",
       "source_page": "17",
       "evidence_status": "confirmed"
