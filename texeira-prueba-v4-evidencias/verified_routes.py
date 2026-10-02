@@ -307,7 +307,13 @@ def get_dynamic_cat_specs(active_tours_dict: dict) -> dict:
                 if b_eid in active_tours_dict:
                     t_data = active_tours_dict[b_eid]
                     name = t_data.get('name', b_name)
-                    dur = t_data.get('duration', b_dur) or b_dur
+                    overrides_cat = t_data.get('overridden_fields') or []
+                    raw_dur = t_data.get('duration', '')
+                    # Respetar borrado administrativo de duración
+                    if 'duration' in overrides_cat:
+                        dur = raw_dur  # puede ser '' si fue borrado
+                    else:
+                        dur = raw_dur or b_dur
                     specs[cat_k]['tours'].append((b_eid, name, dur))
                     seen.add(b_eid)
 
@@ -591,21 +597,34 @@ def install(ns, support, original):
         is_rej = is_rejection_query(q) and not is_ambiguous_ref
 
         if is_rec or is_rej or is_pref_reply:
-            pref_text = q
+            # Acumular preferencias de todos los turnos anteriores relevantes
+            # (no solo el último), para conservar restricciones entre turnos.
+            pref_texts = [q]
+            _NO_HIKING_PAT = re.compile(
+                r'\b(?:no|sin|nada\s+de)\s+(?:quiero\s+|deseo\s+|me\s+gusta\s+|tengo\s+ganas\s+de\s+)?'
+                r'(?:caminat\w*|trek\w*|hiking|senderis\w*|subid\w*)\b'
+            )
+            _PREF_PAT = re.compile(
+                r'\b(?:paisaje|histori|caminat|caminatas|d[ií]as?|day|days|medio|half|tiempo|prefer|aventur|cultur)\b'
+            )
             for h in reversed(prior):
-                if h.get('role') == 'human':
-                    h_text = support.normalize(h.get('content', ''))
-                    if is_recommendation_query(h_text) or re.search(r'\b(?:paisaje|histori|caminat|dia|day|tiempo|prefer)\b', h_text):
-                        pref_text = h_text + " " + q
-                    break
+                if h.get('role') != 'human':
+                    continue
+                h_text = support.normalize(h.get('content', ''))
+                if is_recommendation_query(h_text) or _PREF_PAT.search(h_text) or _NO_HIKING_PAT.search(h_text):
+                    pref_texts.append(h_text)
+            pref_text = ' '.join(reversed(pref_texts))  # cronológico: historial primero, pregunta actual al final
 
-            no_hiking = bool(re.search(r'\b(?:no|sin|nada\s+de)\s+(?:quiero\s+|deseo\s+|me\s+gusta\s+|tengo\s+ganas\s+de\s+)?(?:caminat\w*|trek\w*|hiking|senderis\w*|subid\w*)\b', pref_text))
+            no_hiking = bool(_NO_HIKING_PAT.search(pref_text))
             has_hiking = (not no_hiking) and bool(re.search(r'\b(caminat\w*|senderis\w*|aventur\w*|trek\w*|hike\w*|hiking|adventure)\b', pref_text))
             has_nature = bool(re.search(r'\b(paisaje\w*|naturalez\w*|laguna\w*|monta[nñ]a\w*|scener\w*|landscape\w*|nature|lake\w*)\b', pref_text))
             has_history = bool(re.search(r'\b(hist[oó]ri\w*|arqueolog\w*|cultur\w*|ruina\w*|templo\w*|history|historical|archeolog\w*|ruins|culture)\b', pref_text))
             has_time_short = bool(re.search(r'\b(medio\s*d[ií]a|half\s*day|pocas horas|poco tiempo)\b', pref_text))
             has_time_1day = bool(re.search(r'\b(1\s*d[ií]a|un\s*d[ií]a|full\s*day|1\s*day|one\s*day|d[ií]a\s+completo)\b', pref_text))
-            has_time_multi = bool(re.search(r'\b([2345]\s*d[ií]as?|[2345]\s*days?|varios\s*d[ií]as?|several\s*days?)\b', pref_text))
+            # Detectar número exacto de días para filtrar con precisión (ej. «2 días» ≠ «4 días»)
+            _multi_m = re.search(r'\b([2345])\s*d[ií]as?\b|\b([2345])\s*days?\b', pref_text)
+            has_time_multi = bool(_multi_m)
+            exact_days = int(_multi_m.group(1) or _multi_m.group(2)) if _multi_m else None
 
             # Sin preferencias: preguntar brevemente por intereses y tiempo disponible
             if not (has_nature or has_history or has_hiking or has_time_short or has_time_1day or has_time_multi or no_hiking):
@@ -623,27 +642,69 @@ def install(ns, support, original):
                     )
                 return finish(msg, 'evidence_recommendation', pending=True, needs_agency=False, sources=['CATALOGO_OFICIAL'])
 
+            # Mapear duración documentada del catálogo a dur_type dinámico
+            def _get_live_dur_type(eid_k, t_d):
+                """Calcula dur_type desde la duración vigente del catálogo.
+                Si hay override con valor vacío, devuelve None (duración desconocida)."""
+                overrides_d = t_d.get('overridden_fields') or []
+                dur_val = str(t_d.get('duration') or '').strip().lower()
+                if 'duration' in overrides_d and not dur_val:
+                    return None  # borrado administrativo; no filtrar por dur_type
+                if not dur_val:
+                    # Sin override y sin valor: usar perfil estático como respaldo
+                    static = TOUR_PROFILES.get(eid_k, {})
+                    return static.get('dur_type', '1day')
+                if any(w in dur_val for w in ['medio', 'half', 'pocas horas']):
+                    return 'half'
+                m_days = re.search(r'(\d+)\s*d[ií]a', dur_val)
+                if m_days:
+                    n = int(m_days.group(1))
+                    if n == 1:
+                        return '1day'
+                    return ('multi', n)  # tupla (tipo, número_exacto)
+                if 'noche' in dur_val or 'night' in dur_val:
+                    return 'multi'
+                return '1day'
+
             # Con preferencias: filtrar dinámicamente sobre active_tours vigentes
             candidates = []
             for eid, t_data in active_tours.items():
                 if not t_data.get('is_active', True) or is_deactivated_tour(eid):
                     continue
-                prof = TOUR_PROFILES.get(eid, {
-                    'dur_type': 'half' if 'medio' in (t_data.get('duration') or '').lower() else ('multi' if any(w in (t_data.get('duration') or '').lower() for w in ['4 d', '2 d', 'noche']) else '1day'),
+                prof = dict(TOUR_PROFILES.get(eid, {
+                    'dur_type': '1day',
                     'is_hiking': any(k in eid for k in ['trek', 'caminata', 'hike', 'inka', 'salkantay', 'jungle', 'choquequirao']),
                     'is_nature': True,
                     'is_history': any(k in eid for k in ['city', 'valle', 'machu', 'moray', 'sacsay', 'qorikancha']),
                     'desc_es': t_data.get('includes') or t_data.get('name', eid),
                     'desc_en': t_data.get('includes') or t_data.get('name', eid),
-                })
+                }))
+
+                # Sobrescribir dur_type con el valor vigente del catálogo
+                live_dur = _get_live_dur_type(eid, t_data)
+                if live_dur is not None:
+                    if isinstance(live_dur, tuple):
+                        prof['dur_type'] = 'multi'
+                        prof['dur_days'] = live_dur[1]
+                    else:
+                        prof['dur_type'] = live_dur
+                        prof['dur_days'] = None
+                else:
+                    prof['dur_days'] = None  # duración borrada: no filtrar por duración
 
                 # Restricciones duras de duración
-                if has_time_short and prof['dur_type'] != 'half':
-                    continue
-                if has_time_1day and prof['dur_type'] != '1day':
-                    continue
-                if has_time_multi and prof['dur_type'] != 'multi':
-                    continue
+                if live_dur is not None:  # solo aplicar si la duración es conocida
+                    if has_time_short and prof['dur_type'] != 'half':
+                        continue
+                    if has_time_1day and prof['dur_type'] != '1day':
+                        continue
+                    if has_time_multi:
+                        if prof['dur_type'] != 'multi':
+                            continue
+                        # Filtrar por número exacto de días cuando está documentado
+                        if exact_days is not None and prof.get('dur_days') is not None:
+                            if prof['dur_days'] != exact_days:
+                                continue
 
                 # Restricción dura de caminatas negativas
                 if no_hiking and prof['is_hiking']:
@@ -676,7 +737,9 @@ def install(ns, support, original):
                     disp_name = name
 
                 dur = str(c_data.get('duration') or '').strip()
-                if not dur:
+                c_overrides_dur = c_data.get('overridden_fields') or []
+                if not dur and 'duration' not in c_overrides_dur:
+                    # Solo usar respaldo canónico si NO fue borrado administrativamente
                     from catalog_service import CANONICAL_TOUR_DURATIONS
                     dur = CANONICAL_TOUR_DURATIONS.get(c_eid, 'Full Day')
                 dur_disp = english_duration(dur) if en else dur
