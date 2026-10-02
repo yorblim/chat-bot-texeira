@@ -11,6 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 def main():
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
     target = (ROOT / 'tests' / sys.argv[1]).resolve()
     if target.parent != ROOT / 'tests' or not target.is_file():
         raise ValueError('Specify a test filename inside tests/')

@@ -818,6 +818,7 @@ _SPECIFIC_INDICATORS = [
     "quiero reservar", "quiero ir a", "quiero conocer",
     "informacion de", "información de", "detalles de",
     "hablame de", "háblame de", "cuéntame de", "cuentame de",
+    "recomiend", "recomen", "sugier", "suger", "recommend", "suggest",
 ]
 
 
@@ -1322,14 +1323,27 @@ def resolve_contextual_retriever_query(question: str, history: list) -> tuple:
         return normalized_query_text, explicit_in_q, explicit_in_q[0], False, None
 
     # Caso B: Pregunta sin tour explícito -> Evaluar historial conversacional
+    try:
+        from verified_routes import is_recommendation_query, is_rejection_query, is_other_options_query
+        is_rec_or_reject = is_recommendation_query(norm_q) or is_rejection_query(norm_q) or is_other_options_query(norm_q)
+    except Exception:
+        is_rec_or_reject = bool(re.search(r'\b(recomie\w*|recomen\w*|sugier\w*|suger\w*|ning[uú]n\w*|neither|none|otra\s+opci\w*|otro\s+tour\w*)\b', norm_q))
+
+    if is_rec_or_reject:
+        # Peticiones de recomendación, rechazo ("ninguno") u opciones alternativas NUNCA deben solicitar aclaración de tour
+        return normalized_query_text, [], None, False, None
+
     is_ambiguous_ref = bool(re.search(
-        r'\b((?:d?el|de la)\s+otr[oa]s?|el demas|los demas|otro tour|otra opcion|the other( one)?|the second( one)?)\b',
+        r'\b((?:d?el|de la)\s+otr[oa]s?|el demas|los demas|the other( one)?|the second( one)?)\b',
         norm_q
     ))
 
     # Recolectar entidades mencionadas en los turnos recientes del historial (últimos 6 mensajes)
+    # REGLA: SOLO turnos humanos representan selecciones o consultas del cliente (un listado del bot no es selección)
     recent_eids_by_turn = []
     for h in reversed(history[-6:]):
+        if h.get("role") != "human":
+            continue
         h_text = normalize(h.get("content", ""))
         turn_eids = []
         if kw_map:
@@ -1355,10 +1369,18 @@ def resolve_contextual_retriever_query(question: str, history: list) -> tuple:
                 candidate_eids.append(eid)
 
     # Detección de ambigüedad:
-    # 1) Si dice explícitamente "el otro" / "the other" y hay >= 2 candidatos
-    # 2) O si el último turno previo mencionó >= 2 candidatos a la vez y la pregunta actual es elíptica
+    # 1) Si dice explícitamente "el otro" / "the other" y hay >= 2 candidatos del historial humano
+    # 2) O si el último turno previo HUMANO mencionó >= 2 candidatos a la vez y la pregunta actual es una consulta específica de atributo
+    is_attribute_query = bool(re.search(
+        r'\b(precio|tarifa|cuesta|cuanto cuesta|costo|foto|fotos|imagen|imagenes|que incluye|incluye|no incluye|horario|hora|salida|recorrido|reservar|reserva|price|rate|cost|how much|photo|photos|picture|pictures|include|schedule|departure|book|reservation)\b',
+        norm_q
+    ))
     last_turn_had_multiple = bool(recent_eids_by_turn and len(recent_eids_by_turn[0]) >= 2)
-    if (is_ambiguous_ref and len(candidate_eids) >= 2) or (last_turn_had_multiple and len(candidate_eids) >= 2):
+    should_clarify = (
+        (is_ambiguous_ref and len(candidate_eids) >= 2) or
+        (last_turn_had_multiple and len(candidate_eids) >= 2 and is_attribute_query)
+    )
+    if should_clarify:
         t1, t2 = candidate_eids[0], candidate_eids[1]
         try:
             from catalog_service import get_tour_by_id
@@ -1973,6 +1995,13 @@ def get_quick_buttons(
                 buttons.append({"id": f"btn_tour:{c}:{lang}", "title": title[:20]})
         buttons.append({"id": f"btn_tours:{lang}", "title": "🗺️ View Tours" if is_en else "🗺️ Ver Tours"})
         return buttons[:3]
+
+    # 5b. Recomendaciones de tours
+    if route == "evidence_recommendation":
+        return [
+            {"id": f"btn_tours:{lang}", "title": "🗺️ View Tours" if is_en else "🗺️ Ver Tours"},
+            {"id": f"btn_advisor:{lang}", "title": "Consult advisor" if is_en else "Consultar asesor"},
+        ]
 
     # 6. Solicitud de atención o reserva registrada (handoff)
     if route == "human_request":
