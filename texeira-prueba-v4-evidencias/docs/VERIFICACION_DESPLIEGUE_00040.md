@@ -26,8 +26,8 @@
 
 Conforme al Paso 1 de `AGENTS.md`, se ejecutó la suite completa de pruebas en el entorno local antes de tocar producción:
 
-1. **`tests/test_whatsapp_flow_polish.py`:** **11 PASS / 0 FAIL** (100 %)  
-   - Validación de los 10 recorridos obligatorios: navegación por categorías dinámicas, paginación, desactivación limpia sin bucles, derivación a asesor sin confirmar reservas en línea, y entrega honesta de fotos.
+1. **`tests/test_whatsapp_flow_polish.py`:** **13 PASS / 0 FAIL** (100 %)  
+   - Validación integral de 13 pruebas unitarias y de integración que cubren los 10 recorridos obligatorios: navegación por categorías dinámicas, paginación con botones reales, desactivación limpia sin bucles, derivación a asesor sin confirmar reservas en línea, y entrega honesta de fotos.
 2. **`tests/run_isolated.py test_audit_20260912.py`:** **21 PASS / 0 FAIL** (100 %)  
    - Integridad de endpoints, prevención de conflictos y métricas operativas.
 3. **`tests/run_isolated.py test_conversational.py`:** **36 PASS / 0 FAIL** (100 %)  
@@ -49,7 +49,7 @@ Configuración verificada de la revisión activa:
 - **Región:** `us-central1`
 - **Proyecto:** `texeira-whatsapp-bot`
 - **Recursos de cómputo:** 1 vCPU, 2 GiB RAM, `startup-cpu-boost = true`.
-- **Escalabilidad y Costo:** `min-instances = 0` (escala a cero, costo $0.00 cuando no hay tráfico), `max-instances = 2`.
+- **Escalabilidad y Costo:** `min-instances = 0` (establece escala a cero ante inactividad; no constituye una garantía de factura total cero dado que el consumo depende de los límites de la capa gratuita, servicios vinculados y tráfico efectivo), `max-instances = 2`.
 - **Proveedor y Secretos:** Intactos y conservados desde Secret Manager:
   - `LLM_PROVIDER`: `groq` (`qwen/qwen3.8-27b`)
   - `DATABASE_URL`: Versión `1` (Neon PostgreSQL)
