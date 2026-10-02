@@ -134,6 +134,29 @@ INITIAL_CANONICAL_ALIASES = {
     'puente-qeswachaca': ['qeswachaca', 'puente qeswachaca', 'queswachaca'],
 }
 
+# Duraciones canónicas de referencia para tours iniciales (sin horarios mezclados)
+CANONICAL_TOUR_DURATIONS = {
+    'machu-picchu-tren': '1 día',
+    'camino-inka': '4 días / 3 noches',
+    'machu-picchu-car': '2 días / 1 noche',
+    'salkantay-trek': '4 días',
+    'inka-jungle': '4 días',
+    'choquequirao': '4 días',
+    'montana-7-colores': 'Full Day',
+    'laguna-humantay': 'Full Day',
+    'city-tour-cusco': 'Medio día',
+    'valle-sagrado': 'Full Day',
+    'maras-moray': 'Medio día',
+    'waqra-pukara': 'Full Day',
+    'valle-sur': 'Medio día',
+    'maras-moray-cuatrimoto': 'Medio día',
+    'puente-qeswachaca': 'Full Day',
+    'tour-mistico': 'Medio día',
+    'islas-titicaca': 'Full Day',
+    'canon-colca': '2 días / 1 noche',
+    'ruta-del-sol': 'Full Day',
+}
+
 
 def init_catalog_db() -> None:
     """Crea las tablas catalog_tours y catalog_tour_rates y migra los tours canónicos si está vacía."""
@@ -177,10 +200,19 @@ def _seed_from_json(conn) -> None:
             aliases = INITIAL_CANONICAL_ALIASES.get(eid, [name.lower()])
             price = str(t.get("official_price", "") or "")
             curr = str(t.get("currency", "USD"))
-            # Los tours canónicos iniciales no tienen sobreescritura de horario administrativo;
-            # se gestionan mediante hechos históricos hasta que la agencia los actualice dinámicamente.
-            sched = ""
-            dur = str(t.get("duration", "") or "")
+            # Los tours canónicos iniciales registran horario y duración oficiales si existen
+            sched = str(t.get("schedule", "") or "")
+            if not sched:
+                try:
+                    from src.evidence import get_facts
+                    for f in get_facts(eid, include_dynamic=False):
+                        if f.field == "schedule" and f.value and f.value is not False and getattr(f, "evidence_status", "") == "confirmed":
+                            sched = str(f.value).strip()
+                            break
+                except Exception:
+                    pass
+
+            dur = str(t.get("duration", "") or "") or CANONICAL_TOUR_DURATIONS.get(eid, "")
             inc = str(t.get("includes_note", "") or "")
             exc = str(t.get("excludes_note", "") or "")
 
@@ -192,14 +224,26 @@ def _seed_from_json(conn) -> None:
                     photo_file = candidate.name
                     break
 
-            conn.execute(
+            insert_sql = (
                 """
                 INSERT INTO catalog_tours (
                     entity_id, name, aliases, official_price, currency,
                     schedule, duration, includes, excludes, photo_filename,
                     is_canonical, is_active, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
-                """,
+                ON CONFLICT (entity_id) DO NOTHING
+                """
+                if is_postgres() else
+                """
+                INSERT OR IGNORE INTO catalog_tours (
+                    entity_id, name, aliases, official_price, currency,
+                    schedule, duration, includes, excludes, photo_filename,
+                    is_canonical, is_active, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+                """
+            )
+            conn.execute(
+                insert_sql,
                 (
                     eid, name, json.dumps(aliases), price, curr,
                     sched, dur, inc, exc, photo_file, now, now
@@ -228,7 +272,23 @@ def _get_db_latest_update() -> str:
                 return str(row[0])
     except Exception:
         pass
+def _get_confirmed_schedule_fallback(entity_id: str, overrides: list) -> str:
+    if "schedule" in overrides:
+        return ""
+    try:
+        from src.evidence import get_facts
+        for f in get_facts(entity_id, include_dynamic=False):
+            if f.field == "schedule" and f.value and f.value is not False and getattr(f, "evidence_status", "") == "confirmed":
+                return str(f.value).strip()
+    except Exception:
+        pass
     return ""
+
+
+def _get_canonical_duration_fallback(entity_id: str, overrides: list) -> str:
+    if "duration" in overrides:
+        return ""
+    return CANONICAL_TOUR_DURATIONS.get(entity_id, "")
 
 
 def get_all_tours(active_only: bool = True, strict: bool = False) -> List[Dict[str, Any]]:
@@ -277,8 +337,8 @@ def get_all_tours(active_only: bool = True, strict: bool = False) -> List[Dict[s
                 "aliases": aliases_list,
                 "official_price": r["official_price"] or "",
                 "currency": r["currency"] or "USD",
-                "schedule": r["schedule"] or "",
-                "duration": r["duration"] or "",
+                "schedule": r["schedule"] or _get_confirmed_schedule_fallback(r["entity_id"], overrides.get(r["entity_id"], [])),
+                "duration": r["duration"] or _get_canonical_duration_fallback(r["entity_id"], overrides.get(r["entity_id"], [])),
                 "includes": r["includes"] or "",
                 "excludes": r["excludes"] or "",
                 "photo_filename": r["photo_filename"] or "",
@@ -300,6 +360,8 @@ def get_all_tours(active_only: bool = True, strict: bool = False) -> List[Dict[s
             return [t for t in tours if t.get("is_active", 1)]
         return tours
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"[CATALOG SERVICE ERROR] Error consultando tours: {e}")
         if strict:
             raise

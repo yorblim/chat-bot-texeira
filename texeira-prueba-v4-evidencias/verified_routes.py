@@ -70,6 +70,26 @@ _SOCIAL_RESPONSES = {
 
 _HELP_RESPONSE = '¡Claro! 😊 Puedo ayudarte con *tours, horarios y servicios* de Texeira Travel.\n¿Qué destino te interesa? O escribe 👉 *asesor*'
 
+
+def is_recommendation_query(q_norm: str) -> bool:
+    """Detecta peticiones de recomendación, sugerencia o consejo, tolerando erratas."""
+    if re.search(r'\b(?:recomie\w*|recomen\w*|recomnd\w*|sugier\w*|suger\w*|aconsej\w*|recommend\w*|suggest\w*|advice|advise)\b', q_norm):
+        return True
+    if re.search(r'\b(?:que|cual|cuales)\s+(?:me\s+)?(?:conviene|elijo|escojo|hago|tomar|hacer|tours?\s+(?:me\s+)?(?:das|ofreces))\b', q_norm):
+        return True
+    return False
+
+
+def is_rejection_query(q_norm: str) -> bool:
+    """Detecta rechazos de opciones anteriores ('ninguno', 'ninguna', 'neither', 'none')."""
+    return bool(re.search(r'\b(?:ning[uú]n\w*|neither|none(?:\s+of\s+(?:them|these|those))?)\b', q_norm))
+
+
+def is_other_options_query(q_norm: str) -> bool:
+    """Detecta peticiones de otras opciones o tours alternativos."""
+    return bool(re.search(r'\b(?:otr[oa]s?\s+(?:opci[oó]n\w*|tour\w*|alternativ\w*|destino\w*)|other\s+(?:option\w*|tour\w*|alternative\w*|destination\w*))\b', q_norm))
+
+
 CAT_SPECS_DICT = {
     'treks': {
         'key': 'treks',
@@ -79,12 +99,12 @@ CAT_SPECS_DICT = {
         'btn_title_es': '🏔️ Machu Picchu',
         'btn_title_en': '🏔️ Machu Picchu',
         'tours': [
-            ('machu-picchu-tren', 'Machu Picchu en Tren', '1 día | 04:00-20:30'),
+            ('machu-picchu-tren', 'Machu Picchu en Tren', '1 día'),
             ('camino-inka', 'Camino Inca Clásico', '4 días / 3 noches'),
             ('machu-picchu-car', 'Machu Picchu by Car', '2 días / 1 noche'),
-            ('salkantay-trek', 'Salkantay Trek', '4 días / 3 noches'),
-            ('inka-jungle', 'Inka Jungle to Machu Picchu', '4 días / 3 noches'),
-            ('choquequirao', 'Choquequirao Trek', '4 días / 3 noches'),
+            ('salkantay-trek', 'Salkantay Trek', '4 días'),
+            ('inka-jungle', 'Inka Jungle to Machu Picchu', '4 días'),
+            ('choquequirao', 'Choquequirao Trek', '4 días'),
         ]
     },
     'cusco': {
@@ -95,13 +115,13 @@ CAT_SPECS_DICT = {
         'btn_title_es': '🌄 Clásicos Cusco',
         'btn_title_en': '🌄 Cusco Classics',
         'tours': [
-            ('montana-7-colores', 'Montaña de 7 Colores', 'Full Day | 04:00-18:30'),
-            ('laguna-humantay', 'Laguna Humantay', 'Full Day | 04:30-18:00'),
-            ('city-tour-cusco', 'City Tour Cusco', 'Medio día | 13:00-18:30'),
-            ('valle-sagrado', 'Valle Sagrado', 'Full Day | 07:00-18:30'),
-            ('maras-moray', 'Maras - Moray', 'Medio día | 08:00-14:30'),
-            ('waqra-pukara', 'Waqra Pukara', 'Full Day | 04:00-19:00'),
-            ('valle-sur', 'Valle Sur', 'Medio día | 08:30-14:00'),
+            ('montana-7-colores', 'Montaña de 7 Colores', 'Full Day'),
+            ('laguna-humantay', 'Laguna Humantay', 'Full Day'),
+            ('city-tour-cusco', 'City Tour Cusco', 'Medio día'),
+            ('valle-sagrado', 'Valle Sagrado', 'Full Day'),
+            ('maras-moray', 'Maras - Moray', 'Medio día'),
+            ('waqra-pukara', 'Waqra Pukara', 'Full Day'),
+            ('valle-sur', 'Valle Sur', 'Medio día'),
             ('maras-moray-cuatrimoto', 'Tour Cuatrimoto / Maras-Moray', 'Medio día'),
             ('puente-qeswachaca', "Puente de Q’eswachaca", 'Full Day'),
             ('tour-mistico', 'Tour Místico', 'Medio día'),
@@ -115,13 +135,111 @@ CAT_SPECS_DICT = {
         'btn_title_es': '🚌 Rutas Regionales',
         'btn_title_en': '🚌 Regional Routes',
         'tours': [
-            ('ruta-del-sol', 'Ruta del Sol Cusco-Puno', 'Día completo | 06:40-17:30'),
+            ('ruta-del-sol', 'Ruta del Sol Cusco-Puno', 'Día completo'),
             ('islas-titicaca', 'Islas del Lago Titicaca', 'Full Day'),
             ('canon-colca', 'Cañón del Colca / Baños Termales de Chacapi', '2 días / 1 noche'),
         ]
     }
 }
 CAT_SPECS = list(CAT_SPECS_DICT.values())
+
+TOUR_PROFILES = {
+    'laguna-humantay': {
+        'dur_type': '1day', 'is_hiking': True, 'is_nature': True, 'is_history': False,
+        'desc_es': 'hermosa laguna turquesa al pie del nevado Salkantay',
+        'desc_en': 'stunning turquoise lake at the foot of Mount Salkantay',
+    },
+    'montana-7-colores': {
+        'dur_type': '1day', 'is_hiking': True, 'is_nature': True, 'is_history': False,
+        'desc_es': 'impresionante paisaje cordillerano en Vinicunca',
+        'desc_en': 'colorful Andean mountain landscape in Vinicunca',
+    },
+    'valle-sagrado': {
+        'dur_type': '1day', 'is_hiking': False, 'is_nature': True, 'is_history': True,
+        'desc_es': 'Pisac, Ollantaytambo y Chinchero en un hermoso valle andino',
+        'desc_en': 'Pisac, Ollantaytambo, Chinchero',
+    },
+    'city-tour-cusco': {
+        'dur_type': 'half', 'is_hiking': False, 'is_nature': False, 'is_history': True,
+        'desc_es': 'templos y centros arqueológicos como Sacsayhuamán y Qorikancha',
+        'desc_en': 'archaeological temples Sacsayhuamán & Qorikancha',
+    },
+    'maras-moray': {
+        'dur_type': 'half', 'is_hiking': False, 'is_nature': True, 'is_history': True,
+        'desc_es': 'salineras artesanales y terrazas agrícolas circulares',
+        'desc_en': 'salt mines and circular agricultural terraces',
+    },
+    'maras-moray-cuatrimoto': {
+        'dur_type': 'half', 'is_hiking': False, 'is_nature': True, 'is_history': False,
+        'desc_es': 'aventura en cuatrimoto hacia las salineras de Maras y Moray',
+        'desc_en': 'ATV adventure to Maras salt mines and Moray',
+    },
+    'valle-sur': {
+        'dur_type': 'half', 'is_hiking': False, 'is_nature': True, 'is_history': True,
+        'desc_es': 'sitios arqueológicos de Tipón y Pikillacta',
+        'desc_en': 'archaeological sites of Tipon and Pikillacta',
+    },
+    'tour-mistico': {
+        'dur_type': 'half', 'is_hiking': False, 'is_nature': False, 'is_history': True,
+        'desc_es': 'ceremonia y cosmovisión andina tradicional',
+        'desc_en': 'traditional Andean ceremony and worldview',
+    },
+    'machu-picchu-tren': {
+        'dur_type': '1day', 'is_hiking': False, 'is_nature': True, 'is_history': True,
+        'desc_es': 'maravilla mundial clásica en tren',
+        'desc_en': 'classic world wonder by train',
+    },
+    'machu-picchu-car': {
+        'dur_type': 'multi', 'is_hiking': False, 'is_nature': True, 'is_history': True,
+        'desc_es': 'ruta panorámica alternativa hacia Machu Picchu',
+        'desc_en': 'scenic alternative route to Machu Picchu',
+    },
+    'camino-inka': {
+        'dur_type': 'multi', 'is_hiking': True, 'is_nature': True, 'is_history': True,
+        'desc_es': 'la ruta senderista legendaria a Machu Picchu',
+        'desc_en': 'legendary hiking trek to Machu Picchu',
+    },
+    'salkantay-trek': {
+        'dur_type': 'multi', 'is_hiking': True, 'is_nature': True, 'is_history': False,
+        'desc_es': 'aventura andina de alta montaña',
+        'desc_en': 'Andean high-mountain adventure',
+    },
+    'inka-jungle': {
+        'dur_type': 'multi', 'is_hiking': True, 'is_nature': True, 'is_history': False,
+        'desc_es': 'aventura con bicicleta y senderismo hacia Machu Picchu',
+        'desc_en': 'adventure with biking and trekking to Machu Picchu',
+    },
+    'choquequirao': {
+        'dur_type': 'multi', 'is_hiking': True, 'is_nature': True, 'is_history': True,
+        'desc_es': 'gran expedición arqueológica en la cordillera',
+        'desc_en': 'great archaeological expedition in the mountains',
+    },
+    'waqra-pukara': {
+        'dur_type': '1day', 'is_hiking': True, 'is_nature': True, 'is_history': True,
+        'desc_es': 'imponente fortaleza y cañón andino',
+        'desc_en': 'stunning fortress and Andean canyon',
+    },
+    'puente-qeswachaca': {
+        'dur_type': '1day', 'is_hiking': False, 'is_nature': True, 'is_history': True,
+        'desc_es': 'último puente colgante inca y paisajes altoandinos',
+        'desc_en': 'last hanging Inca rope bridge and Andean landscapes',
+    },
+    'islas-titicaca': {
+        'dur_type': '1day', 'is_hiking': False, 'is_nature': True, 'is_history': True,
+        'desc_es': 'islas flotantes de los Uros y Taquile',
+        'desc_en': 'floating islands of Uros and Taquile',
+    },
+    'canon-colca': {
+        'dur_type': 'multi', 'is_hiking': False, 'is_nature': True, 'is_history': False,
+        'desc_es': 'mirador del cóndor y cañones profundos',
+        'desc_en': 'condor viewpoint and deep canyons',
+    },
+    'ruta-del-sol': {
+        'dur_type': '1day', 'is_hiking': False, 'is_nature': True, 'is_history': True,
+        'desc_es': 'recorrido paisajístico entre Cusco y Puno',
+        'desc_en': 'scenic journey between Cusco and Puno',
+    },
+}
 
 
 def classify_tour_category(entity_id: str, name: str = "") -> str:
@@ -245,14 +363,28 @@ def install(ns, support, original):
             dynamic_active = [t for t in dynamic_all if t.get('is_active')]
             res = {}
             for dt in dynamic_active:
-                res[dt['entity_id']] = {
-                    'entity_id': dt['entity_id'],
+                eid_cur = dt['entity_id']
+                overrides_cur = dt.get('overridden_fields') or []
+                sched_cur = str(dt.get('schedule') or '').strip()
+                dur_cur = str(dt.get('duration') or '').strip()
+                if not sched_cur and 'schedule' not in overrides_cur:
+                    for f in get_facts(eid_cur, include_dynamic=False):
+                        if f.field == 'schedule' and f.value and f.value is not False and getattr(f, 'evidence_status', '') == 'confirmed':
+                            sched_cur = str(f.value).strip()
+                            break
+                if not dur_cur and 'duration' not in overrides_cur:
+                    for f in get_facts(eid_cur, include_dynamic=False):
+                        if f.field == 'duration' and f.value and f.value is not False and getattr(f, 'evidence_status', '') == 'confirmed':
+                            dur_cur = str(f.value).strip()
+                            break
+                res[eid_cur] = {
+                    'entity_id': eid_cur,
                     'name': dt['name'],
                     'confirmed_product': True,
                     'official_price': dt.get('official_price', ''),
                     'currency': dt.get('currency', 'USD'),
-                    'schedule': dt.get('schedule', ''),
-                    'duration': dt.get('duration', ''),
+                    'schedule': sched_cur,
+                    'duration': dur_cur,
                     'includes': dt.get('includes', ''),
                     'excludes': dt.get('excludes', ''),
                     'photo_filename': dt.get('photo_filename', ''),
@@ -357,12 +489,25 @@ def install(ns, support, original):
                 needs_confirmation=False,conflict_detected=False,evidence_status='social',
                 sources_used=[],route='help',response_route='help')
 
-        def finish(text,route, pending=False, sources=(), conflict=False, predefined=True, entity_id=None):
+        def finish(text, route, pending=False, sources=(), conflict=False, predefined=True, entity_id=None, needs_agency=None):
+            needs_agency_val = pending if needs_agency is None else needs_agency
             record(user_id, question, text)
-            return dict(response=text,context_used=bool(sources),is_predefined=predefined,is_fallback=False,
-                resolved_autonomously=not pending,is_escalation=False,needs_agency_confirmation=pending,
-                needs_confirmation=pending,conflict_detected=conflict,evidence_status='conflict' if conflict else ('unknown' if pending else 'documented'),
-                sources_used=sorted(set(sources)),route=route,response_route=route,entity_id=entity_id)
+            return dict(
+                response=text,
+                context_used=bool(sources),
+                is_predefined=predefined,
+                is_fallback=False,
+                resolved_autonomously=not pending,
+                is_escalation=False,
+                needs_agency_confirmation=needs_agency_val,
+                needs_confirmation=pending,
+                conflict_detected=conflict,
+                evidence_status='clarification' if (pending and not needs_agency_val) else ('conflict' if conflict else ('unknown' if pending else 'documented')),
+                sources_used=sorted(set(sources)),
+                route=route,
+                response_route=route,
+                entity_id=entity_id
+            )
         def unknown(subject, entity_id=None):
             t_name = ""
             if entity_id and entity_id in active_tours:
@@ -401,11 +546,19 @@ def install(ns, support, original):
             return finish(msg, 'evidence_catalog_empty', pending=True)
 
         # 3. Detección de referencias ambiguas ("el otro", "del otro", "the other", etc.)
-        is_ambiguous_ref = bool(re.search(
-            r'\b((?:d?el|de la)\s+otr[oa]s?|el demas|los demas|otro tour|otra opcion|the other( one)?|the second( one)?)\b',
+        entity_in_q = support.detect_entity_from_question(q)
+        is_advice_on_tour = bool(entity_in_q and re.search(
+            r'\b(?:llevar|ropa|vestir|calzado|zapat\w*|mochila|equipaje|clima|tiempo|temperatura|dificultad|preparaci[oó]n|preparar|exigencia|altura|altitud|bring|wear|pack|clothing|clothes|gear|weather|difficulty|altitude)\b',
             q
         ))
-        if is_ambiguous_ref and not support.detect_entity_from_question(q):
+
+        # Peticiones de recomendación, rechazo ("ninguno") u otras opciones NUNCA son ambigüedad de tour
+        is_rec_or_reject = (is_recommendation_query(q) and not is_advice_on_tour) or is_rejection_query(q) or is_other_options_query(q)
+        is_ambiguous_ref = (not is_rec_or_reject) and bool(re.search(
+            r'\b((?:d?el|de la)\s+otr[oa]s?|el demas|los demas|the other( one)?|the second( one)?)\b',
+            q
+        ))
+        if is_ambiguous_ref and not entity_in_q:
             recent_eids = []
             for h in reversed(prior):
                 if h.get('role') == 'human':
@@ -426,7 +579,145 @@ def install(ns, support, original):
                     if not en else
                     f"Which tour are you referring to? We discussed *{t1_name}* and *{t2_name}*. Please let me know which one you'd like to check or type its name 😊"
                 )
-                return finish(msg, 'evidence_ambiguous', pending=True, sources=[], entity_id=f"{recent_eids[0]},{recent_eids[1]}")
+                return finish(msg, 'evidence_ambiguous', pending=True, sources=[], entity_id=f"{recent_eids[0]},{recent_eids[1]}", needs_agency=False)
+
+        # 3.5 Peticiones de recomendación, rechazo u orientación de preferencias
+        is_pref_reply = bool(re.search(
+            r'\b(?:paisajes?|sitios?\s+hist[oó]ricos?|caminatas?|senderismo|aventura|cultura|landscapes?|hiking|historical\s+sites?|medio\s*d[ií]a|half\s*day|1\s*d[ií]a|un\s*d[ií]a|full\s*day|[2345]\s*d[ií]as?)\b',
+            q
+        )) and not entity_in_q
+
+        is_rec = is_recommendation_query(q) and not is_advice_on_tour
+        is_rej = is_rejection_query(q) and not is_ambiguous_ref
+
+        if is_rec or is_rej or is_pref_reply:
+            pref_text = q
+            for h in reversed(prior):
+                if h.get('role') == 'human':
+                    h_text = support.normalize(h.get('content', ''))
+                    if is_recommendation_query(h_text) or re.search(r'\b(?:paisaje|histori|caminat|dia|day|tiempo|prefer)\b', h_text):
+                        pref_text = h_text + " " + q
+                    break
+
+            no_hiking = bool(re.search(r'\b(?:no|sin|nada\s+de)\s+(?:quiero\s+|deseo\s+|me\s+gusta\s+|tengo\s+ganas\s+de\s+)?(?:caminat\w*|trek\w*|hiking|senderis\w*|subid\w*)\b', pref_text))
+            has_hiking = (not no_hiking) and bool(re.search(r'\b(caminat\w*|senderis\w*|aventur\w*|trek\w*|hike\w*|hiking|adventure)\b', pref_text))
+            has_nature = bool(re.search(r'\b(paisaje\w*|naturalez\w*|laguna\w*|monta[nñ]a\w*|scener\w*|landscape\w*|nature|lake\w*)\b', pref_text))
+            has_history = bool(re.search(r'\b(hist[oó]ri\w*|arqueolog\w*|cultur\w*|ruina\w*|templo\w*|history|historical|archeolog\w*|ruins|culture)\b', pref_text))
+            has_time_short = bool(re.search(r'\b(medio\s*d[ií]a|half\s*day|pocas horas|poco tiempo)\b', pref_text))
+            has_time_1day = bool(re.search(r'\b(1\s*d[ií]a|un\s*d[ií]a|full\s*day|1\s*day|one\s*day|d[ií]a\s+completo)\b', pref_text))
+            has_time_multi = bool(re.search(r'\b([2345]\s*d[ií]as?|[2345]\s*days?|varios\s*d[ií]as?|several\s*days?)\b', pref_text))
+
+            # Sin preferencias: preguntar brevemente por intereses y tiempo disponible
+            if not (has_nature or has_history or has_hiking or has_time_short or has_time_1day or has_time_multi or no_hiking):
+                if en:
+                    msg = (
+                        "Sure! 😊 What interests you most: *landscapes, historical sites, or hiking*? "
+                        "How much time do you have to visit?\n\n"
+                        "_Tell me your preferences, explore our options with 🗺️ View Tours, or write 👉 advisor to coordinate directly._"
+                    )
+                else:
+                    msg = (
+                        "¡Claro! 😊 ¿Qué te interesa más: *paisajes, sitios históricos o caminatas*? "
+                        "¿Cuánto tiempo tienes para visitar?\n\n"
+                        "_Cuéntame tus preferencias, explora las opciones con 🗺️ Ver Tours o escribe 👉 asesor para coordinar directamente._"
+                    )
+                return finish(msg, 'evidence_recommendation', pending=True, needs_agency=False, sources=['CATALOGO_OFICIAL'])
+
+            # Con preferencias: filtrar dinámicamente sobre active_tours vigentes
+            candidates = []
+            for eid, t_data in active_tours.items():
+                if not t_data.get('is_active', True) or is_deactivated_tour(eid):
+                    continue
+                prof = TOUR_PROFILES.get(eid, {
+                    'dur_type': 'half' if 'medio' in (t_data.get('duration') or '').lower() else ('multi' if any(w in (t_data.get('duration') or '').lower() for w in ['4 d', '2 d', 'noche']) else '1day'),
+                    'is_hiking': any(k in eid for k in ['trek', 'caminata', 'hike', 'inka', 'salkantay', 'jungle', 'choquequirao']),
+                    'is_nature': True,
+                    'is_history': any(k in eid for k in ['city', 'valle', 'machu', 'moray', 'sacsay', 'qorikancha']),
+                    'desc_es': t_data.get('includes') or t_data.get('name', eid),
+                    'desc_en': t_data.get('includes') or t_data.get('name', eid),
+                })
+
+                # Restricciones duras de duración
+                if has_time_short and prof['dur_type'] != 'half':
+                    continue
+                if has_time_1day and prof['dur_type'] != '1day':
+                    continue
+                if has_time_multi and prof['dur_type'] != 'multi':
+                    continue
+
+                # Restricción dura de caminatas negativas
+                if no_hiking and prof['is_hiking']:
+                    continue
+
+                # Calificación por afinidad temática
+                score = 0
+                if has_nature and prof['is_nature']:
+                    score += 3
+                if has_history and prof['is_history']:
+                    score += 3
+                if has_hiking and prof['is_hiking']:
+                    score += 4
+                if not (has_nature or has_history or has_hiking):
+                    score += 1
+
+                if score > 0:
+                    candidates.append((score, eid, t_data, prof))
+
+            candidates.sort(key=lambda c: c[0], reverse=True)
+            selected_candidates = candidates[:4]
+
+            rec_lines = []
+            for _, c_eid, c_data, c_prof in selected_candidates:
+                name = c_data.get('name', c_eid)
+                if en:
+                    from app import _get_tour_display_name
+                    disp_name = _get_tour_display_name(c_eid, is_en=True) or name
+                else:
+                    disp_name = name
+
+                dur = str(c_data.get('duration') or '').strip()
+                if not dur:
+                    from catalog_service import CANONICAL_TOUR_DURATIONS
+                    dur = CANONICAL_TOUR_DURATIONS.get(c_eid, 'Full Day')
+                dur_disp = english_duration(dur) if en else dur
+
+                sched = str(c_data.get('schedule') or '').strip()
+                c_overrides = c_data.get('overridden_fields') or []
+                if 'schedule' in c_overrides and not sched:
+                    sched = ""
+
+                desc = c_prof.get('desc_en' if en else 'desc_es', '')
+
+                details = [dur_disp]
+                if c_eid == 'laguna-humantay':
+                    details.append("4,200 m.a.s.l." if en else "4,200 m.s.n.m.")
+                elif sched:
+                    details.append(sched)
+
+                details_str = ", ".join(d for d in details if d)
+                rec_lines.append(f"• *{disp_name}* ({details_str} — {desc}).")
+
+            if not rec_lines:
+                if en:
+                    msg = (
+                        "We currently do not have active tours matching those specific criteria in our catalog. "
+                        "You can explore our available options with 🗺️ View Tours, or write 👉 *advisor* to coordinate a customized itinerary 😊"
+                    )
+                else:
+                    msg = (
+                        "Actualmente no disponemos de tours activos que coincidan exactamente con ese criterio en nuestro catálogo. "
+                        "Puedes explorar nuestras opciones disponibles con 🗺️ Ver Tours o escribir 👉 *asesor* para coordinar un itinerario personalizado 😊"
+                    )
+                return finish(msg, 'evidence_recommendation', pending=True, needs_agency=False, sources=['CATALOGO_OFICIAL'])
+
+            body = "\n".join(rec_lines)
+            if en:
+                header = "🌟 Based on what you like, here are our top verified recommendations:\n"
+                footer = "\n\n_Type the name of any tour for full details, photos or rates, or write 👉 advisor to coordinate with our team 😊_"
+            else:
+                header = "🌟 Según lo que buscas, estas son nuestras recomendaciones verificadas:\n"
+                footer = "\n\n_Escribe el nombre de cualquiera de ellos para ver detalles, fotos o tarifas, o escribe 👉 asesor para coordinar con nuestro equipo 😊_"
+            return finish(header + body + footer, 'evidence_recommendation', sources=['CATALOGO_OFICIAL'])
 
         # Catálogo de tours solicitados (antes de evaluar fechas o disponibilidad comercial)
         listing_keywords = {
@@ -480,14 +771,25 @@ def install(ns, support, original):
             if total_pages <= 1:
                 lines = [f"{cat_title} disponibles:\n" if not en else f"{cat_title} available:\n"]
                 for eid, default_label, default_dur in page_slice:
-                    t_obj = active_tours[eid]
+                    t_obj = active_tours.get(eid, {})
                     if en:
                         from app import _get_tour_display_name
                         tour_name = _get_tour_display_name(eid, is_en=True) or default_label
                     else:
                         tour_name = t_obj.get('name', default_label)
-                    dur = english_duration(t_obj.get('duration') or default_dur) if en else (t_obj.get('duration') or default_dur)
-                    lines.append(f"• *{tour_name}* ({dur})")
+                    dur = (t_obj.get('duration') or default_dur or '').strip()
+                    if en and dur:
+                        dur = english_duration(dur)
+                    sched = str(t_obj.get('schedule') or '').strip()
+                    if dur and sched:
+                        detail_str = f"{dur} | {sched}"
+                    elif dur:
+                        detail_str = dur
+                    elif sched:
+                        detail_str = sched
+                    else:
+                        detail_str = "Por confirmar" if not en else "To be confirmed"
+                    lines.append(f"• *{tour_name}* ({detail_str})")
                 footer = (
                     "\n_Escribe directamente el nombre de cualquier tour para ver detalles completos, o selecciona una opción abajo:_\nEscribe 👉 *asesor* si necesitas ayuda personalizada 😊"
                     if not en else
@@ -501,14 +803,25 @@ def install(ns, support, original):
                 )
                 lines = [header]
                 for eid, default_label, default_dur in page_slice:
-                    t_obj = active_tours[eid]
+                    t_obj = active_tours.get(eid, {})
                     if en:
                         from app import _get_tour_display_name
                         tour_name = _get_tour_display_name(eid, is_en=True) or default_label
                     else:
                         tour_name = t_obj.get('name', default_label)
-                    dur = english_duration(t_obj.get('duration') or default_dur) if en else (t_obj.get('duration') or default_dur)
-                    lines.append(f"• *{tour_name}* ({dur})")
+                    dur = (t_obj.get('duration') or default_dur or '').strip()
+                    if en and dur:
+                        dur = english_duration(dur)
+                    sched = str(t_obj.get('schedule') or '').strip()
+                    if dur and sched:
+                        detail_str = f"{dur} | {sched}"
+                    elif dur:
+                        detail_str = dur
+                    elif sched:
+                        detail_str = sched
+                    else:
+                        detail_str = "Por confirmar" if not en else "To be confirmed"
+                    lines.append(f"• *{tour_name}* ({detail_str})")
 
                 if requested_page + 1 < total_pages:
                     nav_note = (
@@ -726,7 +1039,8 @@ def install(ns, support, original):
                 tour_obj_com = active_tours.get(eid_comercial, {})
                 name_com = tour_obj_com.get('name', eid_comercial)
                 schedule_com = str(tour_obj_com.get('schedule') or '').strip()
-                if not schedule_com:
+                overrides_com = tour_obj_com.get('overridden_fields', [])
+                if not schedule_com and 'schedule' not in overrides_com:
                     facts_com = get_facts(eid_comercial)
                     for f in facts_com:
                         if f.field == 'schedule' and f.value:
@@ -749,7 +1063,7 @@ def install(ns, support, original):
             else:
                 msg = "El paquete de 7 días no está en nuestro catálogo actual. 📋\n\nEscribe 👉 *asesor* y revisamos qué opciones tenemos para ti 😊"
             return finish(msg,'evidence_unknown',True,entity_id=None)
-        if re.search(r'contact|telefono|whatsapp|correo|email|direccion|ubicacion',q):
+        if re.search(r'contact|telefono|whatsapp|correo|email|direccion|ubicacion|oficina|office|donde\s+(?:queda|estan?|se\s+encuentran)|where\s+are\s+you',q):
             a=catalog['agency']
             if en:
                 msg = f"📞 *Texeira Travel — Contact:*\n{phone}\n✉️ {', '.join(a['emails'])}\n📍 {a['address']}"
@@ -861,14 +1175,15 @@ def install(ns, support, original):
             includes = str(tour_obj.get("includes") or "").strip()
             excludes = str(tour_obj.get("excludes") or "").strip()
 
+            overrides_tour = tour_obj.get('overridden_fields', [])
             if not official_price or not schedule or not duration:
                 facts = get_facts(eid)
                 for f in facts:
                     if not official_price and f.field == 'official_price' and f.value:
                         official_price = str(f.value).strip()
-                    if not schedule and f.field == 'schedule' and f.value:
+                    if not schedule and f.field == 'schedule' and f.value and 'schedule' not in overrides_tour:
                         schedule = str(f.value).strip()
-                    if not duration and f.field == 'duration' and f.value:
+                    if not duration and f.field == 'duration' and f.value and 'duration' not in overrides_tour:
                         duration = str(f.value).strip()
 
             if not duration or not schedule:
@@ -877,14 +1192,13 @@ def install(ns, support, original):
                         if t_eid == eid and t_dur:
                             if '|' in t_dur:
                                 d_part, s_part = [p.strip() for p in t_dur.split('|', 1)]
-                                if not duration:
+                                if not duration and 'duration' not in overrides_tour:
                                     duration = d_part
-                                if not schedule:
+                                if not schedule and 'schedule' not in overrides_tour:
                                     schedule = s_part
                             else:
-                                if not duration:
+                                if not duration and 'duration' not in overrides_tour:
                                     duration = t_dur
-                            break
 
             if official_price or schedule or duration or includes:
                 tour_emojis = {
