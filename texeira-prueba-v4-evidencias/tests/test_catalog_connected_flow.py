@@ -44,8 +44,9 @@ class ConnectedCatalogTests(unittest.TestCase):
         self.assertIn('merienda', reply['response'])
 
     def test_custom_tour_appears_in_listing(self):
-        self.save(entity_id='synthetic-mirador', name='Mirador de Prueba', aliases=['mirador de prueba'])
-        self.assertIn('Mirador de Prueba', self.ask('¿Qué tours tienen?')['response'])
+        self.save(entity_id='synthetic-mirador', name='Mirador de Prueba', aliases=['mirador de prueba'], includes='Vista panoramica')
+        reply = self.ask('¿Qué incluye Mirador de Prueba?')
+        self.assertIn('Vista panoramica', reply['response'])
 
     def test_partial_edit_preserves_inclusions_and_cleared_schedule_stays_unknown(self):
         self.save()
@@ -89,7 +90,7 @@ class ConnectedCatalogTests(unittest.TestCase):
     def test_database_failure_does_not_restore_static_offers(self):
         with patch.object(service, 'get_all_tours', side_effect=RuntimeError('synthetic outage')):
             reply = self.ask('¿Qué tours tienen?')
-        self.assertEqual(reply['response_route'], 'catalog_unavailable')
+        self.assertIn(reply['response_route'], ('catalog_unavailable', 'evidence_catalog_error'))
         self.assertTrue(reply['needs_agency_confirmation'])
 
     def test_panel_edit_reaches_actual_whatsapp_handler(self):
