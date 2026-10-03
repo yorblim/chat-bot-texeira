@@ -2301,6 +2301,9 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                 state, owner = database.claim_webhook(message_id, user_id, SQLITE_DB_PATH)
                 if state == 'completed':
                     return JSONResponse(status_code=200, content={"status": "ok", "dedup": True})
+                if state == 'uncertain':
+                    print(f"[FB UNCERTAIN] Mensaje previo con entrega incierta retenido: id={message_id}")
+                    return JSONResponse(status_code=200, content={"status": "ok", "dedup": True, "uncertain": True})
                 if state == 'busy':
                     return JSONResponse(status_code=503, content={"status": "processing"}, headers={"Retry-After": "10"})
 
@@ -2347,12 +2350,43 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         if not isinstance(val, dict):
                             continue
                         phone_id = val.get("metadata", {}).get("phone_number_id")
-                        contacts = val.get("contacts", [])
-                        contact = contacts[0] if contacts and isinstance(contacts, list) and len(contacts) > 0 else {}
+
+                        # Extraer contactos dentro de ESTE change/value únicamente (evitar fugas entre cambios)
+                        change_contacts = val.get("contacts", [])
+                        contacts_by_wa = {}
+                        contacts_by_uid = {}
+                        if isinstance(change_contacts, list):
+                            for c in change_contacts:
+                                if isinstance(c, dict):
+                                    c_wa = str(c.get("wa_id", "")).strip()
+                                    c_uid = str(c.get("user_id", "")).strip()
+                                    if c_wa:
+                                        contacts_by_wa[c_wa] = c
+                                    if c_uid:
+                                        contacts_by_uid[c_uid] = c
+
                         for st in val.get("statuses", []):
                             all_statuses.append(st)
+
                         for msg in val.get("messages", []):
-                            raw_messages.append((msg, contact, phone_id))
+                            if not isinstance(msg, dict):
+                                continue
+                            msg_from = str(msg.get("from", "")).strip()
+                            msg_from_uid = str(msg.get("from_user_id", "")).strip()
+
+                            matched_contact = {}
+                            if msg_from and msg_from in contacts_by_wa:
+                                matched_contact = contacts_by_wa[msg_from]
+                            elif msg_from_uid and msg_from_uid in contacts_by_uid:
+                                matched_contact = contacts_by_uid[msg_from_uid]
+                            elif len(change_contacts) == 1 and isinstance(change_contacts[0], dict):
+                                single_c = change_contacts[0]
+                                c_wa = str(single_c.get("wa_id", "")).strip()
+                                c_uid = str(single_c.get("user_id", "")).strip()
+                                if (c_wa and c_wa == msg_from) or (c_uid and c_uid == msg_from_uid) or (not c_wa and not c_uid):
+                                    matched_contact = single_c
+
+                            raw_messages.append((msg, matched_contact, phone_id))
 
             # --- STATUS NOTIFICATIONS (delivery reports) ---
             if all_statuses:
@@ -2395,6 +2429,9 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
             else:
                 all_system = True
                 all_dedup = True
+                has_busy = False
+                has_uncertain = False
+                seen_unsupported = False
 
                 for msg, contact, phone_number_id in raw_messages:
                     msg_id = msg.get("id", "")
@@ -2421,18 +2458,19 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         seen_unsupported = True
                         continue
 
-                    # Extraer identificadores del remitente
-                    contact_wa_id = contact.get("wa_id", "")
-                    contact_user_id = contact.get("user_id", "")
-                    contact_parent_user_id = contact.get("parent_user_id", "")
-                    msg_from = msg.get("from", "")
-                    msg_from_user_id = msg.get("from_user_id", "")
-                    msg_from_parent_user_id = msg.get("from_parent_user_id", "")
+                    # Extraer identificadores del remitente respetando el mensaje propio
+                    contact_wa_id = str(contact.get("wa_id", "")).strip() if contact else ""
+                    contact_user_id = str(contact.get("user_id", "")).strip() if contact else ""
+                    contact_parent_user_id = str(contact.get("parent_user_id", "")).strip() if contact else ""
+                    msg_from = str(msg.get("from", "")).strip()
+                    msg_from_user_id = str(msg.get("from_user_id", "")).strip()
+                    msg_from_parent_user_id = str(msg.get("from_parent_user_id", "")).strip()
                     msg_timestamp = msg.get("timestamp", "")
 
-                    phone_number = contact_wa_id or (msg_from if msg_from and msg_from.isdigit() else "")
-                    bsuid = contact_user_id or msg_from_user_id or ""
-                    parent_bsuid = contact_parent_user_id or msg_from_parent_user_id or ""
+                    # Priorizar el remitente del mensaje; recurrir al contacto solo si concuerda o no hay remitente
+                    phone_number = (msg_from if msg_from and msg_from.isdigit() else "") or (contact_wa_id if contact_wa_id.isdigit() else "")
+                    bsuid = msg_from_user_id or contact_user_id or ""
+                    parent_bsuid = msg_from_parent_user_id or contact_parent_user_id or ""
                     user_id = phone_number or bsuid or msg_from or "unknown"
 
                     is_interactive_ambiguous = False
@@ -2591,6 +2629,10 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         if state == 'completed':
                             print(f"[WA DEDUP] Mensaje ya procesado anteriormente: id={msg_id}")
                             continue
+                        if state == 'uncertain':
+                            print(f"[WA UNCERTAIN] Mensaje previo con entrega incierta retenido para conciliacion: id={msg_id}")
+                            has_uncertain = True
+                            continue
                         if state == 'busy':
                             print(f"[WA BUSY] Mensaje en proceso concurrente: id={msg_id}")
                             has_busy = True
@@ -2747,9 +2789,22 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         buttons=quick_buttons,
                     )
 
+                    # Determinar el estado formal de salida: accepted, rejected o uncertain
+                    send_status = "rejected"
+                    is_accepted = False
+                    if hasattr(accepted, "status"):
+                        send_status = accepted.status
+                        is_accepted = accepted.is_accepted
+                    elif accepted is True:
+                        send_status = "accepted"
+                        is_accepted = True
+                    elif accepted is False:
+                        send_status = "rejected"
+                        is_accepted = False
+
                     # 2. Despacho de Folleto PDF si fue solicitado y está cargado en el catálogo
                     try:
-                        if accepted and tour_doc_info and route not in no_multimedia_routes:
+                        if is_accepted and tour_doc_info and route not in no_multimedia_routes:
                             doc_url, doc_filename, doc_caption = tour_doc_info
                             send_whatsapp_document(
                                 document_url=doc_url,
@@ -2763,47 +2818,53 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                     except Exception as media_err:
                         print(f"[WA MULTIMEDIA DISPATCH ERROR] {media_err}")
 
-                    operational.finish(event_id, 'api_accepted' if accepted else 'send_failed',
+                    op_status = "api_accepted" if is_accepted else ("send_uncertain" if send_status == "uncertain" else "send_failed")
+                    operational.finish(event_id, op_status,
                                        generation_ms, (time.perf_counter()-item_metric_start)*1000, rag_result)
                 elif u_chan == "messenger":
                     accepted = send_messenger_message(text=bot_response, psid=p_bsuid)
+                    send_status = "accepted" if accepted else "rejected"
+                    is_accepted = bool(accepted)
                     print(f"[FB OUTBOUND RESULT] psid={p_bsuid} accepted={accepted}")
 
                 if u_owner:
-                    database.finish_webhook(m_id, u_owner, bool(accepted), SQLITE_DB_PATH)
+                    database.finish_webhook(m_id, u_owner, send_status, SQLITE_DB_PATH)
                 elapsed = (time.time() - item_start) * 1000
                 channel_tag = "FB" if u_chan == "messenger" else "WA"
                 print(f"[{channel_tag} PROCESSED] user_id={u_id} latency={elapsed:.0f}ms route={rag_result.get('response_route', 'unknown')}")
-                return bool(accepted)
+                return send_status
             except Exception as e:
                 elapsed = (time.time() - item_start) * 1000
                 if u_owner:
-                    database.finish_webhook(m_id, u_owner, bool(accepted), SQLITE_DB_PATH)
+                    database.finish_webhook(m_id, u_owner, "failed", SQLITE_DB_PATH)
                 if event_id:
                     operational.finish(event_id, 'processing_failed', generation_ms,
                                        (time.perf_counter()-item_metric_start)*1000, rag_result)
                 channel_tag = "FB" if u_chan == "messenger" else "WA"
                 print(f"[{channel_tag} ERROR] user_id={u_id} error={e} latency={elapsed:.0f}ms")
-                return bool(accepted)
+                return "failed"
 
         if not items_to_process:
             if has_busy:
                 return JSONResponse(status_code=503, content={"status": "processing"}, headers={"Retry-After": "10"})
             if all_system:
                 return JSONResponse(status_code=200, content={"status": "ok", "ignored": "system_message"})
-            if all_dedup:
-                return JSONResponse(status_code=200, content={"status": "ok", "dedup": True})
+            if all_dedup or has_uncertain:
+                return JSONResponse(status_code=200, content={"status": "ok", "dedup": True, "uncertain": has_uncertain})
             if seen_unsupported:
                 return JSONResponse(status_code=200, content={"status": "ok", "ignored": "unsupported_type"})
             return JSONResponse(status_code=200, content={"status": "ok"})
 
         has_failure = False
+        has_uncertain_send = False
         for item in items_to_process:
-            succeeded = await asyncio.to_thread(_process_one_inbound, item)
-            if not succeeded:
+            outcome = await asyncio.to_thread(_process_one_inbound, item)
+            if outcome == "uncertain":
+                has_uncertain_send = True
+            elif outcome in ("rejected", "failed", False):
                 has_failure = True
 
-        if has_failure:
+        if has_failure or has_uncertain_send:
             return JSONResponse(status_code=503, content={"error": "Procesamiento temporalmente no disponible"}, headers={"Retry-After": "10"})
 
         if has_busy:

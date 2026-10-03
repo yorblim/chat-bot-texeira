@@ -38,7 +38,7 @@ def start():
     return event_id
 
 def finish(event_id, status, generation_ms, response_attempt_ms, result=None):
-    if status not in {'api_accepted','send_failed','processing_failed'}:
+    if status not in {'api_accepted', 'send_failed', 'processing_failed', 'send_uncertain'}:
         raise ValueError('Estado operativo inválido')
     result=result or {}
     with connection() as conn:
@@ -53,6 +53,7 @@ def summary():
         row=dict(conn.execute('''SELECT COUNT(*) AS received,
             COALESCE(SUM(CASE WHEN status='api_accepted' THEN 1 ELSE 0 END),0) AS api_accepted,
             COALESCE(SUM(CASE WHEN status='send_failed' THEN 1 ELSE 0 END),0) AS send_failed,
+            COALESCE(SUM(CASE WHEN status='send_uncertain' THEN 1 ELSE 0 END),0) AS send_uncertain,
             COALESCE(SUM(CASE WHEN status='processing_failed' THEN 1 ELSE 0 END),0) AS processing_failed,
             COALESCE(SUM(CASE WHEN status='processing' THEN 1 ELSE 0 END),0) AS processing,
             COALESCE(SUM(provider_rate_limit),0) AS provider_rate_limits,
