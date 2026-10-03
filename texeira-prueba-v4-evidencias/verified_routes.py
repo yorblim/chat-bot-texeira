@@ -597,9 +597,6 @@ def install(ns, support, original):
         is_rej = is_rejection_query(q) and not is_ambiguous_ref
 
         if is_rec or is_rej or is_pref_reply:
-            # Acumular preferencias de todos los turnos anteriores relevantes
-            # (no solo el último), para conservar restricciones entre turnos.
-            pref_texts = [q]
             _NO_HIKING_PAT = re.compile(
                 r'\b(?:no|sin|nada\s+de)\s+(?:quiero\s+|deseo\s+|me\s+gusta\s+|tengo\s+ganas\s+de\s+)?'
                 r'(?:caminat\w*|trek\w*|hiking|senderis\w*|subid\w*)\b'
@@ -607,24 +604,52 @@ def install(ns, support, original):
             _PREF_PAT = re.compile(
                 r'\b(?:paisaje|histori|caminat|caminatas|d[ií]as?|day|days|medio|half|tiempo|prefer|aventur|cultur)\b'
             )
+            _TIME_SHORT_PAT = re.compile(r'\b(medio\s*d[ií]a|half\s*day|pocas horas|poco tiempo)\b')
+            _TIME_1DAY_PAT  = re.compile(r'\b(1\s*d[ií]a|un\s*d[ií]a|full\s*day|1\s*day|one\s*day|d[ií]a\s+completo)\b')
+            _TIME_MULTI_PAT = re.compile(r'\b([2345])\s*d[ií]as?\b|\b([2345])\s*days?\b')
+
+            # --- Preferencias de TIEMPO: usa EXCLUSIVAMENTE el mensaje actual.
+            # El valor más reciente reemplaza al anterior; no acumular del historial.
+            q_norm = support.normalize(q)
+            has_time_short = bool(_TIME_SHORT_PAT.search(q_norm))
+            has_time_1day  = bool(_TIME_1DAY_PAT.search(q_norm))
+            _multi_m_q     = _TIME_MULTI_PAT.search(q_norm)
+            has_time_multi = bool(_multi_m_q)
+            exact_days     = int(_multi_m_q.group(1) or _multi_m_q.group(2)) if _multi_m_q else None
+
+            # Si el mensaje actual no expresa tiempo, buscar en el historial
+            # (solo si no hay ningún indicador de tiempo en el turno actual).
+            current_has_time = has_time_short or has_time_1day or has_time_multi
+            if not current_has_time:
+                for h in reversed(prior):
+                    if h.get('role') != 'human':
+                        continue
+                    h_text = support.normalize(h.get('content', ''))
+                    if _TIME_SHORT_PAT.search(h_text):
+                        has_time_short = True; break
+                    if _TIME_1DAY_PAT.search(h_text):
+                        has_time_1day = True; break
+                    _multi_m_h = _TIME_MULTI_PAT.search(h_text)
+                    if _multi_m_h:
+                        has_time_multi = True
+                        exact_days = int(_multi_m_h.group(1) or _multi_m_h.group(2))
+                        break
+
+            # --- Restricciones NO temporales: acumular de todos los turnos relevantes.
+            # (no_hiking, temáticas). El historial amplía; no sobreescribe el turno actual.
+            pref_texts = [q_norm]
             for h in reversed(prior):
                 if h.get('role') != 'human':
                     continue
                 h_text = support.normalize(h.get('content', ''))
                 if is_recommendation_query(h_text) or _PREF_PAT.search(h_text) or _NO_HIKING_PAT.search(h_text):
                     pref_texts.append(h_text)
-            pref_text = ' '.join(reversed(pref_texts))  # cronológico: historial primero, pregunta actual al final
+            pref_text = ' '.join(reversed(pref_texts))
 
-            no_hiking = bool(_NO_HIKING_PAT.search(pref_text))
+            no_hiking  = bool(_NO_HIKING_PAT.search(pref_text))
             has_hiking = (not no_hiking) and bool(re.search(r'\b(caminat\w*|senderis\w*|aventur\w*|trek\w*|hike\w*|hiking|adventure)\b', pref_text))
             has_nature = bool(re.search(r'\b(paisaje\w*|naturalez\w*|laguna\w*|monta[nñ]a\w*|scener\w*|landscape\w*|nature|lake\w*)\b', pref_text))
-            has_history = bool(re.search(r'\b(hist[oó]ri\w*|arqueolog\w*|cultur\w*|ruina\w*|templo\w*|history|historical|archeolog\w*|ruins|culture)\b', pref_text))
-            has_time_short = bool(re.search(r'\b(medio\s*d[ií]a|half\s*day|pocas horas|poco tiempo)\b', pref_text))
-            has_time_1day = bool(re.search(r'\b(1\s*d[ií]a|un\s*d[ií]a|full\s*day|1\s*day|one\s*day|d[ií]a\s+completo)\b', pref_text))
-            # Detectar número exacto de días para filtrar con precisión (ej. «2 días» ≠ «4 días»)
-            _multi_m = re.search(r'\b([2345])\s*d[ií]as?\b|\b([2345])\s*days?\b', pref_text)
-            has_time_multi = bool(_multi_m)
-            exact_days = int(_multi_m.group(1) or _multi_m.group(2)) if _multi_m else None
+            has_history= bool(re.search(r'\b(hist[oó]ri\w*|arqueolog\w*|cultur\w*|ruina\w*|templo\w*|history|historical|archeolog\w*|ruins|culture)\b', pref_text))
 
             # Sin preferencias: preguntar brevemente por intereses y tiempo disponible
             if not (has_nature or has_history or has_hiking or has_time_short or has_time_1day or has_time_multi or no_hiking):
