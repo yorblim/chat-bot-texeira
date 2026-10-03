@@ -2680,6 +2680,10 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
             ambig_btns = item.get("ambiguous_clarif_buttons") or []
             i_lang = item.get("interaction_lang")
 
+            send_status = "accepted" if u_chan == "test" else "rejected"
+            is_accepted = (u_chan == "test")
+            receipt_finished = False
+
             try:
                 if u_chan == 'whatsapp':
                     event_id = operational.start()
@@ -2802,6 +2806,15 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         send_status = "rejected"
                         is_accepted = False
 
+                    # Finalizar el recibo inmediatamente tras el intento de envío para asegurar
+                    # que cualquier fallo posterior no sobreescriba su resultado legítimo.
+                    if u_owner and not receipt_finished:
+                        try:
+                            database.finish_webhook(m_id, u_owner, send_status, SQLITE_DB_PATH)
+                            receipt_finished = True
+                        except Exception as db_err:
+                            print(f"[DB ERROR] Error finalizando recibo temprano: {db_err}")
+
                     # 2. Despacho de Folleto PDF si fue solicitado y está cargado en el catálogo
                     try:
                         if is_accepted and tour_doc_info and route not in no_multimedia_routes:
@@ -2819,30 +2832,57 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         print(f"[WA MULTIMEDIA DISPATCH ERROR] {media_err}")
 
                     op_status = "api_accepted" if is_accepted else ("send_uncertain" if send_status == "uncertain" else "send_failed")
-                    operational.finish(event_id, op_status,
-                                       generation_ms, (time.perf_counter()-item_metric_start)*1000, rag_result)
+                    try:
+                        operational.finish(event_id, op_status,
+                                           generation_ms, (time.perf_counter()-item_metric_start)*1000, rag_result)
+                    except Exception as op_err:
+                        print(f"[OPERATIONAL METRICS ERROR] {op_err}")
                 elif u_chan == "messenger":
                     accepted = send_messenger_message(text=bot_response, psid=p_bsuid)
                     send_status = "accepted" if accepted else "rejected"
                     is_accepted = bool(accepted)
                     print(f"[FB OUTBOUND RESULT] psid={p_bsuid} accepted={accepted}")
+                    if u_owner and not receipt_finished:
+                        try:
+                            database.finish_webhook(m_id, u_owner, send_status, SQLITE_DB_PATH)
+                            receipt_finished = True
+                        except Exception as db_err:
+                            print(f"[DB ERROR] Error finalizando recibo messenger: {db_err}")
+                elif u_chan == "test":
+                    send_status = "accepted"
+                    is_accepted = True
+                    if u_owner and not receipt_finished:
+                        try:
+                            database.finish_webhook(m_id, u_owner, send_status, SQLITE_DB_PATH)
+                            receipt_finished = True
+                        except Exception as db_err:
+                            print(f"[DB ERROR] Error finalizando recibo test: {db_err}")
 
-                if u_owner:
+                if u_owner and not receipt_finished:
                     database.finish_webhook(m_id, u_owner, send_status, SQLITE_DB_PATH)
+                    receipt_finished = True
                 elapsed = (time.time() - item_start) * 1000
-                channel_tag = "FB" if u_chan == "messenger" else "WA"
+                channel_tag = "FB" if u_chan == "messenger" else ("TEST" if u_chan == "test" else "WA")
                 print(f"[{channel_tag} PROCESSED] user_id={u_id} latency={elapsed:.0f}ms route={rag_result.get('response_route', 'unknown')}")
                 return send_status
             except Exception as e:
                 elapsed = (time.time() - item_start) * 1000
-                if u_owner:
-                    database.finish_webhook(m_id, u_owner, "failed", SQLITE_DB_PATH)
+                if u_owner and not receipt_finished:
+                    final_receipt_status = send_status if send_status in ("accepted", "uncertain") else "failed"
+                    try:
+                        database.finish_webhook(m_id, u_owner, final_receipt_status, SQLITE_DB_PATH)
+                        receipt_finished = True
+                    except Exception as db_err:
+                        print(f"[DB ERROR] Error finalizando recibo en excepción: {db_err}")
                 if event_id:
-                    operational.finish(event_id, 'processing_failed', generation_ms,
-                                       (time.perf_counter()-item_metric_start)*1000, rag_result)
-                channel_tag = "FB" if u_chan == "messenger" else "WA"
+                    try:
+                        operational.finish(event_id, 'processing_failed', generation_ms,
+                                           (time.perf_counter()-item_metric_start)*1000, rag_result)
+                    except Exception:
+                        pass
+                channel_tag = "FB" if u_chan == "messenger" else ("TEST" if u_chan == "test" else "WA")
                 print(f"[{channel_tag} ERROR] user_id={u_id} error={e} latency={elapsed:.0f}ms")
-                return "failed"
+                return send_status if send_status in ("accepted", "uncertain") else "failed"
 
         if not items_to_process:
             if has_busy:

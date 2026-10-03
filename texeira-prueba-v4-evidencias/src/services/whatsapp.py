@@ -75,8 +75,9 @@ class WhatsAppSendResult:
 def is_interactive_format_error(status_code: int, resp_body: str) -> bool:
     """Determina si un error 4xx de Meta es exclusivo del formato interactivo y amerita fallback a texto plano.
 
-    No aplica fallback ante credenciales inválidas, ventanas comerciales de 24h caducadas ni límites de cuota,
-    ya que el mensaje de texto estándar fallaría por la misma causa y no se debe enmascarar el error.
+    No aplica fallback ante credenciales inválidas, ventanas comerciales de 24h caducadas,
+    límites de cuota, ni errores de destinatario/teléfono inválido, ya que el mensaje de
+    texto estándar fallaría por la misma causa y no se debe enmascarar el error.
     """
     if status_code != 400:
         return False
@@ -86,15 +87,16 @@ def is_interactive_format_error(status_code: int, resp_body: str) -> bool:
         "131047", "24 hours", "re-engagement",  # ventana de 24h caducada
         "oauth", "access token", "expired", "permission", "authorization",  # autenticación / permisos
         "rate limit", "throttled", "spam", "user not found",  # cuotas / límites
+        "not a valid whatsapp", "not a valid number", "invalid phone",  # destinatario inválido
+        "parameter to", "param to", "field to", "recipient", "131026",  # campo destinatario
     ]
     if any(pat in body_lower for pat in non_format_patterns):
         return False
 
-    # Errores de botones / interactivo / parámetros donde el texto plano sí resuelve el problema de formato:
+    # Errores de botones / interactivo / estructura donde el texto plano sí resuelve el problema de formato:
     format_patterns = [
         "interactive", "button", "header", "footer", "action",
-        "invalid parameter", "param", "format", "parameter",
-        "payload", "character", "length", "too long",
+        "invalid parameter", "payload", "character", "length", "too long",
     ]
     return any(pat in body_lower for pat in format_patterns)
 
