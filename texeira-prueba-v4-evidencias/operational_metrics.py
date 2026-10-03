@@ -205,6 +205,7 @@ async function load() {
     ['Envíos aceptados por la API de Meta', fmtVal(d.api_accepted), true],
     ['Tasa de aceptación API (%)', fmtVal(d.api_acceptance_pct, '%'), true],
     ['Envíos fallidos (red o proveedor)', fmtVal(d.send_failed)],
+    ['Envíos con resultado incierto (retenidos para revisión)', fmtVal(d.send_uncertain)],
     ['Fallos internos de procesamiento', fmtVal(d.processing_failed)],
     ['Mensajes pendientes de procesamiento', fmtVal(d.processing)],
     ['Bloqueos por límite del proveedor (rate limits)', fmtVal(d.provider_rate_limits)]
