@@ -2680,8 +2680,8 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
             ambig_btns = item.get("ambiguous_clarif_buttons") or []
             i_lang = item.get("interaction_lang")
 
-            send_status = "accepted" if u_chan == "test" else "rejected"
-            is_accepted = (u_chan == "test")
+            send_status = "rejected"
+            is_accepted = False
             receipt_finished = False
 
             try:

@@ -77,11 +77,22 @@ class SendStateReview(IntegratedWebhookReview):
                          "Switching to plain text cannot repair an invalid recipient")
 
 
+    def test_synthetic_webhook_channel_failure_reports_error(self):
+        raw = json.dumps({"user_id": "synthetic_failing_user", "message": "Hola"}).encode()
+        signature = "sha256=" + hmac.new(b"synthetic", raw, hashlib.sha256).hexdigest()
+        with patch.object(app, "rag_chain", side_effect=RuntimeError("Synthetic inference error")):
+            result = self.client.request("POST", "/webhook", content=raw,
+                                         headers={"X-Hub-Signature-256": signature})
+        self.assertNotEqual(result.status_code, 200, "Synthetic failure must not report HTTP 200 success")
+        self.assertIn(result.status_code, (500, 503))
+
+
 if __name__ == "__main__":
     names = [
         "test_metrics_failure_after_accepted_send_does_not_repeat_delivery",
         "test_metrics_failure_after_uncertain_send_does_not_repeat_delivery",
         "test_existing_synthetic_webhook_channel_still_processes_without_delivery",
+        "test_synthetic_webhook_channel_failure_reports_error",
         "test_invalid_recipient_is_not_an_interactive_format_error",
     ]
     result = unittest.TextTestRunner(verbosity=2).run(
