@@ -4,7 +4,7 @@
 **Rama Git:** `main` — HEAD `d8a9250`
 **Commit desplegado:** `d8a9250` (fix: conservar restricciones entre turnos, filtrar por dias exactos y respetar borrado de duracion)
 **Revision en Cloud Run:** `texeira-whatsapp-00041-bmx`
-**URL de Servicio:** `https://texeira-whatsapp-a5uzavilla-uc.a.run.app`
+**URL de Servicio:** `https://texeira-whatsapp-1038134693816.us-central1.run.app`
 **Referencia:** Protocolo permanente AGENTS.md
 
 ---
