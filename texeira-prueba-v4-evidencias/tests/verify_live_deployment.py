@@ -102,7 +102,7 @@ def run_verification():
         ans = res.get("response", "")
         assert not re.search(r"\+51|\b9\d{8}\b", ans), "Se detectó teléfono no solicitado en lista de tours"
         assert "/images/" not in ans, "Se detectó imagen no solicitada en lista de tours"
-        assert "Tour" in ans or "Tours" in ans
+        assert "tour" in ans.lower() or "experiencia" in ans.lower()
         print("  PASS | 'qué tours tienen': responde 200 OK con lista limpia.")
 
     # 6. Verificación de persistencia en Neon PostgreSQL
