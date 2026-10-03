@@ -18,6 +18,87 @@ if _WHATSAPP_TEST_BSUID_MAP_RAW:
             WHATSAPP_TEST_BSUID_MAP[bsuid.strip()] = phone.strip()
 
 
+class WhatsAppSendResult:
+    """Representa el resultado de un intento de envío a Meta WhatsApp Cloud API.
+
+    Permite distinguir formalmente:
+      - 'accepted': HTTP 200/201 recibido de Graph API (envío aceptado por Meta).
+      - 'rejected': HTTP 4xx devuelto por Graph API (error de cliente/autenticación/parámetros).
+      - 'uncertain': Resultado incierto por timeout de red (httpx.TimeoutException),
+                     falla de transporte (httpx.RequestError) o HTTP 5xx del servidor.
+
+    Implementa __bool__ para compatibilidad retroactiva total (evalúa a True solo si es 'accepted').
+    """
+
+    def __init__(
+        self,
+        status: str,
+        accepted: bool = False,
+        status_code: Optional[int] = None,
+        wamid: Optional[str] = None,
+        error: Optional[str] = None,
+    ):
+        self.status = status  # 'accepted', 'rejected', 'uncertain'
+        self.accepted = bool(accepted)
+        self.status_code = status_code
+        self.wamid = wamid
+        self.error = error
+
+    @property
+    def is_accepted(self) -> bool:
+        return self.status == "accepted"
+
+    @property
+    def is_uncertain(self) -> bool:
+        return self.status == "uncertain"
+
+    @property
+    def is_rejected(self) -> bool:
+        return self.status == "rejected"
+
+    def __bool__(self) -> bool:
+        return self.is_accepted
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, bool):
+            return self.is_accepted == other
+        if isinstance(other, str):
+            return self.status == other
+        if isinstance(other, WhatsAppSendResult):
+            return self.status == other.status and self.wamid == other.wamid
+        return False
+
+    def __repr__(self) -> str:
+        return f"<WhatsAppSendResult status={self.status} accepted={self.accepted} wamid={self.wamid}>"
+
+
+def is_interactive_format_error(status_code: int, resp_body: str) -> bool:
+    """Determina si un error 4xx de Meta es exclusivo del formato interactivo y amerita fallback a texto plano.
+
+    No aplica fallback ante credenciales inválidas, ventanas comerciales de 24h caducadas ni límites de cuota,
+    ya que el mensaje de texto estándar fallaría por la misma causa y no se debe enmascarar el error.
+    """
+    if status_code != 400:
+        return False
+    body_lower = resp_body.lower()
+    # Errores definitivos que NUNCA ameritan fallback de formato (fallarían idénticamente con texto):
+    non_format_patterns = [
+        "131047", "24 hours", "re-engagement",  # ventana de 24h caducada
+        "oauth", "access token", "expired", "permission", "authorization",  # autenticación / permisos
+        "rate limit", "throttled", "spam", "user not found",  # cuotas / límites
+    ]
+    if any(pat in body_lower for pat in non_format_patterns):
+        return False
+
+    # Errores de botones / interactivo / parámetros donde el texto plano sí resuelve el problema de formato:
+    format_patterns = [
+        "interactive", "button", "header", "footer", "action",
+        "invalid parameter", "param", "format", "parameter",
+        "payload", "character", "length", "too long",
+    ]
+    return any(pat in body_lower for pat in format_patterns)
+
+
 def send_whatsapp_message(
     text: str,
     to_phone: Optional[str] = None,
@@ -25,7 +106,7 @@ def send_whatsapp_message(
     phone_number_id: Optional[str] = None,
     to_number: Optional[str] = None,
     buttons: Optional[list] = None,
-) -> bool:
+) -> WhatsAppSendResult:
     """Envía un mensaje de texto de salida a la Graph API de Meta (WhatsApp Cloud API).
 
     Soporta dos modos de envío:
@@ -66,12 +147,12 @@ def send_whatsapp_message(
         mode = "phone" if destination else "bsuid"
         dest = destination or recipient_bsuid or "unknown"
         print('[WA] Envío no realizado: credenciales ausentes.')
-        return False
+        return WhatsAppSendResult(status="rejected", accepted=False, error="Credenciales ausentes")
 
     target_phone_id = phone_number_id or os.getenv("META_PHONE_NUMBER_ID", "") or META_PHONE_NUMBER_ID
     if not target_phone_id:
         print(f"[WA WARNING] No se configuro phone_number_id")
-        return False
+        return WhatsAppSendResult(status="rejected", accepted=False, error="phone_number_id no configurado")
 
     url = f"https://graph.facebook.com/v26.0/{target_phone_id}/messages"
     headers = {
@@ -93,7 +174,7 @@ def send_whatsapp_message(
         mode = "bsuid"
     else:
         print("[WA ERROR] No destination provided (neither phone nor BSUID)")
-        return False
+        return WhatsAppSendResult(status="rejected", accepted=False, error="Destino no provisto")
 
     dest = destination or recipient_bsuid
     print(f"[WA OUTBOUND] mode={mode} destination={dest} phone_number_id={target_phone_id}")
@@ -103,6 +184,7 @@ def send_whatsapp_message(
             resp_body = resp.text[:300]
             print(f"[WA SEND RESPONSE] status_code={resp.status_code} body={resp_body}")
             if resp.status_code in (200, 201):
+                wamid = None
                 try:
                     resp_json = resp.json()
                     wamid = resp_json.get("messages", [{}])[0].get("id", "")
@@ -111,13 +193,19 @@ def send_whatsapp_message(
                 except Exception:
                     pass
                 print(f"[WA] Mensaje enviado exitosamente a {dest} (mode={mode})")
-                return True
+                return WhatsAppSendResult(status="accepted", accepted=True, status_code=resp.status_code, wamid=wamid)
+            elif resp.status_code >= 500:
+                print(f"[WA SERVER ERROR] HTTP {resp.status_code}: {resp_body}. Resultado incierto.")
+                return WhatsAppSendResult(status="uncertain", accepted=False, status_code=resp.status_code, error=resp_body)
             else:
                 print(f"[WA ERROR] HTTP {resp.status_code}: {resp_body}")
-                return False
+                return WhatsAppSendResult(status="rejected", accepted=False, status_code=resp.status_code, error=resp_body)
+    except (httpx.TimeoutException, httpx.RequestError) as e:
+        print(f"[WA TIMEOUT/NETWORK ERROR] {type(e).__name__}: {e}. Resultado incierto.")
+        return WhatsAppSendResult(status="uncertain", accepted=False, error=str(e))
     except Exception as e:
         print(f"[WA ERROR] Excepcion al enviar mensaje: {e}")
-        return False
+        return WhatsAppSendResult(status="rejected", accepted=False, error=str(e))
 
 
 def send_whatsapp_interactive_buttons(
@@ -129,7 +217,7 @@ def send_whatsapp_interactive_buttons(
     to_number: Optional[str] = None,
     header_text: Optional[str] = None,
     footer_text: Optional[str] = None,
-) -> bool:
+) -> WhatsAppSendResult:
     """Envía un mensaje interactivo con botones de respuesta rápida (Quick Reply Buttons) a Meta WhatsApp Cloud API.
 
     Reglas de la API de Meta Graph:
@@ -137,7 +225,8 @@ def send_whatsapp_interactive_buttons(
       - El título de cada botón debe tener <= 20 caracteres (emojis incluidos).
       - El cuerpo del mensaje (body.text) debe tener <= 1024 caracteres.
       - Si excede 1024 caracteres o no hay botones válidos, recurre automáticamente a send_whatsapp_message().
-      - Si Meta devuelve un error al intentar enviar interactivo, recurre a send_whatsapp_message() como salvaguarda.
+      - Si Meta devuelve un error 400 de formato interactivo, recurre a send_whatsapp_message() como salvaguarda.
+      - Si ocurre timeout o error de red, devuelve WhatsAppSendResult(status='uncertain') sin fallback.
     """
     destination = to_phone or to_number
 
@@ -154,12 +243,12 @@ def send_whatsapp_interactive_buttons(
     token = os.getenv("META_ACCESS_TOKEN", "") or META_ACCESS_TOKEN
     if not token or token.startswith("tu-token"):
         print("[WA] Envío interactivo no realizado: credenciales ausentes.")
-        return False
+        return WhatsAppSendResult(status="rejected", accepted=False, error="Credenciales ausentes")
 
     target_phone_id = phone_number_id or os.getenv("META_PHONE_NUMBER_ID", "") or META_PHONE_NUMBER_ID
     if not target_phone_id:
         print("[WA WARNING] No se configuro phone_number_id para interactivo")
-        return False
+        return WhatsAppSendResult(status="rejected", accepted=False, error="phone_number_id no configurado")
 
     # Validar y truncar botones (máximo 3, id <= 256, title <= 20)
     formatted_buttons = []
@@ -221,7 +310,7 @@ def send_whatsapp_interactive_buttons(
         mode = "bsuid"
     else:
         print("[WA ERROR] No destination provided for interactive")
-        return False
+        return WhatsAppSendResult(status="rejected", accepted=False, error="Destino ausente para interactivo")
 
     dest = destination or recipient_bsuid
     button_titles = [b["reply"]["title"] for b in formatted_buttons]
@@ -233,6 +322,7 @@ def send_whatsapp_interactive_buttons(
             resp_body = resp.text[:300]
             print(f"[WA INTERACTIVE RESPONSE] status_code={resp.status_code} body={resp_body}")
             if resp.status_code in (200, 201):
+                wamid = None
                 try:
                     resp_json = resp.json()
                     wamid = resp_json.get("messages", [{}])[0].get("id", "")
@@ -241,9 +331,9 @@ def send_whatsapp_interactive_buttons(
                 except Exception:
                     pass
                 print(f"[WA] Mensaje interactivo enviado exitosamente a {dest}")
-                return True
-            elif 400 <= resp.status_code < 500:
-                print(f"[WA INTERACTIVE REJECTED] HTTP {resp.status_code}: {resp_body}, fallback controlado a texto plano...")
+                return WhatsAppSendResult(status="accepted", accepted=True, status_code=resp.status_code, wamid=wamid)
+            elif is_interactive_format_error(resp.status_code, resp_body):
+                print(f"[WA INTERACTIVE REJECTED] HTTP {resp.status_code}: {resp_body}, fallback controlado a texto plano por error de formato interactivo...")
                 return send_whatsapp_message(
                     text=text,
                     to_phone=to_phone,
@@ -252,15 +342,18 @@ def send_whatsapp_interactive_buttons(
                     to_number=to_number,
                     buttons=None,
                 )
+            elif 400 <= resp.status_code < 500:
+                print(f"[WA INTERACTIVE REJECTED] HTTP {resp.status_code}: {resp_body}. Rechazado por Meta sin fallback (no es error de formato).")
+                return WhatsAppSendResult(status="rejected", accepted=False, status_code=resp.status_code, error=resp_body)
             else:
-                print(f"[WA INTERACTIVE SERVER ERROR] HTTP {resp.status_code}: {resp_body}. Sin fallback para evitar duplicación.")
-                return False
+                print(f"[WA INTERACTIVE SERVER ERROR] HTTP {resp.status_code}: {resp_body}. Resultado incierto; sin fallback para evitar duplicación.")
+                return WhatsAppSendResult(status="uncertain", accepted=False, status_code=resp.status_code, error=resp_body)
     except (httpx.TimeoutException, httpx.RequestError) as e:
         print(f"[WA INTERACTIVE TIMEOUT/NETWORK ERROR] {type(e).__name__}: {e}. Resultado incierto; sin fallback a texto para evitar duplicación.")
-        return False
+        return WhatsAppSendResult(status="uncertain", accepted=False, error=str(e))
     except Exception as e:
         print(f"[WA INTERACTIVE ERROR] Excepcion inesperada al enviar interactivo: {e}. Sin fallback.")
-        return False
+        return WhatsAppSendResult(status="rejected", accepted=False, error=str(e))
 
 
 def send_whatsapp_image(

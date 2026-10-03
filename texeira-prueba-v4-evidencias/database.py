@@ -427,7 +427,13 @@ def claim_webhook(message_id, user_id, db_path="texeira_logs.db", lease_seconds=
         if row:
             return 'claimed', owner
         row = conn.execute('SELECT status FROM webhook_receipts WHERE message_id=?', (message_id,)).fetchone()
-        return ('completed' if row['status'] == 'completed' else 'busy'), None
+        current_status = row['status'] if row else 'unknown'
+        if current_status == 'completed':
+            return 'completed', None
+        elif current_status == 'uncertain':
+            return 'uncertain', None
+        else:
+            return 'busy', None
 
 
 def renew_webhook(message_id, owner, db_path="texeira_logs.db", lease_seconds=900):
@@ -441,9 +447,15 @@ def renew_webhook(message_id, owner, db_path="texeira_logs.db", lease_seconds=90
 
 
 def finish_webhook(message_id, owner, success, db_path="texeira_logs.db"):
+    if success in (True, "accepted", "completed"):
+        final_status = "completed"
+    elif success == "uncertain":
+        final_status = "uncertain"
+    else:
+        final_status = "failed"
     with get_db_session(db_path) as conn:
         cursor = conn.execute('''UPDATE webhook_receipts SET status=?,lease_until=0
             WHERE message_id=? AND owner=? AND status='processing' ''',
-            ('completed' if success else 'failed', message_id, owner))
+            (final_status, message_id, owner))
         if cursor.rowcount != 1:
             raise RuntimeError('Otro intento controla el mensaje.')
