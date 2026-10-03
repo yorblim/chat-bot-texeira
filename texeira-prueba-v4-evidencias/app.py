@@ -2239,6 +2239,12 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
     except Exception:
         return JSONResponse(status_code=400, content={"error": "Payload JSON invalido"})
     try:
+        items_to_process = []
+        has_busy = False
+        all_dedup = False
+        all_system = False
+        seen_unsupported = False
+        last_mid = ""
 
         # ----------------------------------------------------------------
         # Detectar canal por el campo 'object' del payload de Meta
@@ -2286,13 +2292,31 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
 
             user_id = f"fb_{psid}" if psid else "fb_unknown"
             channel = "messenger"
-            phone_number = ""
-            bsuid = psid
-            parent_bsuid = ""
-            phone_number_id = None
-
+            last_mid = message_id
             print(f"[FB INBOUND] psid={psid} user_id={user_id} "
                   f"message_id={message_id} text=\"{user_message[:50]}\"")
+
+            owner = None
+            if message_id:
+                state, owner = database.claim_webhook(message_id, user_id, SQLITE_DB_PATH)
+                if state == 'completed':
+                    return JSONResponse(status_code=200, content={"status": "ok", "dedup": True})
+                if state == 'busy':
+                    return JSONResponse(status_code=503, content={"status": "processing"}, headers={"Retry-After": "10"})
+
+            items_to_process.append({
+                "user_message": user_message,
+                "message_id": message_id,
+                "owner": owner,
+                "user_id": user_id,
+                "channel": channel,
+                "phone_number": "",
+                "bsuid": psid,
+                "phone_number_id": None,
+                "is_interactive_ambiguous": False,
+                "ambiguous_clarif_buttons": [],
+                "interaction_lang": None,
+            })
 
         # ================================================================
         # RAMA WHATSAPP: object == "whatsapp_business_account" o sin object
@@ -2308,50 +2332,104 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
             if not hmac.compare_digest(expected_signature, supplied_signature):
                 return JSONResponse(status_code=403, content={"error": "Firma invalida"})
 
-            try:
-                entry = body.get("entry", [{}])[0]
-                changes = entry.get("changes", [{}])[0]
-                value = changes.get("value", {})
-                messages = value.get("messages", [])
-                statuses = value.get("statuses", [])
+            entries = body.get("entry", [])
+            all_statuses = []
+            raw_messages = []
 
-                # --- STATUS WEBHOOK (delivery reports) ---
-                if statuses and not messages:
-                    for st in statuses:
-                        print(f"[WA DELIVERY STATUS] "
-                              f"status={st.get('status')} "
-                              f"message_id={st.get('id')} "
-                              f"recipient_id={st.get('recipient_id')} "
-                              f"recipient_user_id={st.get('recipient_user_id', 'N/A')} "
-                              f"recipient_parent_user_id={st.get('recipient_parent_user_id', 'N/A')} "
-                              f"errors={st.get('errors', [])} "
-                              f"error_code={st.get('errors', [{}])[0].get('code', 'N/A') if st.get('errors') else 'N/A'} "
-                              f"error_title={st.get('errors', [{}])[0].get('title', 'N/A') if st.get('errors') else 'N/A'}")
+            if isinstance(entries, list):
+                for entry in entries:
+                    if not isinstance(entry, dict):
+                        continue
+                    for change in entry.get("changes", []):
+                        if not isinstance(change, dict):
+                            continue
+                        val = change.get("value", {})
+                        if not isinstance(val, dict):
+                            continue
+                        phone_id = val.get("metadata", {}).get("phone_number_id")
+                        contacts = val.get("contacts", [])
+                        contact = contacts[0] if contacts and isinstance(contacts, list) and len(contacts) > 0 else {}
+                        for st in val.get("statuses", []):
+                            all_statuses.append(st)
+                        for msg in val.get("messages", []):
+                            raw_messages.append((msg, contact, phone_id))
+
+            # --- STATUS NOTIFICATIONS (delivery reports) ---
+            if all_statuses:
+                for st in all_statuses:
+                    print(f"[WA DELIVERY STATUS] "
+                          f"status={st.get('status')} "
+                          f"message_id={st.get('id')} "
+                          f"recipient_id={st.get('recipient_id')} "
+                          f"recipient_user_id={st.get('recipient_user_id', 'N/A')} "
+                          f"recipient_parent_user_id={st.get('recipient_parent_user_id', 'N/A')} "
+                          f"errors={st.get('errors', [])} "
+                          f"error_code={st.get('errors', [{}])[0].get('code', 'N/A') if st.get('errors') else 'N/A'} "
+                          f"error_title={st.get('errors', [{}])[0].get('title', 'N/A') if st.get('errors') else 'N/A'}")
+                if not raw_messages:
                     return JSONResponse(status_code=200, content={"status": "ok"})
 
-                # --- INBOUND MESSAGE ---
-                if messages:
-                    msg = messages[0]
-                    contacts = value.get("contacts", [])
-                    contact = contacts[0] if contacts else {}
+            if not raw_messages:
+                test_uid = body.get("user_id")
+                test_msg = body.get("message")
+                if test_uid or test_msg:
+                    user_id = test_uid or "test_user"
+                    user_message = test_msg or ""
+                    if not user_message:
+                        return JSONResponse(status_code=400, content={"error": "No se proporciono un mensaje valido"})
+                    items_to_process.append({
+                        "user_message": user_message,
+                        "message_id": "",
+                        "owner": None,
+                        "user_id": user_id,
+                        "channel": body.get("channel", "test"),
+                        "phone_number": "",
+                        "bsuid": "",
+                        "phone_number_id": None,
+                        "is_interactive_ambiguous": False,
+                        "ambiguous_clarif_buttons": [],
+                        "interaction_lang": None,
+                    })
+                else:
+                    return JSONResponse(status_code=200, content={"status": "ok", "ignored": "no_messages"})
+            else:
+                all_system = True
+                all_dedup = True
 
-                    user_message = msg.get("text", {}).get("body", "")
-                    message_id = msg.get("id", "")
-                    msg_timestamp = msg.get("timestamp", "")
+                for msg, contact, phone_number_id in raw_messages:
+                    msg_id = msg.get("id", "")
+                    if msg_id:
+                        last_mid = msg_id
                     msg_type = msg.get("type", "")
-                    phone_number_id = value.get("metadata", {}).get("phone_number_id")
 
-                    # Extract identifiers from contacts
+                    # 1. Filtro from_me (eco saliente oficial de Meta)
+                    if msg.get("from_me") is True:
+                        print(f"[WA IGNORED] Mensaje saliente from_me=True descartado: {msg_id}")
+                        continue
+
+                    # 2. Filtro eventos de sistema de Meta
+                    if msg_type == "system":
+                        print(f"[WA IGNORED] Mensaje de tipo 'system' descartado: {msg_id}")
+                        continue
+
+                    all_system = False
+                    user_message = msg.get("text", {}).get("body", "")
+
+                    # 3. Filtro tipos multimedia no soportados sin texto
+                    if msg_type not in ("text", "interactive", "button") and not user_message:
+                        print(f"[WA IGNORED] Tipo de mensaje no soportado descartado: type={msg_type} id={msg_id}")
+                        seen_unsupported = True
+                        continue
+
+                    # Extraer identificadores del remitente
                     contact_wa_id = contact.get("wa_id", "")
                     contact_user_id = contact.get("user_id", "")
                     contact_parent_user_id = contact.get("parent_user_id", "")
-
-                    # Extract identifiers from message
                     msg_from = msg.get("from", "")
                     msg_from_user_id = msg.get("from_user_id", "")
                     msg_from_parent_user_id = msg.get("from_parent_user_id", "")
+                    msg_timestamp = msg.get("timestamp", "")
 
-                    # Determine identifiers
                     phone_number = contact_wa_id or (msg_from if msg_from and msg_from.isdigit() else "")
                     bsuid = contact_user_id or msg_from_user_id or ""
                     parent_bsuid = contact_parent_user_id or msg_from_parent_user_id or ""
@@ -2361,7 +2439,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                     ambiguous_clarif_buttons = []
                     interaction_lang = None
 
-                    # Soporte para respuestas de botones y listas interactivas de WhatsApp
+                    # Soporte para respuestas interactivas de WhatsApp
                     if msg_type == "interactive":
                         interactive_obj = msg.get("interactive", {})
                         itype = interactive_obj.get("type", "")
@@ -2503,61 +2581,70 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         else:
                             user_message = btn_title or btn_id
 
-                    print(f"[WA INBOUND] "
-                          f"message_id={message_id} "
-                          f"from={msg_from} "
-                          f"from_user_id={msg_from_user_id} "
-                          f"type={msg_type} "
-                          f"timestamp={msg_timestamp} "
-                          f"text=\"{user_message[:50]}\" "
-                          f"selected_phone={phone_number} "
-                          f"user_id={user_id}")
+                    if not user_message:
+                        continue
 
-                    channel = "whatsapp"
-                else:
-                    user_id = body.get("user_id", "test_user")
-                    user_message = body.get("message", "")
-                    channel = body.get("channel", "test")
-                    phone_number_id = None
-                    phone_number = ""
-                    bsuid = ""
-                    parent_bsuid = ""
-                    message_id = ""
-            except (IndexError, KeyError):
-                user_id = body.get("user_id", "test_user")
-                user_message = body.get("message", "")
-                channel = body.get("channel", "test")
-                phone_number_id = None
-                phone_number = ""
-                bsuid = ""
-                parent_bsuid = ""
-                message_id = ""
+                    # Deduplicación por mensaje individual
+                    owner = None
+                    if msg_id:
+                        state, owner = database.claim_webhook(msg_id, user_id, SQLITE_DB_PATH)
+                        if state == 'completed':
+                            print(f"[WA DEDUP] Mensaje ya procesado anteriormente: id={msg_id}")
+                            continue
+                        if state == 'busy':
+                            print(f"[WA BUSY] Mensaje en proceso concurrente: id={msg_id}")
+                            has_busy = True
+                            all_dedup = False
+                            continue
 
-        if not user_message:
-            return JSONResponse(status_code=400, content={"error": "No se proporciono un mensaje valido"})
+                    all_dedup = False
+                    print(f"[WA INBOUND] message_id={msg_id} from={msg_from} from_user_id={msg_from_user_id} "
+                          f"type={msg_type} timestamp={msg_timestamp} text=\"{user_message[:50]}\" "
+                          f"selected_phone={phone_number} user_id={user_id}")
 
-        owner = None
-        if message_id:
-            state, owner = database.claim_webhook(message_id, user_id, SQLITE_DB_PATH)
-            if state == 'completed':
-                return JSONResponse(status_code=200, content={"status": "ok", "dedup": True})
-            if state == 'busy':
-                return JSONResponse(status_code=503, content={"status": "processing"}, headers={"Retry-After": "10"})
+                    items_to_process.append({
+                        "user_message": user_message,
+                        "message_id": msg_id,
+                        "owner": owner,
+                        "user_id": user_id,
+                        "channel": "whatsapp",
+                        "phone_number": phone_number,
+                        "bsuid": bsuid,
+                        "phone_number_id": phone_number_id,
+                        "is_interactive_ambiguous": is_interactive_ambiguous,
+                        "ambiguous_clarif_buttons": ambiguous_clarif_buttons,
+                        "interaction_lang": interaction_lang,
+                    })
 
-        # Completar el intento antes del ACK para conservar CPU durante la petición.
-        def _process_message():
+        # Función de procesamiento síncrono por mensaje individual
+        def _process_one_inbound(item: dict) -> bool:
             import operational_metrics as operational
             event_id = None
             generation_ms = None
             rag_result = {}
             accepted = False
+            item_start = time.time()
+            item_metric_start = time.perf_counter()
+
+            u_msg = item["user_message"]
+            u_id = item["user_id"]
+            u_chan = item["channel"]
+            m_id = item.get("message_id") or ""
+            u_owner = item.get("owner")
+            p_num = item.get("phone_number") or ""
+            p_bsuid = item.get("bsuid") or ""
+            p_id = item.get("phone_number_id")
+            is_ambig = item.get("is_interactive_ambiguous", False)
+            ambig_btns = item.get("ambiguous_clarif_buttons") or []
+            i_lang = item.get("interaction_lang")
+
             try:
-                if channel == 'whatsapp':
+                if u_chan == 'whatsapp':
                     event_id = operational.start()
-                if is_interactive_ambiguous:
-                    bot_response = user_message
+                if is_ambig:
+                    bot_response = u_msg
                     route = "help"
-                    quick_buttons = ambiguous_clarif_buttons
+                    quick_buttons = ambig_btns
                     rag_result = {
                         "response": bot_response,
                         "route": "help",
@@ -2567,22 +2654,23 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         "is_predefined": True,
                     }
                 else:
-                    rag_result = rag_chain(user_message, user_id=user_id)
+                    rag_result = rag_chain(u_msg, user_id=u_id)
                     from handoff_support import apply_request
-                    rag_result = apply_request(globals(), rag_result, user_id, channel, user_message)
+                    rag_result = apply_request(globals(), rag_result, u_id, u_chan, u_msg)
                     bot_response = rag_result["response"]
-                resolved_autonomously = rag_result.get("resolved_autonomously", not rag_result["is_fallback"])
+
+                resolved_autonomously = rag_result.get("resolved_autonomously", not rag_result.get("is_fallback", False))
                 escalated_to_human = rag_result.get('handoff_registered', False)
                 is_predefined = rag_result.get("is_predefined", False)
                 interaction_type = "predefined" if is_predefined else "llm"
                 is_rate_limit = rag_result.get("is_rate_limit", False)
-                latency_ms = (time.time() - start_time) * 1000
+                latency_ms = (time.time() - item_start) * 1000
 
                 database.log_interaction(
-                    user_id=user_id,
-                    channel=channel,
-                    detected_language=detect_language(user_message),
-                    user_message=user_message,
+                    user_id=u_id,
+                    channel=u_chan,
+                    detected_language=detect_language(u_msg),
+                    user_message=u_msg,
                     bot_response=bot_response,
                     resolved_autonomously=resolved_autonomously,
                     latency_ms=latency_ms,
@@ -2590,15 +2678,16 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                     is_predefined_response=is_predefined,
                     interaction_type=interaction_type,
                     is_rate_limit=is_rate_limit,
-                    client_message_id=message_id or None,
+                    client_message_id=m_id or None,
                     db_path=SQLITE_DB_PATH,
                 )
 
-                generation_ms = (time.perf_counter() - metric_start) * 1000
-                if owner:
-                    database.renew_webhook(message_id, owner, SQLITE_DB_PATH)
-                accepted = channel not in {'whatsapp', 'messenger'}
-                if channel == "whatsapp":
+                generation_ms = (time.perf_counter() - item_metric_start) * 1000
+                if u_owner:
+                    database.renew_webhook(m_id, u_owner, SQLITE_DB_PATH)
+
+                accepted = u_chan not in {'whatsapp', 'messenger'}
+                if u_chan == "whatsapp":
                     bot_response_clean = format_whatsapp_text(bot_response)
 
                     # Evaluar solicitud de folleto previo al envío de texto para incorporar nota si no existe PDF
@@ -2607,29 +2696,29 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                     detected_eid = rag_result.get('entity_id') or ''
 
                     tour_doc_info = None
-                    if is_brochure_requested(user_message) and route not in no_multimedia_routes:
-                        tour_doc_info = get_tour_brochure_data(user_message + " " + bot_response, user_msg=user_message, entity_id=detected_eid)
+                    if is_brochure_requested(u_msg) and route not in no_multimedia_routes:
+                        tour_doc_info = get_tour_brochure_data(u_msg + " " + bot_response, user_msg=u_msg, entity_id=detected_eid)
                         if not tour_doc_info:
                             bot_response_clean += "\n\n📄 _Nota: Actualmente este tour no cuenta con folleto en PDF en línea, pero nuestro asesor te facilitará el itinerario completo._"
 
                     # 1. Despacho seguro de Fotografía SOLO si fue solicitada y existe en catálogo
                     photo_api_accepted = None
-                    if route == "evidence_photo" and is_photo_requested(user_message):
-                        tour_img_info = get_tour_image_data(user_message + " " + bot_response, user_msg=user_message, entity_id=detected_eid)
+                    if route == "evidence_photo" and is_photo_requested(u_msg):
+                        tour_img_info = get_tour_image_data(u_msg + " " + bot_response, user_msg=u_msg, entity_id=detected_eid)
                         if tour_img_info:
                             img_url, img_caption = tour_img_info
                             photo_api_accepted = send_whatsapp_image(
                                 image_url=img_url,
                                 caption=img_caption,
-                                to_phone=phone_number if phone_number else None,
-                                recipient_bsuid=bsuid if bsuid else None,
-                                phone_number_id=phone_number_id,
+                                to_phone=p_num if p_num else None,
+                                recipient_bsuid=p_bsuid if p_bsuid else None,
+                                phone_number_id=p_id,
                             )
                             if photo_api_accepted:
-                                print(f"[WA MULTIMEDIA PHOTO API ACCEPTED] to={phone_number or bsuid} url={img_url}")
+                                print(f"[WA MULTIMEDIA PHOTO API ACCEPTED] to={p_num or p_bsuid} url={img_url}")
                             else:
-                                print(f"[WA MULTIMEDIA PHOTO SEND FAILED] to={phone_number or bsuid} url={img_url}")
-                                is_en_user = (detect_language(user_message) == "en")
+                                print(f"[WA MULTIMEDIA PHOTO SEND FAILED] to={p_num or p_bsuid} url={img_url}")
+                                is_en_user = (detect_language(u_msg) == "en")
                                 tour_name_disp = _get_tour_display_name(detected_eid, is_en=is_en_user) if detected_eid else ""
                                 bot_response_clean = (
                                     f"Tuvimos un inconveniente al cargar la fotografía oficial de *{tour_name_disp or 'este tour'}*. Nuestro asesor te compartirá la galería completa directamente."
@@ -2638,23 +2727,23 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                                 )
 
                     # Botones de respuesta rápida interactivos (Meta WhatsApp Cloud API)
-                    if not is_interactive_ambiguous:
-                        eff_lang = interaction_lang or detect_language(user_message)
+                    if not is_ambig:
+                        eff_lang = i_lang or detect_language(u_msg)
                         if eff_lang not in ("es", "en"):
                             eff_lang = "es"
                         quick_buttons = get_quick_buttons(
                             route=route,
-                            user_message=user_message,
+                            user_message=u_msg,
                             detected_eid=detected_eid,
                             lang=eff_lang,
                             photo_send_failed=(photo_api_accepted is False),
                         )
 
-                    accepted = user_id != 'unknown' and send_whatsapp_message(
+                    accepted = u_id != 'unknown' and send_whatsapp_message(
                         text=bot_response_clean,
-                        to_phone=phone_number if phone_number else None,
-                        recipient_bsuid=bsuid if bsuid else None,
-                        phone_number_id=phone_number_id,
+                        to_phone=p_num if p_num else None,
+                        recipient_bsuid=p_bsuid if p_bsuid else None,
+                        phone_number_id=p_id,
                         buttons=quick_buttons,
                     )
 
@@ -2666,45 +2755,63 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                                 document_url=doc_url,
                                 filename=doc_filename,
                                 caption=doc_caption,
-                                to_phone=phone_number if phone_number else None,
-                                recipient_bsuid=bsuid if bsuid else None,
-                                phone_number_id=phone_number_id,
+                                to_phone=p_num if p_num else None,
+                                recipient_bsuid=p_bsuid if p_bsuid else None,
+                                phone_number_id=p_id,
                             )
-                            print(f"[WA MULTIMEDIA BROCHURE SENT] to={phone_number or bsuid} filename={doc_filename}")
+                            print(f"[WA MULTIMEDIA BROCHURE SENT] to={p_num or p_bsuid} filename={doc_filename}")
                     except Exception as media_err:
                         print(f"[WA MULTIMEDIA DISPATCH ERROR] {media_err}")
 
                     operational.finish(event_id, 'api_accepted' if accepted else 'send_failed',
-                                       generation_ms, (time.perf_counter()-metric_start)*1000, rag_result)
-                elif channel == "messenger":
-                    accepted = send_messenger_message(text=bot_response, psid=bsuid)
-                    print(f"[FB OUTBOUND RESULT] psid={bsuid} accepted={accepted}")
+                                       generation_ms, (time.perf_counter()-item_metric_start)*1000, rag_result)
+                elif u_chan == "messenger":
+                    accepted = send_messenger_message(text=bot_response, psid=p_bsuid)
+                    print(f"[FB OUTBOUND RESULT] psid={p_bsuid} accepted={accepted}")
 
-                if owner:
-                    database.finish_webhook(message_id, owner, bool(accepted), SQLITE_DB_PATH)
-                elapsed = (time.time() - start_time) * 1000
-                channel_tag = "FB" if channel == "messenger" else "WA"
-                print(f"[{channel_tag} PROCESSED] user_id={user_id} latency={elapsed:.0f}ms route={rag_result.get('response_route', 'unknown')}")
+                if u_owner:
+                    database.finish_webhook(m_id, u_owner, bool(accepted), SQLITE_DB_PATH)
+                elapsed = (time.time() - item_start) * 1000
+                channel_tag = "FB" if u_chan == "messenger" else "WA"
+                print(f"[{channel_tag} PROCESSED] user_id={u_id} latency={elapsed:.0f}ms route={rag_result.get('response_route', 'unknown')}")
                 return bool(accepted)
             except Exception as e:
-                elapsed = (time.time() - start_time) * 1000
-                if owner:
-                    database.finish_webhook(message_id, owner, bool(accepted), SQLITE_DB_PATH)
+                elapsed = (time.time() - item_start) * 1000
+                if u_owner:
+                    database.finish_webhook(m_id, u_owner, bool(accepted), SQLITE_DB_PATH)
                 if event_id:
                     operational.finish(event_id, 'processing_failed', generation_ms,
-                                       (time.perf_counter()-metric_start)*1000, rag_result)
-                channel_tag = "FB" if channel == "messenger" else "WA"
-                print(f"[{channel_tag} ERROR] user_id={user_id} error={e} latency={elapsed:.0f}ms")
+                                       (time.perf_counter()-item_metric_start)*1000, rag_result)
+                channel_tag = "FB" if u_chan == "messenger" else "WA"
+                print(f"[{channel_tag} ERROR] user_id={u_id} error={e} latency={elapsed:.0f}ms")
                 return bool(accepted)
 
-        # Procesar con CPU al 100% activa mientras la conexión con Meta está abierta
-        succeeded = await asyncio.to_thread(_process_message)
-        if not succeeded:
+        if not items_to_process:
+            if has_busy:
+                return JSONResponse(status_code=503, content={"status": "processing"}, headers={"Retry-After": "10"})
+            if all_system:
+                return JSONResponse(status_code=200, content={"status": "ok", "ignored": "system_message"})
+            if all_dedup:
+                return JSONResponse(status_code=200, content={"status": "ok", "dedup": True})
+            if seen_unsupported:
+                return JSONResponse(status_code=200, content={"status": "ok", "ignored": "unsupported_type"})
+            return JSONResponse(status_code=200, content={"status": "ok"})
+
+        has_failure = False
+        for item in items_to_process:
+            succeeded = await asyncio.to_thread(_process_one_inbound, item)
+            if not succeeded:
+                has_failure = True
+
+        if has_failure:
             return JSONResponse(status_code=503, content={"error": "Procesamiento temporalmente no disponible"}, headers={"Retry-After": "10"})
+
+        if has_busy:
+            return JSONResponse(status_code=503, content={"status": "processing"}, headers={"Retry-After": "10"})
 
         return JSONResponse(status_code=200, content={
             "status": "ok",
-            "message_id": message_id,
+            "message_id": last_mid,
         })
 
     except Exception as e:

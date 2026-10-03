@@ -242,8 +242,8 @@ def send_whatsapp_interactive_buttons(
                     pass
                 print(f"[WA] Mensaje interactivo enviado exitosamente a {dest}")
                 return True
-            else:
-                print(f"[WA INTERACTIVE ERROR] HTTP {resp.status_code}: {resp_body}, fallback a texto plano...")
+            elif 400 <= resp.status_code < 500:
+                print(f"[WA INTERACTIVE REJECTED] HTTP {resp.status_code}: {resp_body}, fallback controlado a texto plano...")
                 return send_whatsapp_message(
                     text=text,
                     to_phone=to_phone,
@@ -252,16 +252,15 @@ def send_whatsapp_interactive_buttons(
                     to_number=to_number,
                     buttons=None,
                 )
+            else:
+                print(f"[WA INTERACTIVE SERVER ERROR] HTTP {resp.status_code}: {resp_body}. Sin fallback para evitar duplicación.")
+                return False
+    except (httpx.TimeoutException, httpx.RequestError) as e:
+        print(f"[WA INTERACTIVE TIMEOUT/NETWORK ERROR] {type(e).__name__}: {e}. Resultado incierto; sin fallback a texto para evitar duplicación.")
+        return False
     except Exception as e:
-        print(f"[WA INTERACTIVE ERROR] Excepcion al enviar interactivo: {e}, fallback a texto plano...")
-        return send_whatsapp_message(
-            text=text,
-            to_phone=to_phone,
-            recipient_bsuid=recipient_bsuid,
-            phone_number_id=phone_number_id,
-            to_number=to_number,
-            buttons=None,
-        )
+        print(f"[WA INTERACTIVE ERROR] Excepcion inesperada al enviar interactivo: {e}. Sin fallback.")
+        return False
 
 
 def send_whatsapp_image(
