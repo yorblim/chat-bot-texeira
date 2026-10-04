@@ -148,6 +148,44 @@ class ConnectedCatalogTests(unittest.TestCase):
         self.assertEqual(cat_reply.get('response_route'), 'evidence_category_tours')
         self.assertIn('Cañón de Tinajani Trek', cat_reply['response'])
 
+        # 2b. Selección directa mediante botón interactivo de WhatsApp (btn_tour)
+        wa_btn_payload = {
+            "object": "whatsapp_business_account",
+            "entry": [{
+                "changes": [{
+                    "value": {
+                        "messaging_product": "whatsapp",
+                        "metadata": {"phone_number_id": "109876543210"},
+                        "contacts": [{"wa_id": "51900000001"}],
+                        "messages": [{
+                            "from": "51900000001",
+                            "id": "wamid.btn_tinajani_select_1",
+                            "timestamp": "1727415000",
+                            "type": "interactive",
+                            "interactive": {
+                                "type": "button_reply",
+                                "button_reply": {
+                                    "id": f"btn_tour:{eid}:es",
+                                    "title": "Cañón de Tinajani"
+                                }
+                            }
+                        }]
+                    },
+                    "field": "messages"
+                }]
+            }]
+        }
+        with patch.object(app, "META_APP_SECRET", "test_secret_123"), \
+             patch("hmac.compare_digest", return_value=True), \
+             patch.object(app, "send_whatsapp_message", return_value=True) as mock_msg:
+            resp_btn = self.client.post("/webhook", json=wa_btn_payload)
+            self.assertEqual(resp_btn.status_code, 200)
+            sent_text = mock_msg.call_args[1]["text"] if mock_msg.called else ""
+            self.assertTrue(
+                "Cañón de Tinajani Trek" in sent_text or "almuerzo campestre" in sent_text or "180" in sent_text,
+                f"El botón de selección debe devolver la ficha del tour: {sent_text}"
+            )
+
         # 3. Consulta de datos guardados del tour nuevo
         price_reply = self.ask('¿Cuánto cuesta el Cañón de Tinajani Trek?')
         self.assertIn('180 PEN', price_reply['response'])
@@ -164,15 +202,58 @@ class ConnectedCatalogTests(unittest.TestCase):
         cat_reply_deact = self.ask('categoria treks pagina 4')
         self.assertNotIn('Cañón de Tinajani Trek', cat_reply_deact['response'])
 
-        # 6. Preguntar directamente por el tour desactivado
+        # 6. Preguntar directamente por el tour desactivado: no ofertar precio ni reserva
         reply_deact_ask = self.ask('¿Cuánto cuesta el Cañón de Tinajani Trek?')
+        self.assertNotIn('180 PEN', reply_deact_ask['response'])
+        self.assertNotIn('180 soles', reply_deact_ask['response'].lower())
+        self.assertNotIn('solicitar reserva', reply_deact_ask['response'].lower())
         self.assertTrue(
             reply_deact_ask.get('response_route') in ('evidence_inactive_tour', 'evidence_unknown', 'unknown') or
+            reply_deact_ask.get('needs_agency_confirmation') or
             'no disponible' in reply_deact_ask['response'].lower() or
-            'inactivo' in reply_deact_ask['response'].lower() or
-            'asesor' in reply_deact_ask['response'].lower() or
-            reply_deact_ask.get('needs_agency_confirmation')
+            'inactivo' in reply_deact_ask['response'].lower()
         )
+
+    def test_rate_creation_subsequent_edit_second_save_updates_single_row(self):
+        """Comprobación con base aislada de creación -> edición posterior -> segundo guardado:
+        Una sola tarifa, mismo ID, condiciones y precio actualizados sin duplicación en DB.
+        """
+        eid = 'city-tour-cusco'
+        self.save()
+
+        # 1. Crear tarifa nueva sin ID
+        payload_new = {
+            "entity_id": eid,
+            "rate_category": "student",
+            "rate_name": "Tarifa Estudiante City",
+            "price": 95.0,
+            "currency": "PEN",
+            "conditions": "Carnet universitario inicial",
+            "is_active": True
+        }
+        resp1 = self.client.post(f'/api/catalog/tours/{eid}/rates', json=payload_new, headers=self.headers)
+        self.assertEqual(resp1.status_code, 200, resp1.text)
+        confirmed_id = resp1.json().get('rate_id')
+        self.assertIsNotNone(confirmed_id)
+
+        # 2. Segundo guardado simulando edición posterior: adopta confirmed_id
+        payload_edit = dict(payload_new)
+        payload_edit['id'] = confirmed_id
+        payload_edit['conditions'] = 'Carnet universitario 2026 SUNEDU y DNI'
+        payload_edit['price'] = 90.0
+        resp2 = self.client.post(f'/api/catalog/tours/{eid}/rates', json=payload_edit, headers=self.headers)
+        self.assertEqual(resp2.status_code, 200, resp2.text)
+        self.assertEqual(resp2.json().get('rate_id'), confirmed_id)
+
+        # 3. Comprobar en DB que existe exactamente una sola tarifa con ese ID y datos actualizados
+        resp_get = self.client.get(f'/api/catalog/tours/{eid}/rates?all=1')
+        self.assertEqual(resp_get.status_code, 200)
+        matching_rates = [r for r in resp_get.json() if r.get('rate_name') == 'Tarifa Estudiante City']
+        self.assertEqual(len(matching_rates), 1, "No debe duplicarse la tarifa en el segundo guardado")
+        saved_rate = matching_rates[0]
+        self.assertEqual(saved_rate.get('id'), confirmed_id)
+        self.assertEqual(saved_rate.get('conditions'), 'Carnet universitario 2026 SUNEDU y DNI')
+        self.assertEqual(float(saved_rate.get('price')), 90.0)
 
 
 if __name__ == '__main__':
