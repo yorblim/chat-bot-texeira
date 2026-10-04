@@ -809,6 +809,7 @@ def get_catalog_html(csrf_token: str) -> str:
 
     // Control de sesión del editor y secuencia de peticiones de tarifas
     let currentEditorSessionId = 0;
+    let currentRateEditorSessionId = 0;
     let ratesRequestCounter = 0;
 
     // Snapshot para protección contra pérdida accidental de borradores
@@ -1211,6 +1212,12 @@ def get_catalog_html(csrf_token: str) -> str:
           return;
         }}
       }}
+      currentRateEditorSessionId++;
+      const saveBtn = document.getElementById('btnSaveRate');
+      if (saveBtn) {{
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Guardar esta tarifa';
+      }}
       document.getElementById('rateFormBox').style.display = 'block';
       if (rateData) {{
         document.getElementById('rateFormTitle').textContent = 'Editar Tarifa Especial';
@@ -1242,9 +1249,15 @@ def get_catalog_html(csrf_token: str) -> str:
     }}
 
     function hideRateForm() {{
+      currentRateEditorSessionId++;
       document.getElementById('rateFormBox').style.display = 'none';
       document.getElementById('rateId').value = '';
       initialRateSnapshot = null;
+      const saveBtn = document.getElementById('btnSaveRate');
+      if (saveBtn) {{
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Guardar esta tarifa';
+      }}
     }}
 
     function cancelRateEdit() {{
@@ -1401,6 +1414,8 @@ def get_catalog_html(csrf_token: str) -> str:
       }}
 
       const rateSessionAtStart = currentEditorSessionId;
+      const rateEditorTokenAtStart = currentRateEditorSessionId;
+      const rateIdAtStart = String(rateIdVal ?? '').trim();
       const rateEntityId = entityId;
       const submittedRateSnap = getRateFormSnapshot();
 
@@ -1419,26 +1434,45 @@ def get_catalog_html(csrf_token: str) -> str:
         }});
         const res = await r.json();
 
+        // Si la sesión del modal del tour cambió, ignorar completamente
         if (rateSessionAtStart !== currentEditorSessionId) return;
 
         if (r.ok && res.ok) {{
           showToast('Tarifa guardada correctamente');
-          if (getRateFormSnapshot() === submittedRateSnap) {{
-            hideRateForm();
-          }} else {{
-            initialRateSnapshot = submittedRateSnap;
+          const savedRateId = res.rate_id != null ? res.rate_id : (res.id != null ? res.id : (rateIdAtStart ? parseInt(rateIdAtStart, 10) : null));
+
+          // Solo modificar el formulario si seguimos en el mismo editor de esta tarifa
+          if (rateEditorTokenAtStart === currentRateEditorSessionId) {{
+            if (getRateFormSnapshot() === submittedRateSnap) {{
+              hideRateForm();
+            }} else {{
+              if (savedRateId != null && savedRateId !== '') {{
+                document.getElementById('rateId').value = String(savedRateId);
+                document.getElementById('rateFormTitle').textContent = 'Editar Tarifa Especial';
+              }}
+              const confirmedObj = JSON.parse(submittedRateSnap);
+              if (savedRateId != null && savedRateId !== '') {{
+                confirmedObj.id = String(savedRateId);
+              }}
+              initialRateSnapshot = JSON.stringify(confirmedObj);
+            }}
           }}
+
           loadTourRates(rateEntityId);
         }} else {{
-          showToast(res.error || 'Error al guardar tarifa', 'error');
+          if (rateSessionAtStart === currentEditorSessionId && rateEditorTokenAtStart === currentRateEditorSessionId) {{
+            showToast(res.error || 'Error al guardar tarifa', 'error');
+          }}
         }}
       }} catch (err) {{
-        if (rateSessionAtStart === currentEditorSessionId) {{
+        if (rateSessionAtStart === currentEditorSessionId && rateEditorTokenAtStart === currentRateEditorSessionId) {{
           showToast('Error de conexión al guardar tarifa', 'error');
         }}
       }} finally {{
-        btn.disabled = false;
-        btn.textContent = 'Guardar esta tarifa';
+        if (rateEditorTokenAtStart === currentRateEditorSessionId) {{
+          btn.disabled = false;
+          btn.textContent = 'Guardar esta tarifa';
+        }}
       }}
     }}
 

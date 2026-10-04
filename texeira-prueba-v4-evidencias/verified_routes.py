@@ -446,7 +446,30 @@ def install(ns, support, original):
                 a_norm = support.normalize(a)
                 if a_norm and a_norm in q:
                     hits.append((len(a_norm), eid))
-        return max(hits)[1] if hits else None
+        if hits:
+            return max(hits)[1]
+
+        # Si no coincidió con tours activos ni canónicos, identificar si la consulta es sobre un tour desactivado del catálogo
+        try:
+            from catalog_service import get_all_tours
+            all_t = get_all_tours(active_only=False)
+            deact_hits = []
+            for t in all_t:
+                if not t.get('is_active', 1):
+                    deact_eid = t.get('entity_id')
+                    kws = list(t.get('aliases', []))
+                    if t.get('name'):
+                        kws.append(t['name'])
+                    for k in kws:
+                        k_norm = support.normalize(k)
+                        if k_norm and k_norm in q:
+                            deact_hits.append((len(k_norm), deact_eid))
+            if deact_hits:
+                return max(deact_hits)[1]
+        except Exception:
+            pass
+
+        return None
     def field(q):
         for key,pattern in [
             ('excludes',r'no incluye|no esta incluido|exclu|not include'),
