@@ -169,7 +169,7 @@ def get_catalog_html(csrf_token: str) -> str:
     }}
     .grid {{
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
       gap: 18px;
     }}
     .card {{
@@ -518,6 +518,7 @@ def get_catalog_html(csrf_token: str) -> str:
       body {{ padding: 12px !important; }}
       header {{ padding: 14px 16px; margin-bottom: 16px; }}
       h1 {{ font-size: 18px; }}
+      .grid {{ grid-template-columns: 1fr; gap: 14px; }}
       .form-row {{ grid-template-columns: 1fr; gap: 8px; }}
       .modal-backdrop {{ padding: 8px; }}
       .modal {{ max-height: 96vh; }}
@@ -525,7 +526,8 @@ def get_catalog_html(csrf_token: str) -> str:
       .modal-tabs {{ padding: 0 12px; }}
       .modal-tab-btn {{ padding: 8px 10px; font-size: 12px; }}
       .modal-body {{ padding: 14px; }}
-      .rate-card {{ flex-direction: column; align-items: flex-start; gap: 10px; }}
+      .form-actions-bar {{ position: sticky; bottom: 0; background: white; padding-top: 12px; padding-bottom: 6px; z-index: 5; box-shadow: 0 -4px 6px -2px rgba(0,0,0,0.05); }}
+      .rate-card {{ flex-direction: column; align-items: flex-start; gap: 10px; word-break: break-word; }}
       .rate-card-actions {{ width: 100%; display: flex; justify-content: flex-end; gap: 6px; }}
       .toolbar {{ flex-direction: column; align-items: stretch; }}
       .search-box {{ max-width: 100%; }}
@@ -805,9 +807,56 @@ def get_catalog_html(csrf_token: str) -> str:
     let CURRENT_TOUR_RATES = [];
     let lastFocusedElement = null;
 
+    // Control de sesión del editor y secuencia de peticiones de tarifas
+    let currentEditorSessionId = 0;
+    let ratesRequestCounter = 0;
+
     // Snapshot para protección contra pérdida accidental de borradores
     let initialTourSnapshot = null;
     let initialRateSnapshot = null;
+
+    function getConfirmedTourData() {{
+      if (initialTourSnapshot) {{
+        try {{
+          return JSON.parse(initialTourSnapshot);
+        }} catch (e) {{}}
+      }}
+      return null;
+    }}
+
+    function restoreTourFormFromSnapshot() {{
+      if (!initialTourSnapshot) return;
+      try {{
+        const snap = JSON.parse(initialTourSnapshot);
+        const setVal = (id, val) => {{
+          const el = document.getElementById(id);
+          if (el) el.value = val ?? '';
+        }};
+        setVal('formEntityId', snap.entity_id);
+        setVal('formName', snap.name);
+        setVal('formPrice', snap.price);
+        setVal('formCurrency', snap.currency || 'USD');
+        setVal('formSchedule', snap.schedule);
+        setVal('formDuration', snap.duration);
+        setVal('formAliases', snap.aliases);
+        setVal('formIncludes', snap.includes);
+        setVal('formExcludes', snap.excludes);
+        const activeEl = document.getElementById('formIsActive');
+        if (activeEl) activeEl.checked = !!snap.is_active;
+      }} catch (e) {{}}
+    }}
+
+    function updateRatesTourBaseRef() {{
+      const refEl = document.getElementById('ratesTourBaseRef');
+      if (!refEl) return;
+      const confirmed = getConfirmedTourData();
+      const hasPrice = confirmed && confirmed.price !== '' && confirmed.price != null;
+      if (hasPrice) {{
+        refEl.textContent = (confirmed.currency || 'USD') + ' ' + confirmed.price;
+      }} else {{
+        refEl.textContent = 'Por confirmar';
+      }}
+    }}
 
     function showToast(msg, type='success') {{
       const t = document.getElementById('toast');
@@ -832,15 +881,20 @@ def get_catalog_html(csrf_token: str) -> str:
     }}
 
     function closeModal(id) {{
+      if (id === 'tourModal') {{
+        currentEditorSessionId++;
+        ratesRequestCounter++;
+      }}
       document.getElementById(id).style.display = 'none';
       safeFocus(lastFocusedElement);
     }}
 
-    // Cálculo de fecha actual en zona horaria de Lima (UTC-5) para evaluación de vigencias
+    // Cálculo de fecha actual en zona horaria oficial de Lima (UTC-5 permanente, sin DST)
     function getLimaDateStr() {{
       const now = new Date();
-      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-      const lima = new Date(utc - (5 * 3600000));
+      // now.getTime() representa el instante absoluto en milisegundos UTC.
+      // Restar 5 horas da el calendario oficial de Lima con independencia de la zona horaria del navegador.
+      const lima = new Date(now.getTime() - (5 * 3600000));
       return lima.toISOString().slice(0, 10);
     }}
 
@@ -908,6 +962,8 @@ def get_catalog_html(csrf_token: str) -> str:
               ? 'Tienes cambios sin guardar en los datos del tour.\\n\\n¿Deseas descartar esos cambios y cerrar?'
               : 'Tienes una tarifa en edición sin guardar.\\n\\n¿Deseas descartar la tarifa y cerrar?');
         if (!confirm(msg)) return;
+        restoreTourFormFromSnapshot();
+        hideRateForm();
       }}
       closeModal('tourModal');
     }}
@@ -924,19 +980,16 @@ def get_catalog_html(csrf_token: str) -> str:
           if (!confirm('Tienes cambios sin guardar en los datos del tour.\\n\\n¿Deseas descartarlos para ver las tarifas especiales, o permanecer aquí para guardarlos primero?')) {{
             return;
           }}
+          // Restaurar valores confirmados al descartar cambios no guardados
+          restoreTourFormFromSnapshot();
         }}
         tabTourData.classList.remove('active');
         tabTourRates.classList.add('active');
         btnTourData.classList.remove('active');
         btnTourRates.classList.add('active');
 
-        // Actualizar referencia visual de la tarifa base oficial
-        const curPrice = document.getElementById('formPrice').value.trim();
-        const curCurr = document.getElementById('formCurrency').value;
-        const refEl = document.getElementById('ratesTourBaseRef');
-        if (refEl) {{
-          refEl.textContent = curPrice ? (curCurr + ' ' + curPrice) : 'Por confirmar';
-        }}
+        // Actualizar referencia visual de la tarifa base usando exclusivamente datos confirmados
+        updateRatesTourBaseRef();
       }} else {{
         // Si va a datos del tour pero hay una tarifa en edición sin guardar
         if (isRateFormDirty()) {{
@@ -1083,6 +1136,8 @@ def get_catalog_html(csrf_token: str) -> str:
     document.getElementById('btnRefresh').addEventListener('click', loadTours);
 
     document.getElementById('btnNewTour').addEventListener('click', () => {{
+      currentEditorSessionId++;
+      ratesRequestCounter++;
       document.getElementById('tourForm').reset();
       document.getElementById('formIsEdit').value = '0';
       document.getElementById('formEntityId').value = '';
@@ -1097,6 +1152,7 @@ def get_catalog_html(csrf_token: str) -> str:
       loadTourRates(null);
       switchModalTab('tourData');
       initialTourSnapshot = getTourFormSnapshot();
+      updateRatesTourBaseRef();
       openModal('tourModal');
     }});
 
@@ -1122,6 +1178,8 @@ def get_catalog_html(csrf_token: str) -> str:
     function editTour(entityId) {{
       const t = TOURS_DATA.find(x => x.entity_id === entityId);
       if (!t) return;
+      currentEditorSessionId++;
+      ratesRequestCounter++;
       document.getElementById('formIsEdit').value = '1';
       document.getElementById('formEntityId').value = t.entity_id;
       document.getElementById('formEntityId').disabled = true;
@@ -1140,13 +1198,19 @@ def get_catalog_html(csrf_token: str) -> str:
       if (adv) adv.open = false; // Cerrado al editar para mantener limpio el formulario
 
       hideRateForm();
-      loadTourRates(t.entity_id);
       switchModalTab('tourData');
       initialTourSnapshot = getTourFormSnapshot();
+      updateRatesTourBaseRef();
+      loadTourRates(t.entity_id);
       openModal('tourModal');
     }}
 
     function showRateForm(rateData = null) {{
+      if (isRateFormDirty()) {{
+        if (!confirm('Tienes cambios sin guardar en esta tarifa.\\n\\n¿Deseas descartar los cambios?')) {{
+          return;
+        }}
+      }}
       document.getElementById('rateFormBox').style.display = 'block';
       if (rateData) {{
         document.getElementById('rateFormTitle').textContent = 'Editar Tarifa Especial';
@@ -1160,12 +1224,14 @@ def get_catalog_html(csrf_token: str) -> str:
         document.getElementById('rateValidTo').value = rateData.valid_to || '';
         document.getElementById('rateIsActive').checked = (rateData.is_active !== 0 && rateData.is_active !== false);
       }} else {{
+        const confirmed = getConfirmedTourData();
+        const baseCurrency = (confirmed && confirmed.currency) ? confirmed.currency : (document.getElementById('formCurrency').value || 'USD');
         document.getElementById('rateFormTitle').textContent = 'Añadir Tarifa Especial';
         document.getElementById('rateId').value = '';
         document.getElementById('rateCategory').value = 'student';
         document.getElementById('rateName').value = '';
         document.getElementById('ratePrice').value = '';
-        document.getElementById('rateCurrency').value = document.getElementById('formCurrency').value || 'USD';
+        document.getElementById('rateCurrency').value = baseCurrency;
         document.getElementById('rateConditions').value = '';
         document.getElementById('rateValidFrom').value = '';
         document.getElementById('rateValidTo').value = '';
@@ -1195,6 +1261,7 @@ def get_catalog_html(csrf_token: str) -> str:
       const tabBtn = document.getElementById('tabBtnTourRates');
 
       if (!entityId) {{
+        ratesRequestCounter++;
         CURRENT_TOUR_RATES = [];
         if (badgeEl) badgeEl.textContent = '0';
         listEl.innerHTML = '<p style="color:var(--muted); font-size: 13px; margin: 8px 0; background:#f8fafc; padding:12px; border-radius:6px; border:1px dashed var(--border);">Guarda los datos del tour primero para asociar tarifas especiales.</p>';
@@ -1202,18 +1269,30 @@ def get_catalog_html(csrf_token: str) -> str:
         return;
       }}
 
+      const reqId = ++ratesRequestCounter;
+
       btnAdd.style.display = 'inline-flex';
       listEl.innerHTML = '<p style="color:var(--muted); font-size: 13px; margin: 8px 0;">Cargando tarifas...</p>';
       try {{
         const r = await fetch('/api/catalog/tours/' + encodeURIComponent(entityId) + '/rates?all=1');
         if (!r.ok) throw new Error('Error al cargar tarifas');
         const data = await r.json();
+
+        // Si llegó una petición posterior o el formulario ya no corresponde a este tour, ignorar
+        const currentOpenId = (document.getElementById('formEntityId').value || '').trim();
+        if (reqId !== ratesRequestCounter || (currentOpenId && currentOpenId !== entityId)) {{
+          return;
+        }}
+
         CURRENT_TOUR_RATES = Array.isArray(data) ? data : data.rates;
         if (!Array.isArray(CURRENT_TOUR_RATES)) throw new Error('Respuesta de tarifas inválida');
         if (badgeEl) badgeEl.textContent = String(CURRENT_TOUR_RATES.length);
         renderTourRates(CURRENT_TOUR_RATES);
       }} catch (err) {{
-        listEl.innerHTML = '<p style="color:var(--danger); font-size: 13px; margin: 8px 0;">No se pudieron cargar las tarifas especiales.</p>';
+        const currentOpenId = (document.getElementById('formEntityId').value || '').trim();
+        if (reqId === ratesRequestCounter && (!currentOpenId || currentOpenId === entityId)) {{
+          listEl.innerHTML = '<p style="color:var(--danger); font-size: 13px; margin: 8px 0;">No se pudieron cargar las tarifas especiales.</p>';
+        }}
       }}
     }}
 
@@ -1321,6 +1400,10 @@ def get_catalog_html(csrf_token: str) -> str:
         payload.id = parseInt(rateIdVal, 10);
       }}
 
+      const rateSessionAtStart = currentEditorSessionId;
+      const rateEntityId = entityId;
+      const submittedRateSnap = getRateFormSnapshot();
+
       const btn = document.getElementById('btnSaveRate');
       btn.disabled = true;
       btn.textContent = 'Guardando tarifa…';
@@ -1335,15 +1418,24 @@ def get_catalog_html(csrf_token: str) -> str:
           body: JSON.stringify(payload)
         }});
         const res = await r.json();
+
+        if (rateSessionAtStart !== currentEditorSessionId) return;
+
         if (r.ok && res.ok) {{
           showToast('Tarifa guardada correctamente');
-          hideRateForm();
-          loadTourRates(entityId);
+          if (getRateFormSnapshot() === submittedRateSnap) {{
+            hideRateForm();
+          }} else {{
+            initialRateSnapshot = submittedRateSnap;
+          }}
+          loadTourRates(rateEntityId);
         }} else {{
           showToast(res.error || 'Error al guardar tarifa', 'error');
         }}
       }} catch (err) {{
-        showToast('Error de conexión al guardar tarifa', 'error');
+        if (rateSessionAtStart === currentEditorSessionId) {{
+          showToast('Error de conexión al guardar tarifa', 'error');
+        }}
       }} finally {{
         btn.disabled = false;
         btn.textContent = 'Guardar esta tarifa';
@@ -1406,6 +1498,21 @@ def get_catalog_html(csrf_token: str) -> str:
         duration, aliases, includes, excludes, is_active
       }};
 
+      // Instantánea exacta de lo enviado al servidor
+      const sentSnapshotObj = {{
+        entity_id,
+        name,
+        price: official_price,
+        currency,
+        schedule,
+        duration,
+        aliases: (aliases || '').trim(),
+        includes,
+        excludes,
+        is_active: !!is_active
+      }};
+
+      const sessionAtStart = currentEditorSessionId;
       const btn = document.getElementById('btnSaveTour');
       btn.disabled = true;
       btn.textContent = 'Guardando datos del tour…';
@@ -1420,22 +1527,27 @@ def get_catalog_html(csrf_token: str) -> str:
           body: JSON.stringify(payload)
         }});
         const res = await r.json();
+
+        if (sessionAtStart !== currentEditorSessionId) return;
+
         if (r.ok && res.ok) {{
           const savedId = res.entity_id || entity_id;
+          sentSnapshotObj.entity_id = savedId;
           showToast(isEdit ? 'Datos del tour actualizados exitosamente' : 'Tour creado exitosamente. Ya puedes registrar sus tarifas especiales.');
 
-          // Actualizar snapshot para que no quede dirty
-          initialTourSnapshot = getTourFormSnapshot();
+          // Actualizar snapshot confirmado con lo efectivamente guardado en el servidor
+          initialTourSnapshot = JSON.stringify(sentSnapshotObj);
+          updateRatesTourBaseRef();
 
           // Si era creación, conservar la ventana abierta, fijar su identidad y habilitar tarifas
           if (!isEdit) {{
             document.getElementById('formIsEdit').value = '1';
             document.getElementById('formEntityId').value = savedId;
             document.getElementById('formEntityId').disabled = true;
-            document.getElementById('modalTourTitle').textContent = 'Editar Tour: ' + name;
+            document.getElementById('modalTourTitle').textContent = 'Editar Tour: ' + (document.getElementById('formName').value.trim() || name);
             loadTourRates(savedId);
           }} else {{
-            document.getElementById('modalTourTitle').textContent = 'Editar Tour: ' + name;
+            document.getElementById('modalTourTitle').textContent = 'Editar Tour: ' + (document.getElementById('formName').value.trim() || name);
           }}
 
           loadTours();
@@ -1443,7 +1555,9 @@ def get_catalog_html(csrf_token: str) -> str:
           showToast(res.error || 'Error al guardar tour', 'error');
         }}
       }} catch (err) {{
-        showToast('Error de conexión con el servidor', 'error');
+        if (sessionAtStart === currentEditorSessionId) {{
+          showToast('Error de conexión con el servidor', 'error');
+        }}
       }} finally {{
         btn.disabled = false;
         btn.textContent = 'Guardar datos del tour';

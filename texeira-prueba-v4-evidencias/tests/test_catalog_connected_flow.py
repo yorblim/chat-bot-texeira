@@ -121,5 +121,59 @@ class ConnectedCatalogTests(unittest.TestCase):
                 self.assertFalse(service.upsert_tour_rate(dict(base, **invalid))[0])
 
 
+    def test_new_tour_creation_category_navigation_and_deactivation_cycle(self):
+        """Punto 8 del informe:
+        Tour nuevo activo -> aparece en su categoría y puede seleccionarse -> datos guardados consultables;
+        Tour desactivado -> no ofertado en la categoría ni en consultas.
+        """
+        eid = 'canon-tinajani-trek'
+        tour_payload = dict(
+            entity_id=eid,
+            name='Cañón de Tinajani Trek',
+            aliases=['tinajani', 'canon de tinajani'],
+            official_price='180',
+            currency='PEN',
+            schedule='06:00-18:00',
+            duration='Día completo',
+            includes='Transporte turístico, guía profesional y almuerzo campestre',
+            excludes='Entradas personales',
+            is_active=True
+        )
+        resp = self.client.post('/api/catalog/tours', json=tour_payload, headers=self.headers)
+        self.assertEqual(resp.status_code, 200, resp.text)
+
+        # 2. Navegar por categorías: clasificado como 'treks' debido a 'Trek' en el nombre
+        # Con 10 tours y 2 por página, el nuevo tour se encuentra en la página índice 4 (página 5 de 5 en UI)
+        cat_reply = self.ask('categoria treks pagina 4')
+        self.assertEqual(cat_reply.get('response_route'), 'evidence_category_tours')
+        self.assertIn('Cañón de Tinajani Trek', cat_reply['response'])
+
+        # 3. Consulta de datos guardados del tour nuevo
+        price_reply = self.ask('¿Cuánto cuesta el Cañón de Tinajani Trek?')
+        self.assertIn('180 PEN', price_reply['response'])
+
+        inc_reply = self.ask('¿Qué incluye Cañón de Tinajani Trek?')
+        self.assertIn('almuerzo campestre', inc_reply['response'])
+
+        # 4. Desactivar el tour
+        tour_payload['is_active'] = False
+        resp_deact = self.client.post('/api/catalog/tours', json=tour_payload, headers=self.headers)
+        self.assertEqual(resp_deact.status_code, 200, resp_deact.text)
+
+        # 5. Ya no debe aparecer en la categoría
+        cat_reply_deact = self.ask('categoria treks pagina 4')
+        self.assertNotIn('Cañón de Tinajani Trek', cat_reply_deact['response'])
+
+        # 6. Preguntar directamente por el tour desactivado
+        reply_deact_ask = self.ask('¿Cuánto cuesta el Cañón de Tinajani Trek?')
+        self.assertTrue(
+            reply_deact_ask.get('response_route') in ('evidence_inactive_tour', 'evidence_unknown', 'unknown') or
+            'no disponible' in reply_deact_ask['response'].lower() or
+            'inactivo' in reply_deact_ask['response'].lower() or
+            'asesor' in reply_deact_ask['response'].lower() or
+            reply_deact_ask.get('needs_agency_confirmation')
+        )
+
+
 if __name__ == '__main__':
     unittest.main()
