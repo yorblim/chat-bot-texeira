@@ -202,10 +202,10 @@ def evaluate_case(case, response_data, latency_ms):
                         reasons.append(f"FF: Falta hecho de exclusión de boleto turístico: '{fact}'")
                 elif fact_norm in ["confirmed product", "documented by texeira"]:
                     is_product_negated = bool(re.search(
-                        r'\b(?:not|is\s+not|no\s+es|not\s+a|no\s+esta)\s+(?:a\s+)?(?:confirmed\s+product|producto\s+confirmado)\b|'
-                        r'\b(?:not|is\s+not|no\s+esta)\s+document\w*(?:\s+by\s+texeira|\s+por\s+texeira)\b|'
-                        r'\b(?:choquequirao|trek|tour|product|producto)\s+(?:is\s+not|no\s+es|no\s+esta)\s+(?:a\s+)?(?:confirmed|document\w*)\b|'
-                        r'\b(?:not|no)\s+(?:confirmed|document\w*)\s+(?:as\s+a\s+|como\s+)?(?:product|tour|trek|offering|producto)\b',
+                        r'\b(?:not|is\s+not|no\s+es|not\s+a|no\s+esta)\s+(?:a\s+|an\s+|un\s+|una\s+)?(?:confirmed\s+product|producto\s+confirmado|confirmed\s+tour|tour\s+confirmado|confirmed\s+trek)\b|'
+                        r'\b(?:choquequirao|trek|tour|product|producto|offering)\s+(?:is\s+not|no\s+es|no\s+esta|is\s+not\s+a|not|no)\s+(?:a\s+|an\s+|un\s+|una\s+)?(?:confirmed|document\w*|producto\s+confirmado|confirmed\s+product)\b|'
+                        r'\b(?:not|no)\s+(?:confirmed|document\w*)\s+(?:as\s+a\s+|como\s+)?(?:product|tour|trek|offering|producto)\b|'
+                        r'\b(?:texeira|agency|agencia)\s+(?:does\s+not|do\s+not|no)\s+(?:document|offer|confirm)\s+(?:choquequirao|the\s+tour|the\s+product|el\s+tour|el\s+producto)\b',
                         norm_resp
                     ))
                     if fact_norm == "confirmed product":
