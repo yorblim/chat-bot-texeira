@@ -63,6 +63,12 @@ def evaluate_case(case, response_data, latency_ms):
     crit = case.get("ground_truth_criteria", {})
     cid = case.get("id", "")
 
+    inner_eval = response_data.get("eval", {}) if isinstance(response_data, dict) else {}
+    actual_latency = latency_ms if latency_ms is not None else response_data.get("latency_ms", inner_eval.get("latency_ms", 0.0))
+    route = response_data.get("response_route", response_data.get("route", inner_eval.get("route", "unknown")))
+    resolved = response_data.get("resolved_autonomously", inner_eval.get("resolved_autonomously", False))
+    escalated = response_data.get("escalated_to_human", inner_eval.get("escalated_to_human", False))
+
     reasons = []
 
     # 1. Correspondencia Lingüística (CI)
@@ -88,7 +94,7 @@ def evaluate_case(case, response_data, latency_ms):
     # 2. Intención y Pertinencia (IP)
     ip = 1
     if cat == "human_handoff":
-        ip = 1 if (response_data.get("escalated_to_human") or
+        ip = 1 if (escalated or
                    any(w in resp_lower for w in ["ticket", "asesor", "agent", "solicitud", "request"])) else 0
         if not ip:
             reasons.append("IP: No se reconoció la solicitud de atención humana")
@@ -140,15 +146,16 @@ def evaluate_case(case, response_data, latency_ms):
 
     # 3. Fidelidad Factual a Fuentes Canónicas (FF)
     ff = 1
-    # 3.1 Cero alucinaciones de must_not_invent
+    # 3.1 Cero alucinaciones de must_not_invent con negación sintácticamente ligada al ítem
     for forbidden in crit.get("must_not_invent", []):
         forb_norm = _norm(forbidden)
         if forb_norm in norm_resp:
-            negation = any(neg in norm_resp for neg in [
-                f"no {forb_norm}", f"not {forb_norm}", f"sin {forb_norm}",
-                "no incluye", "does not include", "not included", "no documentado", "not documented"
-            ])
-            if not negation:
+            neg_pattern = (
+                r'\b(?:no|not|sin|does not include|do not include|no incluye|not included|no documentad\w*|not document\w*)\s+'
+                r'(?:el\s+|la\s+|los\s+|las\s+|un\s+|una\s+|any\s+)?' + re.escape(forb_norm) + r'\b|' +
+                r'\b' + re.escape(forb_norm) + r'\s+(?:is not included|are not included|no esta incluid\w*|no estan incluid\w*|not included|no documentad\w*|is not documented)\b'
+            )
+            if not bool(re.search(neg_pattern, norm_resp)):
                 ff = 0
                 reasons.append(f"FF: Afirma dato prohibido o alucinado: '{forbidden}'")
                 break
@@ -182,11 +189,21 @@ def evaluate_case(case, response_data, latency_ms):
                         ff = 0
                         reasons.append(f"FF: Falta hecho de duración requerida: '{fact}'")
                 elif fact_norm in ["tourist ticket is not included", "excluded"]:
-                    if not any(ph in norm_resp for ph in ["not include", "excluded", "no incluye", "does not include"]):
+                    affirmed_included = bool(re.search(
+                        r'(?<!\bnot\s)(?<!\bno\s)(?<!\bdoes not\s)(?<!\bno se\s)\b(?:include[ds]?|incluye)\s+(?:the\s+|el\s+)?(?:general\s+)?(?:tourist\s+ticket|boleto\s+turistico)',
+                        norm_resp
+                    ))
+                    has_exclusion = bool(
+                        re.search(r'\b(?:not\s+include[ds]?|exclude[ds]?|no\s+incluye|sin\s+incluir)\b[^.;\n]{0,30}\b(?:tourist\s+ticket|ticket\b|boleto\s+turistico|boleto\b)', norm_resp) or
+                        re.search(r'\b(?:tourist\s+ticket|ticket\b|boleto\s+turistico|boleto\b)[^.;\n]{0,30}\b(?:is\s+not\s+included|are\s+not\s+included|is\s+excluded|not\s+included|no\s+incluid\w*|no\s+esta\s+incluid\w*)', norm_resp)
+                    )
+                    if affirmed_included or not has_exclusion:
                         ff = 0
                         reasons.append(f"FF: Falta hecho de exclusión de boleto turístico: '{fact}'")
                 elif fact_norm in ["confirmed product", "documented by texeira"]:
-                    if not any(ph in norm_resp for ph in ["confirmed", "documented", "offer", "portfolio", "confirmado", "documentado"]):
+                    is_negated = bool(re.search(r'\b(?:not|is\s+not|no\s+es|no\s+esta|not\s+a)\s+(?:a\s+)?(?:confirmed|document\w*)', norm_resp))
+                    has_pos = any(ph in norm_resp for ph in ["confirmed", "documented", "offer", "portfolio", "confirmado", "documentado"])
+                    if is_negated or not has_pos:
                         ff = 0
                         reasons.append(f"FF: Falta confirmar producto documentado: '{fact}'")
                 else:
@@ -269,10 +286,10 @@ def evaluate_case(case, response_data, latency_ms):
         "mi": mi,
         "passed": passed,
         "reasons": reasons,
-        "latency_ms": latency_ms,
-        "route": response_data.get("response_route", response_data.get("route", "unknown")),
-        "resolved_autonomously": response_data.get("resolved_autonomously", False),
-        "escalated_to_human": response_data.get("escalated_to_human", False),
+        "latency_ms": actual_latency,
+        "route": route,
+        "resolved_autonomously": resolved,
+        "escalated_to_human": escalated,
         "response_sample": resp_text[:150]
     }
 

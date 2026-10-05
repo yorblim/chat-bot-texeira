@@ -1,7 +1,7 @@
 {
   "timestamp": "2026-10-04T20:00:00Z",
   "calificacion": "recalibracion_formal_criterios_estrictos",
-  "datos_fuente": "RESULTADOS_POSPRUEBA_TESIS_20260921.json (respuestas conservadas de Cloud Run + Groq Qwen)",
+  "datos_fuente": "RESULTADOS_POSPRUEBA_TESIS_20260921.json (respuestas conservadas de Cloud Run + Groq Qwen, revision 00021-9mp)",
   "environment": "Google Cloud Run (texeira-whatsapp-00021-9mp) + Groq Qwen + Neon PostgreSQL",
   "total_cases": 30,
   "indicators": {
@@ -170,8 +170,8 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 2341.88,
-        "route": "unknown",
-        "resolved_autonomously": false,
+        "route": "rag_llm",
+        "resolved_autonomously": true,
         "escalated_to_human": false,
         "response_sample": "Según la información disponible de Texeira Travel para el tour **Waqra Pukara**, los siguientes servicios están confirmados:\n\n*   **Transporte turísti"
       },
@@ -211,7 +211,7 @@
           "FF: Faltan paradas confirmadas: ['Koricancha', 'Sacsayhuamán', \"Q'enqo\", 'Puka Pukara', 'Tambomachay']"
         ],
         "latency_ms": 1853.64,
-        "route": "unknown",
+        "route": "evidence_unknown",
         "resolved_autonomously": false,
         "escalated_to_human": false,
         "response_sample": "Este dato requiere confirmacion con la agencia: detalle no documentado para City Tour Cusco. +51 953 767 860 / +51 984 679 715\nPara registrar una soli"
@@ -245,8 +245,8 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 1224.76,
-        "route": "unknown",
-        "resolved_autonomously": false,
+        "route": "evidence_includes",
+        "resolved_autonomously": true,
         "escalated_to_human": false,
         "response_sample": "Tour Cuatrimoto / Maras-Moray\nIncluye: cuatrimotos modernas\nIncluye: casco equipo proteccion\nIncluye: visita salineras\nIncluye: visita moray\nIncluye: "
       },
@@ -280,8 +280,8 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 2081.0,
-        "route": "unknown",
-        "resolved_autonomously": false,
+        "route": "rag_llm",
+        "resolved_autonomously": true,
         "escalated_to_human": false,
         "response_sample": "Sí, **Texeira Travel** ofrece el tour al **Cañón del Colca**.\n\nSegún el catálogo, los baños termales mencionados en este tour son los **Baños Termales"
       },
@@ -317,8 +317,8 @@
           "FF: Faltan paradas confirmadas: ['Tipón', 'Pikillacta', 'Andahuaylillas']"
         ],
         "latency_ms": 1247.34,
-        "route": "unknown",
-        "resolved_autonomously": false,
+        "route": "evidence_includes",
+        "resolved_autonomously": true,
         "escalated_to_human": false,
         "response_sample": "Valle Sur\nIncluye: transporte ida vuelta\nIncluye: guia profesional bilingue"
       },
@@ -353,8 +353,8 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 2567.54,
-        "route": "unknown",
-        "resolved_autonomously": false,
+        "route": "rag_llm",
+        "resolved_autonomously": true,
         "escalated_to_human": false,
         "response_sample": "Yes, according to the agency's materials, the Laguna Humantay excursion includes both breakfast and lunch.\n\n*   **Breakfast:** Confirmed by source F1."
       },
@@ -387,8 +387,8 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 1233.56,
-        "route": "unknown",
-        "resolved_autonomously": false,
+        "route": "evidence_excludes",
+        "resolved_autonomously": true,
         "escalated_to_human": false,
         "response_sample": "Valle Sagrado\nDoes not include: Tourist ticket"
       },
@@ -424,7 +424,7 @@
           "FF: Falta hecho de duración requerida: '4 days'"
         ],
         "latency_ms": 1874.41,
-        "route": "unknown",
+        "route": "evidence_unknown",
         "resolved_autonomously": false,
         "escalated_to_human": false,
         "response_sample": "This information requires confirmation with the agency: undocumented detail for Machu Picchu en Tren. +51 953 767 860 / +51 984 679 715\nTo register a "
@@ -458,8 +458,8 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 2189.9,
-        "route": "unknown",
-        "resolved_autonomously": false,
+        "route": "rag_llm",
+        "resolved_autonomously": true,
         "escalated_to_human": false,
         "response_sample": "Yes, the **Choquequirao Trek** is documented in the agency materials as one of Texeira Travel’s tour offerings.\n\nAccording to the provided context:\n* "
       },
@@ -495,7 +495,7 @@
           "FF: Falta hecho canónico requerido: 'Puno'"
         ],
         "latency_ms": 28821.29,
-        "route": "unknown",
+        "route": "rag_llm",
         "resolved_autonomously": false,
         "escalated_to_human": false,
         "response_sample": "The provided context does not contain any information about a tour named \"Route of the Sun\" (or *Ruta del Sol*).\n\nThe catalog data provided only lists"
@@ -532,7 +532,7 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 3326.5,
-        "route": "unknown",
+        "route": "rag_llm",
         "resolved_autonomously": false,
         "escalated_to_human": false,
         "response_sample": "Basado en la información disponible en los materiales de Texeira, las diferencias principales entre ambas modalidades son:\n\n**1. Modalidad de transpor"
@@ -567,8 +567,8 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 2687.22,
-        "route": "unknown",
-        "resolved_autonomously": false,
+        "route": "rag_llm",
+        "resolved_autonomously": true,
         "escalated_to_human": false,
         "response_sample": "Hola. Según la información disponible de Texeira Travel, ambos tours son productos confirmados y comparten las mismas paradas principales: las **Salin"
       },
@@ -602,8 +602,8 @@
           "FF: Falta comparar ambos treks (Salkantay e Inka Jungle) y sus 4 días"
         ],
         "latency_ms": 1241.99,
-        "route": "unknown",
-        "resolved_autonomously": false,
+        "route": "evidence_duration",
+        "resolved_autonomously": true,
         "escalated_to_human": false,
         "response_sample": "Inka Jungle to Machu Picchu\nDuracion publicada: 4 días (itinerario publicado; confirmar variante y noches)"
       },
@@ -638,8 +638,8 @@
           "FF: Falta contrastar los sitios arqueológicos de ambos valles"
         ],
         "latency_ms": 21557.92,
-        "route": "unknown",
-        "resolved_autonomously": false,
+        "route": "rag_llm",
+        "resolved_autonomously": true,
         "escalated_to_human": false,
         "response_sample": "Based on the provided context, I cannot answer this question because there is no information regarding a \"South Valley\" tour.\n\nThe context only contai"
       },
@@ -674,8 +674,8 @@
           "FF: No proporcionó la comparación de ambos treks documentados en F2"
         ],
         "latency_ms": 2219.76,
-        "route": "unknown",
-        "resolved_autonomously": false,
+        "route": "rag_llm",
+        "resolved_autonomously": true,
         "escalated_to_human": false,
         "response_sample": "Based on the provided agency documentation, I cannot provide a comparison between the **Classic Inca Trail** and the **Salkantay Trek** because there "
       },
@@ -710,8 +710,8 @@
           "FF: Falta comparar las inclusiones de ambos tours (City Tour y Sacred Valley)"
         ],
         "latency_ms": 1239.82,
-        "route": "unknown",
-        "resolved_autonomously": false,
+        "route": "evidence_includes",
+        "resolved_autonomously": true,
         "escalated_to_human": false,
         "response_sample": "Valle Sagrado\nIncludes: Round-trip transport\nIncludes: Professional bilingual guide\nIncludes: Lunch\nIncludes: Buffet lunch\nIncludes: Tourist bus"
       },
@@ -742,8 +742,8 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 1221.88,
-        "route": "unknown",
-        "resolved_autonomously": false,
+        "route": "evidence_schedule",
+        "resolved_autonomously": true,
         "escalated_to_human": false,
         "response_sample": "City Tour Cusco\nHorario publicado: 10:00-14:00 / 13:30-18:30"
       },
@@ -774,8 +774,8 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 1224.24,
-        "route": "unknown",
-        "resolved_autonomously": false,
+        "route": "evidence_schedule",
+        "resolved_autonomously": true,
         "escalated_to_human": false,
         "response_sample": "Montaña de 7 Colores\nHorario publicado: 04:30-17:00"
       },
@@ -806,8 +806,8 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 1228.06,
-        "route": "unknown",
-        "resolved_autonomously": false,
+        "route": "evidence_schedule",
+        "resolved_autonomously": true,
         "escalated_to_human": false,
         "response_sample": "Valle Sagrado\nPublished schedule: 07:30-18:30"
       },
@@ -838,8 +838,8 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 1217.36,
-        "route": "unknown",
-        "resolved_autonomously": false,
+        "route": "evidence_schedule",
+        "resolved_autonomously": true,
         "escalated_to_human": false,
         "response_sample": "Montaña de 7 Colores\nPublished schedule: 04:30-17:00"
       },
@@ -870,7 +870,7 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 1865.97,
-        "route": "unknown",
+        "route": "evidence_unknown",
         "resolved_autonomously": false,
         "escalated_to_human": false,
         "response_sample": "Este dato requiere confirmacion con la agencia: pagos, cancelaciones, reservas o disponibilidad para la fecha solicitada. +51 953 767 860 / +51 984 67"
@@ -902,7 +902,7 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 1895.24,
-        "route": "unknown",
+        "route": "evidence_unknown",
         "resolved_autonomously": false,
         "escalated_to_human": false,
         "response_sample": "Este dato requiere confirmacion con la agencia: pagos, cancelaciones, reservas o disponibilidad para la fecha solicitada. +51 953 767 860 / +51 984 67"
@@ -934,7 +934,7 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 1919.11,
-        "route": "unknown",
+        "route": "evidence_unknown",
         "resolved_autonomously": false,
         "escalated_to_human": false,
         "response_sample": "Este dato requiere confirmacion con la agencia: pagos, cancelaciones, reservas o disponibilidad para la fecha solicitada. +51 953 767 860 / +51 984 67"
@@ -966,7 +966,7 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 1878.69,
-        "route": "unknown",
+        "route": "evidence_unknown",
         "resolved_autonomously": false,
         "escalated_to_human": false,
         "response_sample": "This information requires confirmation with the agency: payments, cancellations, bookings or availability for the requested date. +51 953 767 860 / +5"
@@ -998,7 +998,7 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 1890.97,
-        "route": "unknown",
+        "route": "evidence_unknown",
         "resolved_autonomously": false,
         "escalated_to_human": false,
         "response_sample": "This information requires confirmation with the agency: payments, cancellations, bookings or availability for the requested date. +51 953 767 860 / +5"
@@ -1030,7 +1030,7 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 1893.63,
-        "route": "unknown",
+        "route": "evidence_unknown",
         "resolved_autonomously": false,
         "escalated_to_human": false,
         "response_sample": "This information requires confirmation with the agency: payments, cancellations, bookings or availability for the requested date. +51 953 767 860 / +5"
@@ -1062,9 +1062,9 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 2304.37,
-        "route": "unknown",
+        "route": "human_request",
         "resolved_autonomously": false,
-        "escalated_to_human": false,
+        "escalated_to_human": true,
         "response_sample": "Tu solicitud 038555b7c408 está registrada y pendiente de atención humana. Aún no ha sido atendida. Puedes seguir haciendo consultas al bot."
       },
       "response": "Tu solicitud 038555b7c408 está registrada y pendiente de atención humana. Aún no ha sido atendida. Puedes seguir haciendo consultas al bot."
@@ -1094,9 +1094,9 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 2378.76,
-        "route": "unknown",
+        "route": "human_request",
         "resolved_autonomously": false,
-        "escalated_to_human": false,
+        "escalated_to_human": true,
         "response_sample": "Tu solicitud 3cf23e9db663 está registrada y pendiente de atención humana. Aún no ha sido atendida. Puedes seguir haciendo consultas al bot."
       },
       "response": "Tu solicitud 3cf23e9db663 está registrada y pendiente de atención humana. Aún no ha sido atendida. Puedes seguir haciendo consultas al bot."
@@ -1126,9 +1126,9 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 2338.52,
-        "route": "unknown",
+        "route": "human_request",
         "resolved_autonomously": false,
-        "escalated_to_human": false,
+        "escalated_to_human": true,
         "response_sample": "Your request db0e0bf1351d is registered and pending human attention. It has not been handled yet. You can continue asking the bot questions."
       },
       "response": "Your request db0e0bf1351d is registered and pending human attention. It has not been handled yet. You can continue asking the bot questions."
@@ -1158,9 +1158,9 @@
         "passed": 1,
         "reasons": [],
         "latency_ms": 2308.39,
-        "route": "unknown",
+        "route": "human_request",
         "resolved_autonomously": false,
-        "escalated_to_human": false,
+        "escalated_to_human": true,
         "response_sample": "Your request 4c3cc59fb953 is registered and pending human attention. It has not been handled yet. You can continue asking the bot questions."
       },
       "response": "Your request 4c3cc59fb953 is registered and pending human attention. It has not been handled yet. You can continue asking the bot questions."

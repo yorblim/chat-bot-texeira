@@ -2,21 +2,24 @@
 
 **Proyecto:** Automatización del Servicio al Cliente en Texeira Travel Tour mediante Agente Conversacional RAG  
 **Fecha de Recalibración:** 4 de octubre de 2026  
-**Fecha de Respuestas Evaluadas:** 21 de septiembre de 2026 (respuestas originales intactas de Google Cloud Run + Groq Qwen + Neon PostgreSQL)  
-**Motivo de Recalibración:** Corrección del calificador automático que presentaba criterios excesivamente permisivos (aceptaba pertinencia únicamente por longitud de texto y omitía la exigencia de hechos y distinciones requeridas).  
+**Fecha de Respuestas Evaluadas:** 21 de septiembre de 2026 (respuestas originales intactas de Google Cloud Run + Groq Qwen + Neon PostgreSQL, revisión 00021-9mp)  
+**Motivo de Recalibración:** Corrección de la polaridad y precisión en el evaluador automático (evitando falsos positivos en inclusiones contradictorias, preservando metadatos originales de ruta/latencia/flags y ajustando conclusiones metodológicas a la evidencia disponible).  
 **Instrumento de Referencia:** Instrumento 4 y Rúbrica Técnica de Evaluación en 4 Dimensiones ([RUBRICA_EVALUACION_ACADEMICA.md](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/docs/RUBRICA_EVALUACION_ACADEMICA.md))  
-**Trazabilidad:** El archivo original [RESULTADOS_POSPRUEBA_TESIS_20260921.json](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/docs/evaluaciones/RESULTADOS_POSPRUEBA_TESIS_20260921.json) se mantiene intacto como registro histórico. Este informe presenta la calificación estricta sobre ese mismo banco de 30 respuestas sin consumo de tokens ni nuevas llamadas a Cloud Run.
+**Alcance y Trazabilidad:** El archivo original [RESULTADOS_POSPRUEBA_TESIS_20260921.json](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/docs/evaluaciones/RESULTADOS_POSPRUEBA_TESIS_20260921.json) se mantiene intacto como registro histórico. Este informe presenta la calificación automática sobre ese mismo banco de 30 respuestas sin consumo de tokens ni nuevas llamadas a Cloud Run. Los resultados reflejan el desempeño histórico de la revisión 00021-9mp ante el banco canónico y no sustituyen una evaluación con validación humana en la versión desplegada actual.
 
 ---
 
-## 1. Cuadro Resumen de Indicadores Metodológicos Recalibrados
+## 1. Cuadro Resumen de Indicadores de la Posprueba Recalibrada
 
-| Variable | Dimensión | Indicador Formal de Tesis | Valor Preprueba (Base) | Calificación Inicial (21/09) | Calificación Recalibrada (04/10) | Impacto / Estado |
-| :--- | :--- | :--- | :---: | :---: | :---: | :--- |
-| **V.D. Automatización** | D1. Eficiencia | **1.1 Tiempo promedio de primera respuesta** | ~15–30 min (Manual) | **3.44 s** (3442.5 ms) | **3.44 s** (3442.5 ms) | **-99.8%** de reducción en tiempo de espera |
-| **V.D. Automatización** | D2. Eficacia | **2.1 Tasa de consultas resueltas automáticamente** | 0.0% (Manual) | **53.3%** | **53.3%** | **+53.3%** de resolución autónoma |
-| **V.D. Automatización** | D2. Eficacia | **2.2 Tasa de derivación a atención humana** | 100.0% (Humana) | **13.3%** | **13.3%** | Filtro del **86.7%** de consultas rutinarias |
-| **V.I. Agente RAG** | D2. Desarrollo | **2.4 Precisión y fidelidad factual** | Variable | 100.0% (Permisivo) | **73.3%** (22/30 casos) | Precisión real con rúbrica estricta en 4 dimensiones |
+| Variable | Dimensión | Indicador Formal de Tesis | Calificación Inicial (21/09) | Calificación Recalibrada (04/10) | Estado / Observación Metodológica |
+| :--- | :--- | :--- | :---: | :---: | :--- |
+| **V.D. Automatización** | D1. Eficiencia | **1.1 Tiempo promedio de primera respuesta** | **3.44 s** (3442.5 ms) | **3.44 s** (3442.5 ms) | Latencia observada en nube (Cloud Run + Groq API). La estimación de reducción respecto al canal manual es un supuesto teórico sujeto a validación de campo, no una preprueba empírica medida en esta revisión. |
+| **V.D. Automatización** | D2. Eficacia | **2.1 Tasa de consultas resueltas automáticamente** | **53.3%** (16/30) | **53.3%** (16/30) | Flag técnico de resolución autónoma en pipeline histórico; no presupone validación humana del usuario final. |
+| **V.D. Automatización** | D2. Eficacia | **2.2 Tasa de derivación a atención humana** | **13.3%** (4/30) | **13.3%** (4/30) | Flag técnico de escalamiento por solicitud explícita de ticket/asesor. |
+| **V.I. Agente RAG** | D2. Desarrollo | **2.4 Precisión global del evaluador** | 100.0% (Permisivo) | **73.3%** (22/30 casos) | Calificación estricta en 4 dimensiones sobre respuestas históricas del 21/09. |
+
+> **Nota metodológica sobre líneas base y supuestos:**  
+> Las comparaciones con la atención manual previa (estimada conceptualmente en 15–30 minutos) constituyen supuestos del diseño de investigación que deberán contrastarse con mediciones preprueba formales. Esta posprueba mide estrictamente el comportamiento técnico y factual de las respuestas registradas en el entorno Cloud Run.
 
 ---
 
@@ -26,10 +29,10 @@ $$\text{Aprobado} = 1 \iff (\text{IP} = 1 \land \text{FF} = 1 \land \text{CI} = 
 
 | Dimensión Evaluada | Indicador | Tasa Inicial | Tasa Recalibrada | Criterio de Cumplimiento Estricto |
 | :--- | :--- | :---: | :---: | :--- |
-| **IP: Intención y Pertinencia** | Interpretación de consulta | 100.0% | **96.7%** (29/30) | Identificación exacta del tour y propósito sin desvío de entidad (ej: no aprobar respuestas sobre Machu Picchu en Tren ante preguntas de Inka Jungle). |
-| **FF: Fidelidad Factual a F1/F2/F3** | Cero alucinaciones y datos requeridos | 100.0% | **73.3%** (22/30) | Todo dato respaldado por fuentes canónicas; inclusión obligatoria de paradas, hechos y distinciones solicitadas en el banco. |
-| **CI: Correspondencia Lingüística** | Idioma coherente | 100.0% | **100.0%** (30/30) | Coherencia completa en español o inglés sin filtración de plantillas en el idioma alternativo. |
-| **MI: Manejo de Incertidumbre** | Honestidad documental | 100.0% | **100.0%** (30/30) | Reconocimiento explícito de datos comerciales no documentados (cancelaciones, depósitos, tarjetas) sin inventar porcentajes ni recargos. |
+| **IP: Intención y Pertinencia** | Interpretación de consulta | 100.0% | **96.7%** (29/30) | Identificación exacta del tour y propósito sin desvío de entidad (ej: rechazo de respuestas sobre Machu Picchu en Tren ante preguntas de Inka Jungle). |
+| **FF: Fidelidad Factual a F1/F2/F3** | Cero alucinaciones y datos requeridos | 100.0% | **73.3%** (22/30) | Datos confirmados en fuentes canónicas; inclusión obligatoria de paradas, hechos y distinciones solicitadas, con verificación de polaridad (asociación sintáctica de negaciones y exclusión estricta de datos alucinados). |
+| **CI: Correspondencia Lingüística** | Idioma coherente | 100.0% | **100.0%** (30/30) | Coherencia en español o inglés sin filtración de plantillas en el idioma alternativo. |
+| **MI: Manejo de Incertidumbre** | Honestidad documental | 100.0% | **100.0%** (30/30) | Reconocimiento explícito de datos comerciales no documentados (cancelaciones, depósitos, tarjetas) remitiendo a confirmación con la agencia sin inventar condiciones. |
 
 ---
 
@@ -48,11 +51,11 @@ $$\text{Aprobado} = 1 \iff (\text{IP} = 1 \land \text{FF} = 1 \land \text{CI} = 
 
 ---
 
-## 4. Auditoría de los 8 Casos No Aprobados y Motivo Riguroso
+## 4. Auditoría de los 8 Casos No Aprobados en la Recalibración
 
-Bajo la calificación permisiva original, estos 8 casos recibieron aprobación automática porque el texto superaba los 20 caracteres y no violaba palabras prohibidas negativas. Al aplicar la exigencia positiva de los criterios canónicos, se identifican las siguientes oportunidades de mejora:
+Al aplicar la rúbrica formal con verificación de hechos obligatorios y pertinencia temática sobre las respuestas del 21/09, se identifican 8 casos que no cumplieron la totalidad de criterios canónicos:
 
-| ID | Idioma | Categoría | Pregunta | Motivo Técnico del Rechazo |
+| ID | Idioma | Categoría | Pregunta | Motivo Técnico del Incumplimiento |
 | :--- | :---: | :--- | :--- | :--- |
 | **ACAD-ES-02** | ES | `tour_information` | ¿Cuáles son los lugares arqueológicos que se visitan durante el City Tour Cusco? | El bot respondió con un mensaje genérico de dato no documentado en lugar de listar las paradas canónicas (Koricancha, Sacsayhuamán, Q'enqo, Puka Pukara, Tambomachay). |
 | **ACAD-ES-05** | ES | `tour_information` | ¿Qué paradas incluye el recorrido de Valle Sur según la información de la agencia? | El bot devolvió únicamente transporte y guía, omitiendo las paradas arqueológicas requeridas (Tipón, Pikillacta, Andahuaylillas). |
@@ -65,8 +68,11 @@ Bajo la calificación permisiva original, estos 8 casos recibieron aprobación a
 
 ---
 
-## 5. Conclusión Metodológica para la Tesis
+## 5. Conclusión Metodológica y Limitaciones del Estudio
 
-1. **Validez Académica:** La tasa de precisión global recalibrada es de **73.3%** (22/30 casos aprobados con cumplimiento simultáneo de las 4 dimensiones). Este resultado es metodológicamente honesto, auditable y coherente con una evaluación formal de posprueba.
-2. **Robustez en Manejo de Incertidumbre y Conflicto:** Las categorías de **Manejo de Incertidumbre Comercial (100%)**, **Conflictos de Horario (100%)** y **Derivación a Atención Humana (100%)** demuestran eficacia total (14/14 casos superados sin alucinaciones).
-3. **Focalización del Desafío:** Los 8 casos con observaciones se concentran en recuperación RAG de comparaciones de dos entidades o consultas que exigen listas exhaustivas de paradas.
+1. **Precisión Automatizada del Banco Histórico:** La recalificación estricta sitúa la precisión automática en **73.3%** (22/30 casos aprobados simultáneamente en las 4 dimensiones). Este valor sustituye la estimación preliminar del 100% que provenía de un calificador excesivamente laxo.
+2. **Desempeño en Categorías de Control:** En las respuestas analizadas, las categorías de **Manejo de Incertidumbre Comercial (100.0%)**, **Conflictos de Horario (100.0%)** y **Derivación a Atención Humana (100.0%)** superaron satisfactoriamente los criterios del calificador, reconociendo límites documentales sin alucinar condiciones inventadas.
+3. **Limitaciones y Trabajo Pendiente:**
+   - La evaluación corresponde a un banco offline de 30 respuestas de la revisión 00021-9mp del 21/09/2026; no mide la precisión en vivo de la versión actual ni constituye un ensayo clínico con usuarios reales.
+   - Los indicadores de resolución autónoma y derivación humana reflejan marcas del pipeline técnico, requiriéndose una auditoría humana para constatar la satisfacción del usuario en canal WhatsApp.
+   - Las mejoras en la recuperación RAG para comparaciones de dos entidades y recorridos con múltiples paradas representan la principal ruta de optimización futura.
