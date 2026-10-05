@@ -201,9 +201,24 @@ def evaluate_case(case, response_data, latency_ms):
                         ff = 0
                         reasons.append(f"FF: Falta hecho de exclusión de boleto turístico: '{fact}'")
                 elif fact_norm in ["confirmed product", "documented by texeira"]:
-                    is_negated = bool(re.search(r'\b(?:not|is\s+not|no\s+es|no\s+esta|not\s+a)\s+(?:a\s+)?(?:confirmed|document\w*)', norm_resp))
-                    has_pos = any(ph in norm_resp for ph in ["confirmed", "documented", "offer", "portfolio", "confirmado", "documentado"])
-                    if is_negated or not has_pos:
+                    is_product_negated = bool(re.search(
+                        r'\b(?:not|is\s+not|no\s+es|not\s+a|no\s+esta)\s+(?:a\s+)?(?:confirmed\s+product|producto\s+confirmado)\b|'
+                        r'\b(?:not|is\s+not|no\s+esta)\s+document\w*(?:\s+by\s+texeira|\s+por\s+texeira)\b|'
+                        r'\b(?:choquequirao|trek|tour|product|producto)\s+(?:is\s+not|no\s+es|no\s+esta)\s+(?:a\s+)?(?:confirmed|document\w*)\b|'
+                        r'\b(?:not|no)\s+(?:confirmed|document\w*)\s+(?:as\s+a\s+|como\s+)?(?:product|tour|trek|offering|producto)\b',
+                        norm_resp
+                    ))
+                    if fact_norm == "confirmed product":
+                        has_pos = (
+                            bool(re.search(r'(?<!\bnot\s)(?<!\bno\s)(?<!\bis not\s)(?<!\bnot a\s)\b(?:confirmed|confirmado|confirmar?|offer\w*|portfolio|portafolio)\b', norm_resp)) or
+                            bool(re.search(r'(?<!\bnot\s)(?<!\bno\s)(?<!\bis not\s)\b(?:documented|documentado)\b', norm_resp))
+                        )
+                    else:
+                        has_pos = (
+                            bool(re.search(r'(?<!\bnot\s)(?<!\bno\s)(?<!\bis not\s)\b(?:documented|documentado)\b', norm_resp)) or
+                            bool(re.search(r'(?<!\bnot\s)(?<!\bno\s)(?<!\bis not\s)(?<!\bnot a\s)\b(?:confirmed|confirmado|portfolio|portafolio)\b', norm_resp))
+                        )
+                    if is_product_negated or not has_pos:
                         ff = 0
                         reasons.append(f"FF: Falta confirmar producto documentado: '{fact}'")
                 else:
