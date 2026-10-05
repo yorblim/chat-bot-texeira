@@ -201,13 +201,25 @@ def evaluate_case(case, response_data, latency_ms):
                         ff = 0
                         reasons.append(f"FF: Falta hecho de exclusión de boleto turístico: '{fact}'")
                 elif fact_norm in ["confirmed product", "documented by texeira"]:
-                    is_product_negated = bool(re.search(
+                    product_negation_pattern = (
                         r'\b(?:not|is\s+not|no\s+es|not\s+a|no\s+esta)\s+(?:a\s+|an\s+|un\s+|una\s+)?(?:confirmed\s+product|producto\s+confirmado|confirmed\s+tour|tour\s+confirmado|confirmed\s+trek)\b|'
-                        r'\b(?:choquequirao|trek|tour|product|producto|offering)\s+(?:is\s+not|no\s+es|no\s+esta|is\s+not\s+a|not|no)\s+(?:a\s+|an\s+|un\s+|una\s+)?(?:confirmed|document\w*|producto\s+confirmado|confirmed\s+product)\b|'
-                        r'\b(?:not|no)\s+(?:confirmed|document\w*)\s+(?:as\s+a\s+|como\s+)?(?:product|tour|trek|offering|producto)\b|'
-                        r'\b(?:texeira|agency|agencia)\s+(?:does\s+not|do\s+not|no)\s+(?:document|offer|confirm)\s+(?:choquequirao|the\s+tour|the\s+product|el\s+tour|el\s+producto)\b',
-                        norm_resp
-                    ))
+                        r'\b(?P<product_subject>choquequirao|trek|tour|product|producto|offering)\s+(?:is\s+not|no\s+es|no\s+esta|is\s+not\s+a|not|no)\s+(?:a\s+|an\s+|un\s+|una\s+)?(?:confirm\w*|document\w*|producto\s+confirmado|confirmed\s+product)\b|'
+                        r'\b(?:not|no)\s+(?:confirm\w*|document\w*)\s+(?:as\s+a\s+|como\s+)?(?:product|tour|trek|offering|producto)\b|'
+                        r'\b(?:texeira|agency|agencia)\s+(?:does\s+not|do\s+not|no)\s+(?:document\w*|offer\w*|ofrec\w*|confirm\w*)\s+(?:choquequirao|the\s+tour|the\s+product|el\s+tour|el\s+producto)\b'
+                    )
+                    auxiliary_subject = (
+                        r'\b(?:price|cost|rate|availability|schedule|precio|costo|tarifa|disponibilidad|horario)'
+                        r'\s+(?:of|de|del)\s+(?:(?:the|el|la)\s+)?$'
+                    )
+                    is_product_negated = False
+                    for negation in re.finditer(product_negation_pattern, norm_resp):
+                        # "Price of Choquequirao" has price as its subject;
+                        # the product name alone does not make it a product denial.
+                        if (negation.group("product_subject") and
+                                re.search(auxiliary_subject, norm_resp[:negation.start()])):
+                            continue
+                        is_product_negated = True
+                        break
                     if fact_norm == "confirmed product":
                         has_pos = (
                             bool(re.search(r'(?<!\bnot\s)(?<!\bno\s)(?<!\bis not\s)(?<!\bnot a\s)\b(?:confirmed|confirmado|confirmar?|offer\w*|portfolio|portafolio)\b', norm_resp)) or
