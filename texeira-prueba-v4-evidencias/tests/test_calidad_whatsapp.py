@@ -72,52 +72,43 @@ class MockTourLLM:
         # 2. Consultas en inglés con errores
         if "machu pichu" in q_low and any(k in q_low for k in ["how much", "price", "cost"]):
             return MockLLMResponse(
-                "The classic Machu Picchu tour starts at $120 USD per person. "
-                "It includes round-trip tourist train, bus tickets up and down to the citadel, entrance fee, and a certified bilingual guide."
+                "The classic Machu Picchu tour rates and train schedules depend on current availability and are confirmed directly with our agency advisors."
             )
         if any(k in q_low for k in ["wat time", "what time", "schedule", "start"]):
             return MockLLMResponse(
-                "Our tours have different departure times in Cusco: City Tour departs at 10:00 AM or 1:30 PM, Sacred Valley at 7:00 AM, "
-                "and Machu Picchu depends on your selected train schedule. Which tour would you like to check?"
+                "Our tours have specific departure times in Cusco (for example, City Tour or Sacred Valley). Which tour would you like to check?"
             )
 
         # 3. Preguntas con errores ortográficos típicos
         if "machu pichu" in q_low:
             return MockLLMResponse(
-                "El tour a Machu Picchu Clásico tiene un precio referencial de $120 USD por persona. "
-                "Incluye transporte en tren turístico, bus de subida y bajada a la ciudadela, boleto de ingreso y guiado profesional."
+                "Para el tour a Machu Picchu, las tarifas oficiales y horarios dependen del servicio de tren y se confirman directamente con nuestros asesores en la agencia."
             )
         if "valle sagrao" in q_low or "valle sagrado" in q_low:
             return MockLLMResponse(
-                "El tour al Valle Sagrado de los Incas incluye transporte turístico y guía profesional bilingüe. "
-                "Visita los sitios arqueológicos de Pisac y Ollantaytambo. No incluye el Boleto Turístico del Cusco (BTC)."
+                "El tour al Valle Sagrado de los Incas incluye transporte turístico y guía oficial. Visita los sitios arqueológicos de Pisac y Ollantaytambo. No incluye el Boleto Turístico del Cusco (BTC)."
             )
         if "montaña de colores" in q_low or "montana de colores" in q_low or "colores" in q_low:
             return MockLLMResponse(
-                "El tour a la Montaña de 7 Colores (Vinicunca) tiene un precio de $85 USD por persona. "
-                "Incluye transporte turístico ida y vuelta, guía profesional, desayuno buffet, almuerzo y equipo de primeros auxilios."
+                "El tour a la Montaña de 7 Colores (Vinicunca) visita la montaña andina. El precio actualizado y cupos disponibles te los confirmamos directamente en la agencia."
             )
 
         # 4. Preguntas ambiguas (sin tour especificado)
         if "cuanto cuesta" in q_low or "cuánto cuesta" in q_low:
             return MockLLMResponse(
-                "En Texeira Travel ofrecemos diversos tours en Cusco: Machu Picchu ($120 USD), Valle Sagrado ($65 USD), "
-                "Montaña de 7 Colores ($85 USD) y City Tour ($35 USD). ¿Sobre cuál de ellos te gustaría recibir información detallada?"
+                "En Texeira Travel ofrecemos diversos tours en Cusco como Machu Picchu, Valle Sagrado, Montaña de 7 Colores y City Tour. ¿Sobre cuál de ellos te gustaría consultar tarifas?"
             )
         if "que incluye" in q_low or "qué incluye" in q_low:
             return MockLLMResponse(
-                "Nuestros tours incluyen diferentes servicios según el itinerario (transporte, guía oficial, entradas o alimentación). "
-                "¿Qué tour en específico deseas consultar?"
+                "Nuestros tours incluyen diferentes servicios según el itinerario (transporte, guía oficial o alimentación según el tour). ¿Qué tour en específico deseas consultar?"
             )
         if "quiero ir mañana" in q_low:
             return MockLLMResponse(
-                "Para coordinar salidas de última hora como para mañana, te recomendamos verificar cupos disponibles "
-                "directamente con nuestro equipo de asesores en la agencia."
+                "Para coordinar salidas de última hora como para mañana, te recomendamos verificar cupos disponibles directamente con nuestro equipo de asesores en la agencia."
             )
 
         return MockLLMResponse(
-            "Texeira Travel ofrece tours en Cusco como Machu Picchu, Valle Sagrado, City Tour y Montaña de 7 Colores. "
-            "¿En qué tour estás interesado?"
+            "Texeira Travel ofrece tours en Cusco como Machu Picchu, Valle Sagrado, City Tour y Montaña de 7 Colores. ¿En qué tour estás interesado?"
         )
 
 
@@ -259,6 +250,8 @@ def run_evaluation() -> dict:
             "ambiente": "simulacion_local_sin_tokens_api",
             "canal": "whatsapp",
             "modelo_mock": "MockTourLLM (cero costo)",
+            "tipo_evaluacion": "validacion_simulada_de_rutas_con_mock",
+            "alcance": "Comprobacion de enrutamiento y manejo estructural con dobles de prueba, no precision generativa real del modelo",
             "archivo_salida": f"test_calidad_whatsapp_{fecha_dia}.json",
         },
         "resumen_ejecutivo": {
@@ -310,16 +303,35 @@ def test_calidad_whatsapp():
         assert isinstance(r["hubo_fallback"], bool), "hubo_fallback debe ser booleano"
         assert r["latencia_ms"] >= 0, "latencia_ms debe ser positiva"
 
+    # Cero datos comerciales inventados en los mocks o respuestas
+    for r in detalles:
+        resp = r["respuesta_recibida"]
+        for forbidden_price in ["$120", "120 USD", "120 usd", "$85", "85 USD", "$65", "$35"]:
+            assert forbidden_price not in resp, f"Dato comercial inventado '{forbidden_price}' detectado en respuesta a '{r['pregunta_enviada']}'"
+
     # Verificar que las solicitudes de asesor fueron derivadas correctamente
     asesor_cases = [r for r in detalles if r["escenario_id"] == 5]
     for ac in asesor_cases:
         assert ac["solicitud_asesor"] is True, f"Fallo al detectar handoff en '{ac['pregunta_enviada']}'"
         assert "registrada" in ac["respuesta_recibida"].lower() or "asesor" in ac["respuesta_recibida"].lower()
 
-    # Verificar que las preguntas con errores ortográficos obtuvieron respuesta útil sin error
-    orto_cases = [r for r in detalles if r["escenario_id"] == 1]
-    for oc in orto_cases:
-        assert len(oc["respuesta_recibida"]) > 15, f"Respuesta demasiado corta para '{oc['pregunta_enviada']}'"
+    # Verificar criterios específicos por escenario (no sólo longitud de respuesta):
+    by_query = {r["pregunta_enviada"]: r["respuesta_recibida"].lower() for r in detalles}
+
+    # Escenario 1: Erratas ortográficas identifican el tour y tema correctamente
+    assert "machu picchu" in by_query["cuanto cuesta machu pichu"], "Fallo al identificar Machu Picchu en errata"
+    assert "valle sagrado" in by_query["q incluye el tour del valle sagrao"], "Fallo al identificar Valle Sagrado en errata"
+    assert any(w in by_query["a ke hora sale el city tour"] for w in ["city tour", "horario", "asesor"]), "Fallo en consulta de horario City Tour"
+    assert any(w in by_query["kiero ir a la montaña de colores cuanto es"] for w in ["montaña de", "colores", "vinicunca"]), "Fallo en consulta de Montaña de Colores"
+
+    # Escenario 2: Preguntas ambiguas orientan al usuario sin alucinar
+    assert any(w in by_query["cuanto cuesta"] for w in ["tours", "cuál", "cual", "consultar", "agencia"]), "Fallo en orientación de pregunta ambigua de tarifas"
+    assert any(w in by_query["que incluye"] for w in ["servicios", "itinerario", "tour", "específico", "especifico"]), "Fallo en orientación de inclusiones ambiguas"
+    assert any(w in by_query["quiero ir mañana"] for w in ["coordinamos", "asesores", "agencia", "disponibilidad"]), "Fallo en orientación de fecha inmediata"
+
+    # Escenario 3: Preguntas en inglés con errores responden en inglés sin alucinación
+    assert "machu picchu" in by_query["how much is machu pichu tour"] and any(w in by_query["how much is machu pichu tour"] for w in ["rate", "train", "advisor"]), "Fallo en consulta de precio en inglés"
+    assert any(w in by_query["wat time does the tour start"] for w in ["departure", "time", "schedule", "tour"]), "Fallo en consulta de horario en inglés"
 
     print("PASS: Todas las aserciones de calidad de WhatsApp fueron superadas exitosamente.")
 

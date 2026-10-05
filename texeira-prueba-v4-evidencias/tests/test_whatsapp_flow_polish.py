@@ -205,14 +205,31 @@ class TestWhatsAppFlowPolish(unittest.TestCase):
         self.assertTrue(any("Solicitar reserva" in title for title in btn_titles_4))
         self.assertFalse(any(title == "🙋‍♂️ Reservar" for title in btn_titles_4))
 
-        # 4b. Ficha de tour: Caso CON horario registrado (Machu Picchu en Tren)
+        # 4b. Ficha de tour: Caso SIN horario confirmado en catálogo oficial (Machu Picchu en Tren)
         res4_mp = self._send_wa_button_reply("btn_tour:machu-picchu-tren:es", "Machu Picchu")
         self.assertEqual(res4_mp["status_code"], 200)
         text4_mp = res4_mp["sent_text"]
         self.assertIn("Machu Picchu", text4_mp)
         self.assertIn("Duración", text4_mp)
-        self.assertIn("Horario", text4_mp)
-        self.assertIn("04:00", text4_mp)
+        # Catálogo vigente tiene schedule_status: unknown; no debe inventar horario fijo ni 04:00
+        self.assertNotIn("Horario", text4_mp)
+        self.assertNotIn("04:00", text4_mp)
+
+        # 4c. Ficha de tour: Caso CON horario registrado (mediante fixture sintético explícito en base aislada)
+        catalog_service.upsert_tour({
+            "entity_id": "tour-fixture-horario",
+            "name": "Tour Demo Confirmado",
+            "schedule": "08:00 - 13:00",
+            "duration": "5 horas",
+            "is_active": True
+        })
+        res4_sched = self._send_wa_button_reply("btn_tour:tour-fixture-horario:es", "Tour Demo Confirmado")
+        self.assertEqual(res4_sched["status_code"], 200)
+        text4_sched = res4_sched["sent_text"]
+        self.assertIn("Tour Demo Confirmado", text4_sched)
+        self.assertIn("Duración", text4_sched)
+        self.assertIn("Horario", text4_sched)
+        self.assertIn("08:00 - 13:00", text4_sched)
 
         # 5. Inclusiones (Pulsar "Qué incluye")
         # 5a. Caso datos no confirmados en fuentes oficiales (Camino Inca canónico): honestidad sin alucinación

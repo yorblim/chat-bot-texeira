@@ -42,59 +42,223 @@ def get_admin_auth():
     return {"Authorization": f"Basic {auth_str}", "Content-Type": "application/json"}
 
 def evaluate_case(case, response_data, latency_ms):
+    import re
+    import unicodedata
+
+    def _norm(text: str) -> str:
+        if not text:
+            return ""
+        t = text.lower()
+        t = unicodedata.normalize('NFKD', t)
+        t = "".join(c for c in t if not unicodedata.combining(c))
+        t = re.sub(r'[\r\n\t]+', ' ', t)
+        t = re.sub(r'[*_`#]+', '', t)
+        return re.sub(r'\s+', ' ', t).strip()
+
     resp_text = response_data.get("response", "")
     resp_lower = resp_text.lower()
-    lang = case["language"]
-    cat = case["category"]
-    crit = case["ground_truth_criteria"]
-    
+    norm_resp = _norm(resp_text)
+    lang = case.get("language", "es")
+    cat = case.get("category", "")
+    crit = case.get("ground_truth_criteria", {})
+    cid = case.get("id", "")
+
+    reasons = []
+
     # 1. Correspondencia Lingüística (CI)
     ci = 1
     if lang == "es":
-        # No debe contener frases en inglés de plantillas
-        if any(w in resp_lower for w in ["tourist bus", "professional guide", "we are here to help"]):
+        english_leaks = [
+            "tourist bus", "professional guide", "we are here to help",
+            "does not include", "to register a request", "undocumented detail"
+        ]
+        if any(w in resp_lower for w in english_leaks):
             ci = 0
+            reasons.append("CI: Filtración de plantilla en inglés en respuesta en español")
     elif lang == "en":
-        # No debe contener filtraciones en español de plantillas
-        spanish_leaks = ["nuestros tours", "información de", "según la información", "debes confirmar con la agencia"]
+        spanish_leaks = [
+            "nuestros tours", "información de", "según la información",
+            "debes confirmar con la agencia", "este dato requiere confirmacion",
+            "para registrar una solicitud", "duracion publicada", "horario publicado"
+        ]
         if any(w in resp_lower for w in spanish_leaks):
             ci = 0
+            reasons.append("CI: Filtración de plantilla en español en respuesta en inglés")
 
     # 2. Intención y Pertinencia (IP)
     ip = 1
     if cat == "human_handoff":
-        ip = 1 if (response_data.get("escalated_to_human") or "ticket" in resp_lower or "asesor" in resp_lower or "agent" in resp_lower) else 0
+        ip = 1 if (response_data.get("escalated_to_human") or
+                   any(w in resp_lower for w in ["ticket", "asesor", "agent", "solicitud", "request"])) else 0
+        if not ip:
+            reasons.append("IP: No se reconoció la solicitud de atención humana")
     elif cat == "conflicts":
-        # Debe hablar del horario
-        ip = 1 if any(w in resp_lower for w in ["04:30", "17:00", "07:30", "18:30", "10:00", "14:00", "13:30", "horario", "schedule", "timetable"]) else 0
+        ip = 1 if any(w in resp_lower for w in [
+            "horario", "schedule", "timetable", "salida", "departure",
+            "retorno", "return", "04:30", "17:00", "07:30", "18:30", "10:00", "14:00", "13:30"
+        ]) else 0
+        if not ip:
+            reasons.append("IP: No aborda el conflicto de horario o tiempo de salida")
+    elif cat == "unconfirmed_commercial":
+        has_comm = any(w in norm_resp for w in [
+            "pago", "tarjeta", "transferencia", "recargo", "adelanto", "deposito",
+            "cancelacion", "reembolso", "devolucion", "descuento", "estudiante", "nino",
+            "payment", "credit card", "deposit", "down payment", "cancel", "refund", "discount", "student"
+        ])
+        ip = 1 if has_comm else 0
+        if not ip:
+            reasons.append("IP: No aborda la consulta sobre la condición comercial")
     else:
-        ip = 1 if len(resp_text) > 20 else 0
+        # tour_information o comparison_variants
+        tour_kws = {
+            "ACAD-ES-01": ["waqra pukara"],
+            "ACAD-ES-02": ["city tour", "koricancha", "sacsayhuaman"],
+            "ACAD-ES-03": ["cuatrimoto", "maras", "moray"],
+            "ACAD-ES-04": ["colca", "chacapi"],
+            "ACAD-ES-05": ["valle sur", "tipon", "pikillacta"],
+            "ACAD-EN-01": ["humantay"],
+            "ACAD-EN-02": ["sacred valley", "valle sagrado"],
+            "ACAD-EN-03": ["inka jungle"],
+            "ACAD-EN-04": ["choquequirao"],
+            "ACAD-EN-05": ["route of the sun", "ruta del sol"],
+            "ACAD-ES-06": ["machu picchu by car", "machu picchu en tren", "by car", "tren"],
+            "ACAD-ES-07": ["maras", "moray", "cuatrimoto"],
+            "ACAD-ES-08": ["salkantay", "inka jungle"],
+            "ACAD-EN-06": ["sacred valley", "valle sagrado", "south valley", "valle sur"],
+            "ACAD-EN-07": ["inca trail", "camino inca", "salkantay"],
+            "ACAD-EN-08": ["city tour", "sacred valley", "valle sagrado"],
+        }
+        kws = tour_kws.get(cid, [])
+        if kws and not any(kw in norm_resp for kw in kws):
+            ip = 0
+            reasons.append(f"IP: Respuesta desalineada; no aborda el tour consultado ({kws})")
+
+        # Rechazo explícito de desvío de tour
+        if cid == "ACAD-EN-03" and "inka jungle" not in norm_resp and "machu picchu" in norm_resp:
+            ip = 0
+            reasons.append("IP: Preguntó por Inka Jungle y respondió sobre Machu Picchu en Tren")
 
     # 3. Fidelidad Factual a Fuentes Canónicas (FF)
     ff = 1
-    # Verificar que NO invente datos prohibidos (must_not_invent)
+    # 3.1 Cero alucinaciones de must_not_invent
     for forbidden in crit.get("must_not_invent", []):
-        forb_lower = forbidden.lower()
-        # Verificar si afirma el dato prohibido
-        if forb_lower in resp_lower:
-            # Comprobar si está negándolo adecuadamente (ej: "no incluye almuerzo buffet")
-            negation = f"no {forb_lower}" in resp_lower or f"not {forb_lower}" in resp_lower or "no documentado" in resp_lower or "not documented" in resp_lower
+        forb_norm = _norm(forbidden)
+        if forb_norm in norm_resp:
+            negation = any(neg in norm_resp for neg in [
+                f"no {forb_norm}", f"not {forb_norm}", f"sin {forb_norm}",
+                "no incluye", "does not include", "not included", "no documentado", "not documented"
+            ])
             if not negation:
                 ff = 0
+                reasons.append(f"FF: Afirma dato prohibido o alucinado: '{forbidden}'")
                 break
+
+    # 3.2 Hechos y distinciones obligatorias
+    if ff == 1:
+        if "required_inclusions" in crit:
+            for inc in crit["required_inclusions"]:
+                inc_norm = _norm(inc)
+                tokens = [t for t in inc_norm.split() if len(t) > 3]
+                if not all(t in norm_resp for t in tokens):
+                    ff = 0
+                    reasons.append(f"FF: Falta inclusión confirmada: '{inc}'")
+
+        elif "required_stops" in crit:
+            missing_stops = []
+            for stop in crit["required_stops"]:
+                stop_norm = _norm(stop)
+                tokens = [t for t in stop_norm.split() if len(t) > 3]
+                if not all(t in norm_resp for t in tokens):
+                    missing_stops.append(stop)
+            if missing_stops:
+                ff = 0
+                reasons.append(f"FF: Faltan paradas confirmadas: {missing_stops}")
+
+        elif "required_facts" in crit:
+            for fact in crit["required_facts"]:
+                fact_norm = _norm(fact)
+                if fact_norm in ["4 days", "4-day", "4 dias"]:
+                    if not any(d in norm_resp for d in ["4 days", "4-day", "4 dias", "cuatro dias", "four days"]):
+                        ff = 0
+                        reasons.append(f"FF: Falta hecho de duración requerida: '{fact}'")
+                elif fact_norm in ["tourist ticket is not included", "excluded"]:
+                    if not any(ph in norm_resp for ph in ["not include", "excluded", "no incluye", "does not include"]):
+                        ff = 0
+                        reasons.append(f"FF: Falta hecho de exclusión de boleto turístico: '{fact}'")
+                elif fact_norm in ["confirmed product", "documented by texeira"]:
+                    if not any(ph in norm_resp for ph in ["confirmed", "documented", "offer", "portfolio", "confirmado", "documentado"]):
+                        ff = 0
+                        reasons.append(f"FF: Falta confirmar producto documentado: '{fact}'")
+                else:
+                    tokens = [t for t in fact_norm.split() if len(t) > 3]
+                    if not all(t in norm_resp for t in tokens):
+                        ff = 0
+                        reasons.append(f"FF: Falta hecho canónico requerido: '{fact}'")
+
+        elif "required_distinction" in crit:
+            if cid == "ACAD-ES-06":
+                has_car = any(w in norm_resp for w in ["auto", "carro", "carretera", "terrestre", "by car"])
+                has_tren = any(w in norm_resp for w in ["tren", "train", "ollantaytambo"])
+                if not (has_car and has_tren):
+                    ff = 0
+                    reasons.append("FF: Falta contrastar ambas modalidades (by Car y Tren)")
+            elif cid == "ACAD-ES-07":
+                has_trad = any(w in norm_resp for w in ["bus", "tradicional"])
+                has_cuatri = any(w in norm_resp for w in ["cuatrimoto", "casco", "proteccion"])
+                if not (has_trad and has_cuatri):
+                    ff = 0
+                    reasons.append("FF: Falta diferenciar opción tradicional (bus) y cuatrimoto")
+            elif cid == "ACAD-ES-08":
+                has_salk = "salkantay" in norm_resp
+                has_inka = "inka jungle" in norm_resp or "jungle" in norm_resp
+                has_4d = any(d in norm_resp for d in ["4 dias", "4 days", "cuatro dias"])
+                if not (has_salk and has_inka and has_4d):
+                    ff = 0
+                    reasons.append("FF: Falta comparar ambos treks (Salkantay e Inka Jungle) y sus 4 días")
+            elif cid == "ACAD-EN-06":
+                has_sv_stops = any(w in norm_resp for w in ["pisac", "ollantaytambo", "chinchero"])
+                has_south_stops = any(w in norm_resp for w in ["tipon", "pikillacta", "andahuaylillas"])
+                if not (has_sv_stops and has_south_stops):
+                    ff = 0
+                    reasons.append("FF: Falta contrastar los sitios arqueológicos de ambos valles")
+            elif cid == "ACAD-EN-07":
+                has_both_named = ("inca trail" in norm_resp or "camino inca" in norm_resp) and "salkantay" in norm_resp
+                no_refusal = "no information available" not in norm_resp and "cannot provide" not in norm_resp
+                if not (has_both_named and no_refusal):
+                    ff = 0
+                    reasons.append("FF: No proporcionó la comparación de ambos treks documentados en F2")
+            elif cid == "ACAD-EN-08":
+                has_city = "city tour" in norm_resp
+                has_sv = any(w in norm_resp for w in ["sacred valley", "valle sagrado"])
+                has_lunch = any(w in norm_resp for w in ["lunch", "buffet"])
+                if not (has_city and has_sv and has_lunch):
+                    ff = 0
+                    reasons.append("FF: Falta comparar las inclusiones de ambos tours (City Tour y Sacred Valley)")
+
+        elif cat == "conflicts":
+            if cid == "ACAD-ES-09":
+                if not ("10:00" in norm_resp and "13:30" in norm_resp):
+                    ff = 0
+                    reasons.append("FF: Falta horario oficial F1 (10:00-14:00 y 13:30-18:30)")
+            elif cid in ["ACAD-ES-10", "ACAD-EN-10"]:
+                if not ("04:30" in norm_resp and "17:00" in norm_resp):
+                    ff = 0
+                    reasons.append("FF: Falta horario oficial F1 (04:30 a 17:00)")
+            elif cid == "ACAD-EN-09":
+                if not ("07:30" in norm_resp and "18:30" in norm_resp):
+                    ff = 0
+                    reasons.append("FF: Falta horario oficial F1 (07:30 a 18:30)")
 
     # 4. Manejo de Incertidumbre y Vacíos Documentales (MI)
     mi = 1
-    if cat == "unconfirmed_commercial":
-        # Debe declarar que no está documentado / consultar a la agencia
-        admits_unknown = any(w in resp_lower for w in [
+    if cat == "unconfirmed_commercial" or crit.get("expected_unconfirmed", False):
+        admits_unknown = any(w in norm_resp for w in [
             "no documentad", "not document", "confirmar", "confirm",
             "consultar", "agencia", "agency", "contact", "no dispongo", "no cuenta con"
         ])
         mi = 1 if admits_unknown else 0
-    elif crit.get("expected_unconfirmed", False):
-        admits_unknown = any(w in resp_lower for w in ["confirm", "agencia", "agency", "document"])
-        mi = 1 if admits_unknown else 0
+        if not mi:
+            reasons.append("MI: No declara vacío documental ni remite a consulta con la agencia")
 
     passed = 1 if (ip == 1 and ff == 1 and ci == 1 and mi == 1) else 0
 
@@ -104,6 +268,7 @@ def evaluate_case(case, response_data, latency_ms):
         "ci": ci,
         "mi": mi,
         "passed": passed,
+        "reasons": reasons,
         "latency_ms": latency_ms,
         "route": response_data.get("response_route", response_data.get("route", "unknown")),
         "resolved_autonomously": response_data.get("resolved_autonomously", False),
