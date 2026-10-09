@@ -1,0 +1,41 @@
+# Despliegue y verificación de robustez conversacional — 09/10/2026
+
+## Código y validación local
+
+Commit de aplicación, banco y pruebas: `bc3b333`. Primera integración respaldada en `origin/main`: `85f5c6e`. Rama de implementación: `feature/automated-conversation-robustness-20261009`. Rama de la corrección de compilación y este registro: `feature/fix-pyarrow-build-compatibility-20261009`.
+
+El lote final registró **148 casos: 138 estructurales aprobados, 0 estructurales fallidos y 10 exploraciones pendientes de evaluación real**. Procesó 183 mensajes, con 169 textos distintos y 14 repeticiones como seguimientos. Las siete suites seleccionadas terminaron con código 0; las fuentes seleccionadas permanecieron estables durante la ejecución. Controles adicionales: contrato del informe 7/7 y erratas de entidad 4/4.
+
+La [evidencia completa](evaluaciones/ROBUSTEZ_AUTOMATICA_20261009T181951Z_8f9ce584.json) conserva entradas, respuestas, rutas, aserciones, excepciones y hashes. El [plan de pruebas por lotes](PLAN_PRUEBAS_AUTOMATICAS_Y_CIERRE_20261009.md) detalla el baseline, las correcciones y los límites. Estos resultados no son una precisión porcentual del bot ni aprobación automática de los 42 casos académicos.
+
+Se corrigieron rutas e idioma para consultas breves ES/EN, reconocimiento acotado de erratas únicas en nombres, precio coloquial, persistencia de preferencias de caminatas y duración numérica/escrita. No se modificaron ofertas reales, tarifas, horarios, imágenes, proveedor ni secretos. Los datos sintéticos del banco no se guardaron en producción.
+
+## Despliegue
+
+Proyecto `texeira-whatsapp-bot`; servicio `texeira-whatsapp`; región `us-central1`. Script existente `actualizar_nube.bat`, sin modificaciones. Log: `logs/despliegue_85f5c6e_20261009.log`.
+
+Cloud Build: `fa945f68-35e6-453c-9df7-86a3518c9db8`, iniciado el `2026-10-09T18:27:36.071981527Z`. La subida del código terminó antes de preparar este registro documental.
+
+**Primer intento fallido:** Cloud Build terminó `FAILURE` el `2026-10-09T18:38:18.879669Z`. El paso de importación/descarga de SentenceTransformer falló al importar PyArrow 26.0.0: requiere NumPy >=2, mientras LangChain 0.3.14 seleccionó NumPy 1.26.4. Log: `logs/cloudbuild_fa945f68_20261009.log`.
+
+La consulta posterior confirmó que `texeira-whatsapp-00048-mvd` continuaba con 100 % del tráfico. El script imprimió el fallo, aunque su proceso finalizó con código 0: se comprobó el estado de Cloud Build y del servicio, sin inferir éxito del código de salida del `.bat`.
+
+La corrección mínima fija `pyarrow==25.0.1` en `requirements.txt`, reproduciendo la combinación NumPy 1.26.4 / datasets 5.0.1 / PyArrow 25.0.1 del build exitoso anterior `71769e58-221e-49b9-a6be-c68afac3532c`. No se subió NumPy ni se modificó Python, Dockerfile o la arquitectura.
+
+Fuentes primarias de compatibilidad: [LangChain 0.3.14](https://raw.githubusercontent.com/langchain-ai/langchain/langchain%3D%3D0.3.14/libs/langchain/pyproject.toml) requiere NumPy <2 para Python <3.12; [datasets 5.0.1](https://raw.githubusercontent.com/huggingface/datasets/5.0.1/setup.py) admite PyArrow >=21; [el cambio oficial de Arrow](https://apache.googlesource.com/arrow/+/b60d43701bae097566bda6b96cd514690ca9dc9d) distingue compatibilidad NumPy 1.x en Arrow 25 de la exigencia de NumPy 2 en Arrow 26.
+
+La corrección se comprobó en un venv temporal con acceso a los paquetes locales: NumPy 1.26.4 / PyArrow 25.0.1 / datasets 5.0.1 / sentence-transformers 3.4.1. Pasaron los imports, una tabla Arrow creada desde NumPy y un Dataset. Con el Python de ese entorno también pasaron el preflight del índice (20 documentos), 36 controles conversacionales y 12 pruebas de catálogo conectado, bajo el ejecutor aislado. Logs: `logs/pyarrow_dependency_imports_20261009.log`, `logs/pyarrow_index_preflight_20261009.log`, `logs/pyarrow_conversational_20261009.log`, `logs/pyarrow_catalog_connected_20261009.log`.
+
+Es una comprobación local Windows; el paso de importación/modelo del siguiente Cloud Build verificará el entorno Linux. No se cambió el PyArrow global instalado ni se enviaron mensajes al teléfono.
+
+**Estado: corrección local aprobada; reintento y nueva revisión todavía no acreditados.**
+
+## Alcance pendiente
+
+Las diez exploraciones de idiomas adicionales, mezclas y preguntas abiertas mantienen `pending_review`. Se observaron sus rutas con recuperación/generación interceptadas; no se llamó a Groq real ni se certificaron fluidez o fidelidad del modelo.
+
+El usuario no necesita enviar cada variante por WhatsApp. Quedan hasta cuatro recorridos breves para botones/entidad, inglés visible, multimedia y solicitud de asesor sin duplicados, reutilizando las tres capturas ya recibidas. No equivalen a probar todas las formas de escribir.
+
+Se conservan exclusivamente Camino Inca, Inka Jungle y Maras–Moray activos, conforme a la decisión del usuario. Messenger sigue aplazado. La precisión actual permanece sin medir (`null`); los históricos no se recalifican con este lote.
+
+El script mantiene `min-instances=0`, `max-instances=2` y memoria `2Gi`. Escalar a cero no garantiza una factura de $0.00 ni disponibilidad ininterrumpida. No se añadieron recursos o servicios nuevos.
