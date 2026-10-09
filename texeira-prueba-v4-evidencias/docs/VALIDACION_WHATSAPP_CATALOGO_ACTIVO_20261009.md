@@ -62,12 +62,28 @@ Resultado puntual: recomendación compatible observada en WhatsApp. No constituy
 
 Su clasificación como tour sin senderismo no implica ausencia absoluta de desplazamientos a pie ni una garantía de accesibilidad.
 
-## Siguiente paso, pendiente
+## Rechazo de la recomendación: respuesta recibida
 
-Enviar en el mismo chat, inmediatamente después de esta recomendación:
+El usuario remitió una tercera captura de la continuación en el mismo chat:
 
 > Ninguno, dame otras opciones.
 
-Con la oferta actual solo Maras–Moray coincide con medio día y rechazo de senderismo. Si se rechaza, el bot debe explicar que no quedan otras opciones compatibles y ofrecer ajustar preferencias o volver a una opción anterior. No debe repetir Maras–Moray como una nueva alternativa, ofrecer tours inactivos ni perder las restricciones para sugerir productos de cuatro días.
+Respuesta visible:
+
+> No quedan otras opciones verificadas con esas preferencias después de los tours que rechazaste. ¿Quieres cambiar tus preferencias o volver a ver alguna opción anterior?
+
+Se conservan los botones «Ver Tours» y «Consultar asesor». La captura muestra envío a las 2:34 a. m. y respuesta a las 2:35 a. m.; estas marcas con precisión de minutos no permiten calcular la latencia. Copia local: `logs/whatsapp_rechazo_sin_alternativas_20261009.png`.
+
+Resultado puntual: la respuesta reconoce el rechazo y agotamiento de alternativas compatibles con el catálogo observado, sin repetir Maras–Moray, ofrecer tours inactivos o sugerir productos de cuatro días. Ofrece cambiar las preferencias o revisar una opción previa. El comportamiento es coherente con conservar medio día y rechazo de senderismo; no se inspeccionó la memoria interna de ese mensaje.
+
+Este recorrido contrasta rechazo y continuidad en WhatsApp, pero no replica la preparación exacta de REC-05 (`¿Qué tours me recomiendas?` → `Paisajes, tengo un día`). Se conserva como observación adicional sin aprobar por equivalencia el caso formal ni modificar el porcentaje de evaluación.
+
+## Siguiente paso, pendiente
+
+Enviar en el mismo chat:
+
+> Ahora sí quiero hacer caminatas y tengo 4 días.
+
+Debe sustituir la preferencia negativa anterior por el interés explícito en caminatas y cambiar la duración a cuatro días. Con el catálogo observado, Camino Inca e Inka Jungle son candidatos compatibles; Maras–Moray tiene medio día. El rechazo previo de una opción de medio día no debe bloquear esta petición con criterios nuevos. Comprobar la respuesta recibida antes de aprobar este cambio de preferencias.
 
 No se requiere despliegue para este registro documental. Continúan pendientes la matriz completa del piloto, la evidencia del uso real de RAG/LLM y la evaluación humana en campo. Messenger continúa aplazado.
