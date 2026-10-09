@@ -109,9 +109,11 @@ def requested(text):
     q = normalized.strip(' .!¿?¡\'"')
 
     # Una recomendación citada no es una solicitud de transferencia.
-    if re.search(r'\b(te recomiendo|i recommend|we recommend)\b', q):
+    if re.search(r'\b(te recomiendo|i recommend|we recommend|recomendo|recomendamos)\b', q):
         return False
     if re.search(r'^(talk|speak) to (an? )?(agent|advisor).*\bfor (details|information|info)\b', q):
+        return False
+    if re.search(r'^se\s+(?:eu\s+)?(?:precisar|quiser|necessitar)\b', q):
         return False
 
     # 1. Comprobar negación explícita hacia la atención humana:
@@ -125,6 +127,11 @@ def requested(text):
         r'\b(do\s+not|don\'?t|never)\s+(want|need|wish)\s+(to\s+)?(speak|talk|chat|contact|call)?.*?\b(agent\w*|advisor\w*|human\w*|person\w*|representative\w*)\b',
         r'\b(do\s+not|don\'?t)\s+(call|contact|transfer|connect)\s+me\b',
         r'\b(without\s+an?\s+(agent|advisor|human))\b',
+        # Português: recusar atendimento ou reserva não registra uma solicitação.
+        r'\b(?:nao|nunca)\s+(?:quero|desejo|preciso|gostaria|vou|pretendo)\s+(?:de\s+)?(?:me\s+)?(?:(?:falar|conversar|consultar|contatar|contactar|comunicar|solicitar|pedir|fazer)\s+)?(?:(?:com|a|ao|de)\s+)?(?:um\s+|uma\s+|o\s+|a\s+)?(?:assessor\w*|agente\w*|pessoa\w*|humano\w*|atendente\w*|representante\w*|reservar|reserva)\b',
+        r'\b(?:nao|sem)\s+(?:falar|conversar|consultar|contatar|contactar|conectar|transferir)\s+(?:(?:com|a|ao)\s+)?(?:um\s+|uma\s+|o\s+|a\s+)?(?:assessor\w*|agente\w*|pessoa\w*|humano\w*|atendente\w*|representante\w*)\b',
+        r'\b(?:nao|sem)\s+(?:um\s+|uma\s+)?(?:assessor\w*|agente\w*|atendente\w*)\b',
+        r'\bnao\s+(?:me\s+)?(?:ligue|liguem|contate|contatem|contacte|contactem|transfira|transfiram|conecte|conectem|solicitar|reservar)\b',
     ]
     for neg_pat in negation_patterns:
         if re.search(neg_pat, q):
@@ -152,6 +159,10 @@ def requested(text):
         'human support', 'human help', 'i need human help', 'i need an advisor',
         'request reservation', 'request a reservation', 'book now', 'book tour', 'book a tour',
         'i want to book', 'booking request',
+        'assessor', 'assessora', 'atendente', 'consultar assessor',
+        'falar com um assessor', 'falar com uma assessora', 'falar com um atendente',
+        'quero falar com um assessor', 'preciso de um assessor', 'solicitar assessor',
+        'atendimento humano', 'ajuda humana', 'solicitar uma reserva', 'fazer uma reserva',
     }
     if q in exact_phrases:
         return True
@@ -173,6 +184,12 @@ def requested(text):
         r'\b(call\s+me|please\s+call\s+me|can\s+you\s+call\s+me)\b',
         r'\b(connect\s+me\s+(with|to)\s+(an?\s+)?(agent|advisor|human|representative))\b',
         r'\b(request\s+(a\s+)?reservation|i\s+(want|would\s+like|need)\s+to\s+book|book\s+now|booking\s+request)\b',
+        # Português, incluindo os textos canônicos dos botões :pt.
+        r'\b(?:quero|gostaria\s+de|desejo|preciso|posso|por\s+favor)?\s*(?:falar|conversar|consultar|contatar|contactar)\s+(?:(?:com|a|ao)\s+)?(?:um\s+|uma\s+)?(?:assessor\w*|atendente\w*|agente\w*|pessoa\w*|humano\w*|representante\w*)\b',
+        r'\b(?:preciso|quero|desejo)\s+(?:de\s+)?(?:um\s+|uma\s+)?(?:assessor\w*|atendente\w*)\b',
+        r'\b(?:atendimento|ajuda|assistencia|suporte)\s+human[oa]\b',
+        r'\b(?:solicitar|pedir|fazer)\s+(?:uma\s+)?reserva\b',
+        r'\b(?:quero|desejo|gostaria\s+de)\s+reservar\b',
     ]
     for pat in patterns:
         if re.search(pat, q):
@@ -223,10 +240,24 @@ def notify_advisor(row, send_fn=None, advisor_phone=None):
     return False
 
 
+def _request_message(language, *, es, en, pt):
+    """Preserva o idioma do cliente sem alterar o estado da solicitação."""
+    return {'es': es, 'en': en, 'pt': pt}.get(language, es)
+
+
+def _update_request_history(ns, user_id, response):
+    history = ns['conversation_history'].get(user_id, [])
+    if history and history[-1].get('role') == 'ai':
+        if 'update_last_history_response' in ns:
+            ns['update_last_history_response'](user_id, response)
+        else:
+            history[-1]['content'] = response
+
+
 def apply_request(ns, result, user_id, channel, question):
     if not result.get('handoff_requested'): return result
     result=dict(result)
-    en=result.get('handoff_language')=='en'
+    language=result.get('handoff_language', 'es')
     try:
         history=ns['get_history'](user_id)
         # Identificar si es una solicitud de reserva y tour seleccionado
@@ -255,12 +286,14 @@ def apply_request(ns, result, user_id, channel, question):
         from catalog_service import is_deactivated_tour
         if is_booking and eid and is_deactivated_tour(eid):
             disp_name = tour_name or eid
-            result['response'] = (
-                f"*{disp_name}* no figura actualmente en nuestro catálogo activo (no se encuentra disponible). Puedes explorar otros tours o consultar este destino con un asesor."
-                if not en else
-                f"*{disp_name}* is not currently in our active catalog (not available). You can explore other tours or consult this destination with an advisor."
+            result['response'] = _request_message(
+                language,
+                es=f"*{disp_name}* no figura actualmente en nuestro catálogo activo (no se encuentra disponible). Puedes explorar otros tours o consultar este destino con un asesor.",
+                en=f"*{disp_name}* is not currently in our active catalog (not available). You can explore other tours or consult this destination with an advisor.",
+                pt=f"*{disp_name}* não está disponível no nosso catálogo ativo. Você pode explorar outros passeios ou consultar este destino com um assessor.",
             )
             result.update(route='evidence_inactive_tour', response_route='evidence_inactive_tour', entity_id=eid, resolved_autonomously=False, handoff_registered=False)
+            _update_request_history(ns, user_id, result['response'])
             return result
 
         ticket_question = question
@@ -283,66 +316,74 @@ def apply_request(ns, result, user_id, channel, question):
         if is_booking:
             if created:
                 if tour_name:
-                    result['response'] = (
-                        f"Registré tu solicitud sobre {tour_name}. Está pendiente de atención por un asesor; tu reserva aún no está confirmada."
-                        if not en else
-                        f"I registered your request regarding {tour_name}. It is pending review by an advisor; your reservation is not yet confirmed."
+                    result['response'] = _request_message(
+                        language,
+                        es=f"Registré tu solicitud sobre {tour_name}. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.",
+                        en=f"I registered your request regarding {tour_name}. It is pending review by an advisor; your reservation is not yet confirmed.",
+                        pt=f"Registrei sua solicitação sobre {tour_name}. Ela aguarda atendimento por um assessor; sua reserva ainda não está confirmada.",
                     )
                 else:
-                    result['response'] = (
-                        "Registré tu solicitud de reserva. Está pendiente de atención por un asesor; tu reserva aún no está confirmada."
-                        if not en else
-                        "I registered your reservation request. It is pending review by an advisor; your reservation is not yet confirmed."
+                    result['response'] = _request_message(
+                        language,
+                        es="Registré tu solicitud de reserva. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.",
+                        en="I registered your reservation request. It is pending review by an advisor; your reservation is not yet confirmed.",
+                        pt="Registrei sua solicitação de reserva. Ela aguarda atendimento por um assessor; sua reserva ainda não está confirmada.",
                     )
             else:
                 if row['status'] == 'in_progress':
-                    result['response'] = (
-                        f"Tu solicitud sobre {tour_name or 'tu reserva'} (Ticket {row['id']}) ya está en atención por un asesor. Tu reserva aún no está confirmada."
-                        if not en else
-                        f"Your request regarding {tour_name or 'your reservation'} (Ticket {row['id']}) is already being attended by an advisor. Your reservation is not yet confirmed."
+                    result['response'] = _request_message(
+                        language,
+                        es=f"Tu solicitud sobre {tour_name or 'tu reserva'} (Ticket {row['id']}) ya está en atención por un asesor. Tu reserva aún no está confirmada.",
+                        en=f"Your request regarding {tour_name or 'your reservation'} (Ticket {row['id']}) is already being attended by an advisor. Your reservation is not yet confirmed.",
+                        pt=f"Sua solicitação sobre {tour_name or 'sua reserva'} (Ticket {row['id']}) já está em atendimento por um assessor. Sua reserva ainda não está confirmada.",
                     )
                 else:
-                    result['response'] = (
-                        f"Ya tienes una solicitud registrada (Ticket {row['id']}) pendiente de atención por un asesor. Tu reserva aún no está confirmada; te atenderemos a la brevedad."
-                        if not en else
-                        f"You already have a registered request (Ticket {row['id']}) pending review by an advisor. Your reservation is not yet confirmed; we will assist you shortly."
+                    result['response'] = _request_message(
+                        language,
+                        es=f"Ya tienes una solicitud registrada (Ticket {row['id']}) pendiente de atención por un asesor. Tu reserva aún no está confirmada; te atenderemos a la brevedad.",
+                        en=f"You already have a registered request (Ticket {row['id']}) pending review by an advisor. Your reservation is not yet confirmed; we will assist you shortly.",
+                        pt=f"Você já tem uma solicitação registrada (Ticket {row['id']}) aguardando atendimento por um assessor. Sua reserva ainda não está confirmada; você pode continuar consultando o bot.",
                     )
         else:
             if created:
-                result['response'] = (
-                    f"Tu solicitud {row['id']} está registrada y pendiente de atención humana. "
-                    "Aún no ha sido atendida. Puedes seguir haciendo consultas al bot."
-                    if not en else
-                    f"Your request {row['id']} is registered and pending human attention. "
-                    "It has not been handled yet. You can continue asking the bot questions."
+                result['response'] = _request_message(
+                    language,
+                    es=f"Tu solicitud {row['id']} está registrada y pendiente de atención humana. "
+                    "Aún no ha sido atendida. Puedes seguir haciendo consultas al bot.",
+                    en=f"Your request {row['id']} is registered and pending human attention. "
+                    "It has not been handled yet. You can continue asking the bot questions.",
+                    pt=f"Sua solicitação {row['id']} está registrada e aguarda atendimento humano. "
+                    "Ela ainda não foi atendida. Você pode continuar consultando o bot.",
                 )
             else:
                 if row['status'] == 'in_progress':
-                    result['response'] = (
-                        f"Tu solicitud {row['id']} ya está en atención. Aún no está cerrada."
-                        if not en else
-                        f"Your request {row['id']} is being handled. It is not closed yet."
+                    result['response'] = _request_message(
+                        language,
+                        es=f"Tu solicitud {row['id']} ya está en atención. Aún no está cerrada.",
+                        en=f"Your request {row['id']} is being handled. It is not closed yet.",
+                        pt=f"Sua solicitação {row['id']} já está em atendimento. Ela ainda não foi encerrada.",
                     )
                 else:
-                    result['response'] = (
-                        f"Ya tienes una solicitud registrada ({row['id']}) pendiente de atención humana. "
-                        "Aún no ha sido atendida. Puedes seguir haciendo consultas al bot."
-                        if not en else
-                        f"You already have a registered request ({row['id']}) pending human attention. "
-                        "It has not been handled yet. You can continue asking the bot questions."
+                    result['response'] = _request_message(
+                        language,
+                        es=f"Ya tienes una solicitud registrada ({row['id']}) pendiente de atención humana. "
+                        "Aún no ha sido atendida. Puedes seguir haciendo consultas al bot.",
+                        en=f"You already have a registered request ({row['id']}) pending human attention. "
+                        "It has not been handled yet. You can continue asking the bot questions.",
+                        pt=f"Você já tem uma solicitação registrada ({row['id']}) aguardando atendimento humano. "
+                        "Ela ainda não foi atendida. Você pode continuar consultando o bot.",
                     )
     except (sqlite3.Error, Exception):
-        result['response']='No pude registrar la solicitud. Intenta nuevamente o usa los contactos de la agencia.'
+        result['response']=_request_message(
+            language,
+            es='No pude registrar la solicitud. Intenta nuevamente o usa los contactos de la agencia.',
+            en='I could not register the request. Please try again or use the agency contact details.',
+            pt='Não consegui registrar a solicitação. Tente novamente ou use os contatos da agência.',
+        )
         result.update(handoff_registered=False,handoff_status='registration_failed')
-        if en: result['response']='I could not register the request. Please try again or use the agency contact details.'
     result['resolved_autonomously']=False
     # Mantener exactamente la respuesta final en el historial.
-    history=ns['conversation_history'].get(user_id,[])
-    if history and history[-1].get('role')=='ai':
-        if 'update_last_history_response' in ns:
-            ns['update_last_history_response'](user_id, result['response'])
-        else:
-            history[-1]['content']=result['response']
+    _update_request_history(ns, user_id, result['response'])
     return result
 
 
@@ -358,6 +399,9 @@ def install(ns):
                 if lang == 'en':
                     if 'advisor' not in response_text.lower():
                         result['response'] += '\nWrite \U0001f449 *advisor* to speak with our team at the agency.'
+                elif lang == 'pt':
+                    if 'assessor' not in response_text.lower():
+                        result['response'] += '\nEscreva \U0001f449 *assessor* para falar com nossa equipe na agência.'
                 else:
                     if 'asesor' not in response_text.lower():
                         result['response'] += '\nEscribe \U0001f449 *asesor* para hablar con nuestro equipo en la agencia.'
@@ -368,7 +412,13 @@ def install(ns):
                     else:
                         history[-1]['content']=result['response']
             return result
-        text='Registrando solicitud de atención humana.'
+        lang = ns.get('detect_language', lambda q: 'es')(question)
+        text=_request_message(
+            lang,
+            es='Registrando solicitud de atención humana.',
+            en='Registering a request for human assistance.',
+            pt='Registrando uma solicitação de atendimento humano.',
+        )
         if 'add_history_turn' in ns:
             ns['add_history_turn'](user_id, question, text)
         else:
@@ -376,7 +426,7 @@ def install(ns):
             ns['add_to_history'](user_id,'ai',text)
         return dict(response=text,is_fallback=False,is_predefined=True,is_escalation=False,
                     resolved_autonomously=False,needs_agency_confirmation=True,
-                    handoff_requested=True,handoff_language=ns['detect_language'](question),
+                    handoff_requested=True,handoff_language=lang,
                     response_route='human_request',route='human_request')
     ns['rag_chain']=chain
     from auth_middleware import panel_csrf_token

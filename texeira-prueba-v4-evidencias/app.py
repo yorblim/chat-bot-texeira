@@ -636,7 +636,7 @@ def normalize_query(text: str, lang: Optional[str] = None) -> str:
 # sin importar el idioma de salida.
 
 
-def build_fallback_response() -> dict:
+def build_fallback_response(lang: str = "es") -> dict:
     """
     Genera la respuesta de fallback con su flag booleano explícito.
 
@@ -644,11 +644,17 @@ def build_fallback_response() -> dict:
         Diccionario con response, context_used, is_fallback=True,
         is_predefined=False.
     """
+    messages = {
+        "es": FALLBACK_MESSAGE,
+        "en": "I don't have that exact documented information. Please consult an agency advisor to confirm the details.",
+        "pt": "Não tenho essa informação exata documentada. Consulte um assessor da agência para confirmar os detalhes.",
+    }
     return {
-        "response": FALLBACK_MESSAGE,
+        "response": messages.get(lang, FALLBACK_MESSAGE),
         "context_used": False,
         "is_fallback": True,
         "is_predefined": False,
+        "resolved_autonomously": False,
     }
 
 
@@ -658,7 +664,7 @@ RATE_LIMIT_MESSAGE = (
 )
 
 
-def build_rate_limit_response() -> dict:
+def build_rate_limit_response(lang: str = "es") -> dict:
     """
     Genera la respuesta para errores de rate-limit (429) del proveedor LLM.
 
@@ -670,12 +676,18 @@ def build_rate_limit_response() -> dict:
         Diccionario con response, context_used, is_fallback=False,
         is_rate_limit=True, is_predefined=False.
     """
+    messages = {
+        "es": RATE_LIMIT_MESSAGE,
+        "en": "We are experiencing high demand temporarily. Please try again in a few seconds.",
+        "pt": "Estamos recebendo muitas consultas neste momento. Tente novamente em alguns segundos.",
+    }
     return {
-        "response": RATE_LIMIT_MESSAGE,
+        "response": messages.get(lang, RATE_LIMIT_MESSAGE),
         "context_used": False,
         "is_fallback": False,
         "is_rate_limit": True,
         "is_predefined": False,
+        "resolved_autonomously": False,
     }
 
 
@@ -1496,7 +1508,7 @@ def rag_chain(question: str, user_id: str = "default") -> dict:
     retriever = get_retriever()
     if retriever is None:
         # Flag explícito: sin base vectorial no hay posibilidad de resolver
-        result = build_fallback_response()
+        result = build_fallback_response(lang_detected)
         add_to_history(user_id, "human", question)
         add_to_history(user_id, "ai", result["response"])
         result.update({
@@ -1580,7 +1592,7 @@ def rag_chain(question: str, user_id: str = "default") -> dict:
         # directamente SIN llamar al LLM. El flag is_fallback=True se decide
         # aquí, en el punto donde se determina que no hay información.
         if not context.strip():
-            result = build_fallback_response()
+            result = build_fallback_response(lang_detected)
             add_to_history(user_id, "human", question)
             add_to_history(user_id, "ai", result["response"])
             return result
@@ -1768,7 +1780,7 @@ def rag_chain(question: str, user_id: str = "default") -> dict:
                 f.write(rate_limit_msg)
         except Exception:
             pass
-        result = build_rate_limit_response()
+        result = build_rate_limit_response(lang_detected)
         add_to_history(user_id, "human", question)
         add_to_history(user_id, "ai", result["response"])
         return result
@@ -1777,8 +1789,12 @@ def rag_chain(question: str, user_id: str = "default") -> dict:
         import traceback
         print(f"[ERROR] Fallo en la cadena RAG: {e}")
         print(f"[ERROR] Traceback: {traceback.format_exc()}")
-        result = build_fallback_response()
-        result["response"] = "Lo siento, hubo un error técnico. Por favor, intenta nuevamente o contacta a un asesor."
+        result = build_fallback_response(lang_detected)
+        result["response"] = {
+            "es": "Lo siento, hubo un error técnico. Por favor, intenta nuevamente o contacta a un asesor.",
+            "en": "Sorry, there was a technical error. Please try again or consult an advisor.",
+            "pt": "Desculpe, ocorreu um erro técnico. Tente novamente ou consulte um assessor.",
+        }.get(lang_detected, "Lo siento, hubo un error técnico. Por favor, intenta nuevamente o contacta a un asesor.")
         add_to_history(user_id, "human", question)
         add_to_history(user_id, "ai", result["response"])
         return result
@@ -1927,10 +1943,45 @@ def _get_active_catalog_tour_buttons(lang: str = "es") -> List[dict]:
         "id": f"btn_advisor:{lang}",
         "title": "🙋‍♂️ Advisor" if is_en else "🙋‍♂️ Asesor"
     })
-    return buttons
+    return _localize_button_titles(buttons, lang)
+
+
+def _localize_button_titles(buttons: List[dict], lang: str) -> List[dict]:
+    """Keep action/entity IDs intact while localizing the Portuguese controls."""
+    if lang != "pt":
+        return buttons
+    labels = {
+        "Ver otros tours": "Ver outros passeios",
+        "Consultar asesor": "Consultar assessor",
+        "Reintentar": "Tentar novamente",
+        "⬅️ Categorías": "⬅️ Categorias",
+        "🗺️ Ver Tours": "🗺️ Ver passeios",
+        "📄 Qué incluye": "📄 O que inclui",
+        "📸 Reintentar foto": "📸 Repetir foto",
+        "Solicitar reserva": "Solicitar reserva",
+        "💰 Tarifas": "💰 Preços",
+        "📸 Ver Fotos": "📸 Ver fotos",
+        "🙋‍♂️ Asesor": "🙋‍♂️ Assessor",
+        "🌄 Clásicos Cusco": "🌄 Clássicos Cusco",
+        "🚌 Rutas Regionales": "🚌 Rotas Regionais",
+        "➡️ Más tours": "➡️ Mais passeios",
+    }
+    return [dict(button, title=labels.get(button["title"], button["title"])[:20])
+            for button in buttons]
 
 
 def get_quick_buttons(
+    route: str = "",
+    user_message: str = "",
+    detected_eid: str = "",
+    lang: str = "es",
+    photo_send_failed: bool = False,
+) -> List[dict]:
+    buttons = _build_quick_buttons(route, user_message, detected_eid, lang, photo_send_failed)
+    return _localize_button_titles(buttons, lang)
+
+
+def _build_quick_buttons(
     route: str = "",
     user_message: str = "",
     detected_eid: str = "",
@@ -2509,7 +2560,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                             explicit_eid = btn_parts[1]
                             explicit_lang = btn_parts[2]
                         elif len(btn_parts) == 2:
-                            if btn_parts[1] in ("es", "en"):
+                            if btn_parts[1] in ("es", "en", "pt"):
                                 explicit_lang = btn_parts[1]
                             else:
                                 explicit_eid = btn_parts[1]
@@ -2522,19 +2573,23 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                                 last_user_turn = h.get("content", "")
                                 break
 
-                        is_en = False
-                        if explicit_lang == "en":
-                            is_en = True
-                        elif explicit_lang == "es":
-                            is_en = False
+                        if explicit_lang in ("es", "en", "pt"):
+                            interaction_lang = explicit_lang
+                        elif any(w in btn_title.lower() for w in ["passeios", "assessor", "o que inclui", "preços", "rotas regionais", "clássicos cusco"]):
+                            interaction_lang = "pt"
                         elif any(w in btn_title.lower() for w in ["rates", "photo", "what's included", "what is included", "advisor", "view tours", "book now", "request reservation", "inca trail", "rainbow mtn", "categories"]):
-                            is_en = True
-                        elif any(w in btn_title.lower() for w in ["tarifas", "ver fotos", "qué incluye", "que incluye", "asesor", "reservar", "solicitar reserva", "ver tours", "camino inca", "categorias"]):
-                            is_en = False
-                        elif last_user_turn and detect_language(last_user_turn) == "en":
-                            is_en = True
+                            interaction_lang = "en"
+                        elif any(w in btn_title.lower() for w in ["qué incluye", "que incluye", "asesor", "ver tours", "más tours"]):
+                            interaction_lang = "es"
+                        else:
+                            history_lang = detect_language(last_user_turn) if last_user_turn else "es"
+                            interaction_lang = history_lang if history_lang in ("es", "en", "pt") else "es"
 
-                        interaction_lang = "en" if is_en else "es"
+                        is_en = interaction_lang == "en"
+                        is_pt = interaction_lang == "pt"
+
+                        def interaction_text(es_text, en_text, pt_text):
+                            return pt_text if is_pt else en_text if is_en else es_text
 
                         target_eid = explicit_eid
                         tours_in_hist = []
@@ -2563,10 +2618,20 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         from catalog_service import is_deactivated_tour
                         # Mapeo semántico de botones interactivos preservando entidad e idioma
                         if target_eid and target_eid != "__AMBIGUOUS__" and is_deactivated_tour(target_eid):
-                            user_message = f"information about {tour_name or target_eid}" if is_en else f"informacion de {tour_name or target_eid}"
+                            user_message = interaction_text(
+                                f"informacion de {tour_name or target_eid}",
+                                f"information about {tour_name or target_eid}",
+                                f"informações sobre {tour_name or target_eid}")
                         elif target_eid == "__AMBIGUOUS__" and action in ("btn_inc", "btn_rates", "btn_price", "btn_photo", "btn_book"):
                             is_interactive_ambiguous = True
-                            if is_en:
+                            if is_pt:
+                                user_message = "Qual passeio você deseja consultar? Escreva o nome do passeio ou escolha uma opção abaixo."
+                                ambiguous_clarif_buttons = [
+                                    {"id": f"btn_tour:{t}:pt", "title": _get_tour_button_title(t)}
+                                    for t in tours_in_hist[:2]
+                                ]
+                                ambiguous_clarif_buttons.append({"id": "btn_advisor:pt", "title": "🙋‍♂️ Assessor"})
+                            elif is_en:
                                 user_message = "Which tour would you like to check? Please specify the tour name (e.g., *Inca Trail* or *City Tour*) 😊"
                                 ambiguous_clarif_buttons = [
                                     {"id": f"btn_tour:{t}:en", "title": _get_tour_button_title(t, is_en=True)}
@@ -2581,41 +2646,44 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                                 ]
                                 ambiguous_clarif_buttons.append({"id": "btn_advisor:es", "title": "🙋‍♂️ Asesor"})
                         elif action == "btn_photo":
-                            if tour_name:
-                                user_message = f"photos of {tour_name}" if is_en else f"fotos de {tour_name}"
-                            else:
-                                user_message = "photos" if is_en else "fotos"
+                            user_message = interaction_text(
+                                f"fotos de {tour_name}" if tour_name else "fotos",
+                                f"photos of {tour_name}" if tour_name else "photos",
+                                f"fotos do passeio {tour_name}" if tour_name else "fotos do passeio")
                         elif action in ("btn_rates", "btn_price"):
-                            if tour_name:
-                                user_message = f"official rates for {tour_name}" if is_en else f"tarifas y precios de {tour_name}"
-                            else:
-                                user_message = "rates and prices" if is_en else "tarifas y precios"
+                            user_message = interaction_text(
+                                f"tarifas y precios de {tour_name}" if tour_name else "tarifas y precios",
+                                f"official rates for {tour_name}" if tour_name else "rates and prices",
+                                f"preços oficiais de {tour_name}" if tour_name else "preços oficiais")
                         elif action == "btn_inc":
-                            if tour_name:
-                                user_message = f"what does {tour_name} include" if is_en else f"que incluye {tour_name}"
-                            else:
-                                user_message = "what does it include" if is_en else "que incluye"
+                            user_message = interaction_text(
+                                f"que incluye {tour_name}" if tour_name else "que incluye",
+                                f"what does {tour_name} include" if tour_name else "what does it include",
+                                f"o que está incluído em {tour_name}" if tour_name else "o que está incluído no passeio")
                         elif action == "btn_book":
-                            if tour_name:
-                                user_message = f"request reservation for {tour_name}" if is_en else f"solicitar reserva de {tour_name}"
-                            else:
-                                user_message = "request reservation" if is_en else "solicitar reserva"
+                            user_message = interaction_text(
+                                f"solicitar reserva de {tour_name}" if tour_name else "solicitar reserva",
+                                f"request reservation for {tour_name}" if tour_name else "request reservation",
+                                f"solicitar reserva do passeio {tour_name}" if tour_name else "solicitar reserva do passeio")
                         elif action == "btn_advisor":
-                            user_message = "advisor" if is_en else "asesor"
+                            user_message = interaction_text("asesor", "advisor", "consultar assessor")
                         elif action == "btn_cat":
                             cat_key = explicit_eid or ""
-                            user_message = f"category {cat_key}" if is_en else f"categoria {cat_key}"
+                            user_message = interaction_text(f"categoria {cat_key}", f"category {cat_key}", f"categoria {cat_key} de passeios")
                         elif action == "btn_cat_page":
                             cat_key = explicit_eid or ""
-                            user_message = f"category {cat_key} page {cat_page_num}" if is_en else f"categoria {cat_key} pagina {cat_page_num}"
+                            user_message = interaction_text(
+                                f"categoria {cat_key} pagina {cat_page_num}",
+                                f"category {cat_key} page {cat_page_num}",
+                                f"categoria {cat_key} pagina {cat_page_num} de passeios")
                         elif action in ("btn_cats", "btn_categories", "btn_tours"):
-                            user_message = "view tour categories" if is_en else "ver categorias de tours"
+                            user_message = interaction_text("ver categorias de tours", "view tour categories", "ver categorias de passeios")
                         elif action == "btn_tour":
-                            user_message = f"information about {tour_name}" if is_en else f"informacion de {tour_name}"
+                            user_message = interaction_text(f"informacion de {tour_name}", f"information about {tour_name}", f"informações sobre {tour_name}")
                         elif action == "btn_ci":
-                            user_message = "information about Inca Trail" if is_en else "informacion de Camino Inca"
+                            user_message = interaction_text("informacion de Camino Inca", "information about Inca Trail", "informações sobre Camino Inca")
                         elif action == "btn_mp":
-                            user_message = "information about Machu Picchu" if is_en else "informacion de Machu Picchu en tren"
+                            user_message = interaction_text("informacion de Machu Picchu en tren", "information about Machu Picchu", "informações sobre Machu Picchu en tren")
                         else:
                             user_message = btn_title or btn_id
 
@@ -2715,7 +2783,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                 database.log_interaction(
                     user_id=u_id,
                     channel=u_chan,
-                    detected_language=detect_language(u_msg),
+                    detected_language=i_lang or rag_result.get("language") or detect_language(u_msg),
                     user_message=u_msg,
                     bot_response=bot_response,
                     resolved_autonomously=resolved_autonomously,
@@ -2765,8 +2833,11 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                             else:
                                 print(f"[WA MULTIMEDIA PHOTO SEND FAILED] to={p_num or p_bsuid} url={img_url}")
                                 is_en_user = (detect_language(u_msg) == "en")
+                                is_pt_user = (detect_language(u_msg) == "pt")
                                 tour_name_disp = _get_tour_display_name(detected_eid, is_en=is_en_user) if detected_eid else ""
                                 bot_response_clean = (
+                                    f"Não conseguimos carregar a fotografia oficial de *{tour_name_disp or 'este passeio'}*. Nosso assessor poderá compartilhar a galeria diretamente."
+                                    if is_pt_user else
                                     f"Tuvimos un inconveniente al cargar la fotografía oficial de *{tour_name_disp or 'este tour'}*. Nuestro asesor te compartirá la galería completa directamente."
                                     if not is_en_user else
                                     f"We encountered an issue loading the official photo for *{tour_name_disp or 'this tour'}*. Our advisor will share the full gallery directly with you."
@@ -2774,8 +2845,8 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
 
                     # Botones de respuesta rápida interactivos (Meta WhatsApp Cloud API)
                     if not is_ambig:
-                        eff_lang = i_lang or detect_language(u_msg)
-                        if eff_lang not in ("es", "en"):
+                        eff_lang = i_lang or rag_result.get("language") or detect_language(u_msg)
+                        if eff_lang not in ("es", "en", "pt"):
                             eff_lang = "es"
                         quick_buttons = get_quick_buttons(
                             route=route,
@@ -2987,6 +3058,7 @@ async def test_chat(request: TestChatRequest):
         rag_result = rag_chain(request.message, user_id=request.user_id)
         from handoff_support import apply_request
         rag_result = apply_request(globals(), rag_result, request.user_id, 'test', request.message)
+        detected_lang = rag_result.get("language") or detected_lang
         bot_response = rag_result["response"]
 
         # Enriquecer respuesta en /test-chat para que fotos y folletos se muestren en la UI web
