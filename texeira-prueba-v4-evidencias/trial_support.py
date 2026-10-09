@@ -119,6 +119,10 @@ def install(ns):
     ns['app'].add_event_handler('startup', preload_retriever)
 
     def language(text):
+        # A short reply still has an explicit English time cue; probabilistic
+        # detection of two tokens can otherwise switch the conversation to ES.
+        if re.fullmatch(r'(?:\d+|one|half|full)\s+days?', normalize(text).strip(' ?¿!.')):
+            return 'en'
         words = set(re.findall(r'\b\w+\b', normalize(text)))
         markers = {
             'es': set('que cual cuanto cuesta incluye incluidas entradas puedo cancelar manana gracias hola precio precios como donde cuando salir salida horario hora boleto boletos llegar quiero necesito visita ruinas arqueologico arqueologica caminata trekking montana colores sagrao waqrapukara waqra pukara queswachaca puente mistico ver categorias categoria catalogo reserva reservar solicitar informacion info detalles cusco fotos foto'.split()),

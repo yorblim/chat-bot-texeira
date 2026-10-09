@@ -90,6 +90,45 @@ def is_other_options_query(q_norm: str) -> bool:
     return bool(re.search(r'\b(?:otr[oa]s?\s+(?:opci[oó]n\w*|tour\w*|alternativ\w*|destino\w*)|other\s+(?:option\w*|tour\w*|alternative\w*|destination\w*))\b', q_norm))
 
 
+def duration_preference(value):
+    """Read explicit days in either language; unknown text does not imply a day."""
+    text = str(value or '').lower()
+    if re.search(r'\b(?:medio\s*d[ií]a|half\s*day|pocas\s+horas|poco\s+tiempo)\b', text):
+        return ('half', None)
+    amounts = list(re.finditer(r'\b(\d+)\s*(?:d[ií]as?|days?)\b', text))
+    if amounts:
+        days = int(amounts[-1].group(1))
+        return ('1day' if days == 1 else 'multi', days) if days > 0 else None
+    if re.search(r'\b(?:un\s*d[ií]a|one\s*day|full\s*day|d[ií]a\s+completo)\b', text):
+        return ('1day', 1)
+    return None
+
+
+def hiking_preference(value):
+    """An explicit newer walking preference replaces an older one."""
+    text = str(value or '').lower()
+    activity = r'(?:caminat\w*|trek\w*|hik(?:e|es|ing)|senderis\w*|subid\w*|walk\w*)'
+    if not re.search(r'\b' + activity + r'\b', text):
+        return None
+    desire = r'\b(?:quiero|deseo|prefier\w*|me\s+gust\w*|want|prefer|like|love)\b'
+    if re.match(r'\s*(?:hay|habra|tienen|inclu\w*|does|do|is|are|how|what|que|como|cuanto|cuanta)\b', text) and not re.search(desire, text):
+        return None
+    negative = re.search(
+        r"\b(?:no|sin|nada\s+de|without|do\s+not|don['’]?t)\s+"
+        r'(?:(?:quiero|deseo|prefiero|me\s+gust[ae]n?|tengo\s+ganas\s+de|want|like|prefer)\s+)?'
+        r'(?:(?:hacer|realizar|ir\s+a|to|do|go|have)\s+)*'
+        r'(?:(?:las?|los?|una?s?|ningun[ao]?s?|any|a|the)\s+)?'
+        + activity + r'\b', text,
+    )
+    if negative:
+        return False
+    if re.fullmatch(activity, text.strip(' ?¿!.')):
+        return True
+    if re.search(desire + r'[^.!?;\n]{0,80}\b' + activity + r'\b', text):
+        return True
+    return None
+
+
 CAT_SPECS_DICT = {
     'treks': {
         'key': 'treks',
@@ -486,9 +525,12 @@ def install(ns, support, original):
     support.detect_field_from_question=lambda q:field(support.normalize(q))
     ns['_evaluate_evidence_layer']=lambda *args:None
     ns['check_tour_intent']=lambda *args,**kwargs:None
-    def record(user_id, question, response):
+    def record(user_id, question, response, metadata=None):
         if 'add_history_turn' in ns:
-            ns['add_history_turn'](user_id, question, response)
+            if metadata:
+                ns['add_history_turn'](user_id, question, response, metadata=metadata)
+            else:
+                ns['add_history_turn'](user_id, question, response)
         else:
             ns['add_to_history'](user_id, 'human', question)
             ns['add_to_history'](user_id, 'ai', response)
@@ -518,10 +560,11 @@ def install(ns, support, original):
                 needs_confirmation=False,conflict_detected=False,evidence_status='social',
                 sources_used=[],route='help',response_route='help')
 
-        def finish(text, route, pending=False, sources=(), conflict=False, predefined=True, entity_id=None, needs_agency=None):
+        def finish(text, route, pending=False, sources=(), conflict=False, predefined=True, entity_id=None, needs_agency=None, recommendation_state=None):
             needs_agency_val = pending if needs_agency is None else needs_agency
-            record(user_id, question, text)
-            return dict(
+            metadata = {'recommendation_state': recommendation_state} if recommendation_state is not None else None
+            record(user_id, question, text, metadata=metadata)
+            result = dict(
                 response=text,
                 context_used=bool(sources),
                 is_predefined=predefined,
@@ -537,6 +580,9 @@ def install(ns, support, original):
                 response_route=route,
                 entity_id=entity_id
             )
+            if recommendation_state is not None:
+                result['recommended_tour_ids'] = recommendation_state['offered_ids']
+            return result
         def unknown(subject, entity_id=None):
             t_name = ""
             if entity_id and entity_id in active_tours:
@@ -614,12 +660,12 @@ def install(ns, support, original):
         is_pref_reply = bool(re.search(
             r'\b(?:paisajes?|sitios?\s+hist[oó]ricos?|caminatas?|senderismo|aventura|cultura|landscapes?|hiking|historical\s+sites?|medio\s*d[ií]a|half\s*day|1\s*d[ií]a|un\s*d[ií]a|full\s*day|[2345]\s*d[ií]as?)\b',
             q
-        )) and not entity_in_q
+        ) or duration_preference(q) is not None or hiking_preference(q) is not None) and not entity_in_q and field(q) != 'product'
 
         is_rec = is_recommendation_query(q) and not is_advice_on_tour
         is_rej = is_rejection_query(q) and not is_ambiguous_ref
 
-        if is_rec or is_rej or is_pref_reply:
+        if is_rec or is_rej or is_pref_reply or is_other_options_query(q):
             _NO_HIKING_PAT = re.compile(
                 r'\b(?:no|sin|nada\s+de)\s+(?:quiero\s+|deseo\s+|me\s+gusta\s+|tengo\s+ganas\s+de\s+)?'
                 r'(?:caminat\w*|trek\w*|hiking|senderis\w*|subid\w*)\b'
@@ -627,39 +673,30 @@ def install(ns, support, original):
             _PREF_PAT = re.compile(
                 r'\b(?:paisaje|histori|caminat|caminatas|d[ií]as?|day|days|medio|half|tiempo|prefer|aventur|cultur)\b'
             )
-            _TIME_SHORT_PAT = re.compile(r'\b(medio\s*d[ií]a|half\s*day|pocas horas|poco tiempo)\b')
-            _TIME_1DAY_PAT  = re.compile(r'\b(1\s*d[ií]a|un\s*d[ií]a|full\s*day|1\s*day|one\s*day|d[ií]a\s+completo)\b')
-            _TIME_MULTI_PAT = re.compile(r'\b([2345])\s*d[ií]as?\b|\b([2345])\s*days?\b')
-
-            # --- Preferencias de TIEMPO: usa EXCLUSIVAMENTE el mensaje actual.
-            # El valor más reciente reemplaza al anterior; no acumular del historial.
             q_norm = support.normalize(q)
-            has_time_short = bool(_TIME_SHORT_PAT.search(q_norm))
-            has_time_1day  = bool(_TIME_1DAY_PAT.search(q_norm))
-            _multi_m_q     = _TIME_MULTI_PAT.search(q_norm)
-            has_time_multi = bool(_multi_m_q)
-            exact_days     = int(_multi_m_q.group(1) or _multi_m_q.group(2)) if _multi_m_q else None
-
-            # Si el mensaje actual no expresa tiempo, buscar en el historial
-            # (solo si no hay ningún indicador de tiempo en el turno actual).
-            current_has_time = has_time_short or has_time_1day or has_time_multi
-            if not current_has_time:
+            time_pref = duration_preference(q_norm)
+            if time_pref is None:
                 for h in reversed(prior):
                     if h.get('role') != 'human':
                         continue
                     h_text = support.normalize(h.get('content', ''))
-                    if _TIME_SHORT_PAT.search(h_text):
-                        has_time_short = True; break
-                    if _TIME_1DAY_PAT.search(h_text):
-                        has_time_1day = True; break
-                    _multi_m_h = _TIME_MULTI_PAT.search(h_text)
-                    if _multi_m_h:
-                        has_time_multi = True
-                        exact_days = int(_multi_m_h.group(1) or _multi_m_h.group(2))
+                    if field(h_text) == 'product' and not is_recommendation_query(h_text):
+                        continue
+                    time_pref = duration_preference(h_text)
+                    if time_pref is not None:
                         break
+            has_time_short = time_pref is not None and time_pref[0] == 'half'
+            has_time_1day = time_pref is not None and time_pref[0] == '1day'
+            has_time_multi = time_pref is not None and time_pref[0] == 'multi'
 
-            # --- Restricciones NO temporales: acumular de todos los turnos relevantes.
-            # (no_hiking, temáticas). El historial amplía; no sobreescribe el turno actual.
+            # The latest explicit walking preference wins; time-only replies keep it.
+            walking_pref = hiking_preference(q_norm)
+            if walking_pref is None:
+                for h in reversed(prior):
+                    if h.get('role') == 'human':
+                        walking_pref = hiking_preference(support.normalize(h.get('content', '')))
+                        if walking_pref is not None:
+                            break
             pref_texts = [q_norm]
             for h in reversed(prior):
                 if h.get('role') != 'human':
@@ -669,8 +706,8 @@ def install(ns, support, original):
                     pref_texts.append(h_text)
             pref_text = ' '.join(reversed(pref_texts))
 
-            no_hiking  = bool(_NO_HIKING_PAT.search(pref_text))
-            has_hiking = (not no_hiking) and bool(re.search(r'\b(caminat\w*|senderis\w*|aventur\w*|trek\w*|hike\w*|hiking|adventure)\b', pref_text))
+            no_hiking = walking_pref is False
+            has_hiking = walking_pref is True or ((not no_hiking) and bool(re.search(r'\b(caminat\w*|senderis\w*|aventur\w*|trek\w*|hike\w*|hiking|adventure)\b', pref_text)))
             has_nature = bool(re.search(r'\b(paisaje\w*|naturalez\w*|laguna\w*|monta[nñ]a\w*|scener\w*|landscape\w*|nature|lake\w*)\b', pref_text))
             has_history= bool(re.search(r'\b(hist[oó]ri\w*|arqueolog\w*|cultur\w*|ruina\w*|templo\w*|history|historical|archeolog\w*|ruins|culture)\b', pref_text))
 
@@ -690,34 +727,55 @@ def install(ns, support, original):
                     )
                 return finish(msg, 'evidence_recommendation', pending=True, needs_agency=False, sources=['CATALOGO_OFICIAL'])
 
-            # Mapear duración documentada del catálogo a dur_type dinámico
-            def _get_live_dur_type(eid_k, t_d):
-                """Calcula dur_type desde la duración vigente del catálogo.
-                Si hay override con valor vacío, devuelve None (duración desconocida)."""
-                overrides_d = t_d.get('overridden_fields') or []
-                dur_val = str(t_d.get('duration') or '').strip().lower()
-                if 'duration' in overrides_d and not dur_val:
-                    return None  # borrado administrativo; no filtrar por dur_type
-                if not dur_val:
-                    # Sin override y sin valor: usar perfil estático como respaldo
-                    static = TOUR_PROFILES.get(eid_k, {})
-                    return static.get('dur_type', '1day')
-                if any(w in dur_val for w in ['medio', 'half', 'pocas horas']):
-                    return 'half'
-                m_days = re.search(r'(\d+)\s*d[ií]a', dur_val)
-                if m_days:
-                    n = int(m_days.group(1))
-                    if n == 1:
-                        return '1day'
-                    return ('multi', n)  # tupla (tipo, número_exacto)
-                if 'noche' in dur_val or 'night' in dur_val:
-                    return 'multi'
-                return '1day'
+            criteria = dict(time=list(time_pref) if time_pref else None,
+                            hiking=walking_pref, nature=has_nature, history=has_history)
+            previous_rec = None
+            legacy_unidentified = False
+            for h in reversed(prior):
+                if h.get('role') == 'ai':
+                    previous_rec = (h.get('metadata') or {}).get('recommendation_state')
+                    if previous_rec is not None:
+                        break
+                    # Older histories lack IDs. Recognize only our own recommendation
+                    # format; category lists and general assistant messages are unrelated.
+                    content = h.get('content', '')
+                    if re.search(r'recomendaciones verificadas|top verified recommendations', content):
+                        title_ids = {}
+                        for t in catalog.get('tours', []):
+                            for name in [t.get('name', ''), *t.get('aliases', [])]:
+                                title_ids[support.normalize(name)] = t['entity_id']
+                        for eid, t in active_tours.items():
+                            from app import _get_tour_display_name
+                            for name in [t['name'], _get_tour_display_name(eid, is_en=True)]:
+                                title_ids[support.normalize(name)] = eid
+                        offered_names = re.findall(r'^\s*• \*([^*\n]+)\*', content, re.MULTILINE)
+                        legacy_unidentified = not offered_names or any(support.normalize(name) not in title_ids for name in offered_names)
+                        if not legacy_unidentified:
+                            previous_rec = dict(criteria=criteria, rejected_ids=[],
+                                                offered_ids=[title_ids[support.normalize(name)] for name in offered_names])
+                        break
+            if legacy_unidentified and (is_rej or is_other_options_query(q)):
+                msg = (
+                    "Which tours would you like to rule out so I can suggest different options?"
+                    if en else
+                    "¿Qué tours quieres descartar para que pueda proponerte otras opciones?"
+                )
+                return finish(msg, 'evidence_recommendation', pending=True, needs_agency=False,
+                              sources=['CATALOGO_OFICIAL'])
+            rejected_ids = set()
+            if previous_rec and previous_rec.get('criteria') == criteria:
+                rejected_ids.update(previous_rec.get('rejected_ids', []))
+                if is_rej or is_other_options_query(q):
+                    rejected_ids.update(previous_rec.get('offered_ids', []))
+            recommendation_state = dict(criteria=criteria, offered_ids=[],
+                                        rejected_ids=sorted(rejected_ids))
 
             # Con preferencias: filtrar dinámicamente sobre active_tours vigentes
             candidates = []
             for eid, t_data in active_tours.items():
                 if not t_data.get('is_active', True) or is_deactivated_tour(eid):
+                    continue
+                if eid in rejected_ids:
                     continue
                 prof = dict(TOUR_PROFILES.get(eid, {
                     'dur_type': '1day',
@@ -728,31 +786,10 @@ def install(ns, support, original):
                     'desc_en': t_data.get('includes') or t_data.get('name', eid),
                 }))
 
-                # Sobrescribir dur_type con el valor vigente del catálogo
-                live_dur = _get_live_dur_type(eid, t_data)
-                if live_dur is not None:
-                    if isinstance(live_dur, tuple):
-                        prof['dur_type'] = 'multi'
-                        prof['dur_days'] = live_dur[1]
-                    else:
-                        prof['dur_type'] = live_dur
-                        prof['dur_days'] = None
-                else:
-                    prof['dur_days'] = None  # duración borrada: no filtrar por duración
-
-                # Restricciones duras de duración
-                if live_dur is not None:  # solo aplicar si la duración es conocida
-                    if has_time_short and prof['dur_type'] != 'half':
-                        continue
-                    if has_time_1day and prof['dur_type'] != '1day':
-                        continue
-                    if has_time_multi:
-                        if prof['dur_type'] != 'multi':
-                            continue
-                        # Filtrar por número exacto de días cuando está documentado
-                        if exact_days is not None and prof.get('dur_days') is not None:
-                            if prof['dur_days'] != exact_days:
-                                continue
+                # Only a documented live duration can satisfy an exact time request.
+                live_dur = duration_preference(t_data.get('duration'))
+                if time_pref is not None and live_dur != time_pref:
+                    continue
 
                 # Restricción dura de caminatas negativas
                 if no_hiking and prof['is_hiking']:
@@ -774,6 +811,7 @@ def install(ns, support, original):
 
             candidates.sort(key=lambda c: c[0], reverse=True)
             selected_candidates = candidates[:4]
+            recommendation_state['offered_ids'] = [c[1] for c in selected_candidates]
 
             rec_lines = []
             for _, c_eid, c_data, c_prof in selected_candidates:
@@ -789,7 +827,7 @@ def install(ns, support, original):
                 if not dur and 'duration' not in c_overrides_dur:
                     # Solo usar respaldo canónico si NO fue borrado administrativamente
                     from catalog_service import CANONICAL_TOUR_DURATIONS
-                    dur = CANONICAL_TOUR_DURATIONS.get(c_eid, 'Full Day')
+                    dur = CANONICAL_TOUR_DURATIONS.get(c_eid, '')
                 dur_disp = english_duration(dur) if en else dur
 
                 sched = str(c_data.get('schedule') or '').strip()
@@ -809,17 +847,23 @@ def install(ns, support, original):
                 rec_lines.append(f"• *{disp_name}* ({details_str} — {desc}).")
 
             if not rec_lines:
-                if en:
+                if rejected_ids:
                     msg = (
-                        "We currently do not have active tours matching those specific criteria in our catalog. "
-                        "You can explore our available options with 🗺️ View Tours, or write 👉 *advisor* to coordinate a customized itinerary 😊"
+                        "There are no other verified options matching these preferences after the tours you declined. "
+                        "Would you like to change your preferences or revisit an earlier option?"
+                        if en else
+                        "No quedan otras opciones verificadas con esas preferencias después de los tours que rechazaste. "
+                        "¿Quieres cambiar tus preferencias o volver a ver alguna opción anterior?"
                     )
                 else:
                     msg = (
-                        "Actualmente no disponemos de tours activos que coincidan exactamente con ese criterio en nuestro catálogo. "
-                        "Puedes explorar nuestras opciones disponibles con 🗺️ Ver Tours o escribir 👉 *asesor* para coordinar un itinerario personalizado 😊"
+                        "I cannot confirm any active options matching these preferences with the catalog information available. "
+                        "Would you like to adjust your preferences or check the missing details with an advisor?"
+                        if en else
+                        "No puedo confirmar opciones activas que coincidan con esas preferencias con la información disponible en el catálogo. "
+                        "¿Quieres ajustar tus preferencias o confirmar los datos que faltan con un asesor?"
                     )
-                return finish(msg, 'evidence_recommendation', pending=True, needs_agency=False, sources=['CATALOGO_OFICIAL'])
+                return finish(msg, 'evidence_recommendation', pending=True, needs_agency=False, sources=['CATALOGO_OFICIAL'], recommendation_state=recommendation_state)
 
             body = "\n".join(rec_lines)
             if en:
@@ -828,7 +872,7 @@ def install(ns, support, original):
             else:
                 header = "🌟 Según lo que buscas, estas son nuestras recomendaciones verificadas:\n"
                 footer = "\n\n_Escribe el nombre de cualquiera de ellos para ver detalles, fotos o tarifas, o escribe 👉 asesor para coordinar con nuestro equipo 😊_"
-            return finish(header + body + footer, 'evidence_recommendation', sources=['CATALOGO_OFICIAL'])
+            return finish(header + body + footer, 'evidence_recommendation', sources=['CATALOGO_OFICIAL'], recommendation_state=recommendation_state)
 
         # Catálogo de tours solicitados (antes de evaluar fechas o disponibilidad comercial)
         listing_keywords = {
