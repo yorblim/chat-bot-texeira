@@ -2,7 +2,7 @@
 
 ## Código y validación local
 
-Commit de aplicación, banco y pruebas: `bc3b333`. Primera integración respaldada en `origin/main`: `85f5c6e`. Rama de implementación: `feature/automated-conversation-robustness-20261009`. Rama de la corrección de compilación y este registro: `feature/fix-pyarrow-build-compatibility-20261009`.
+Commit de aplicación, banco y pruebas: `bc3b333`. Primera integración respaldada en `origin/main`: `85f5c6e`. Rama de implementación: `feature/automated-conversation-robustness-20261009`. Rama de la corrección de compilación: `feature/fix-pyarrow-build-compatibility-20261009`; rama de cierre documental: `feature/record-robustness-deployment-20261009`.
 
 El lote final registró **148 casos: 138 estructurales aprobados, 0 estructurales fallidos y 10 exploraciones pendientes de evaluación real**. Procesó 183 mensajes, con 169 textos distintos y 14 repeticiones como seguimientos. Las siete suites seleccionadas terminaron con código 0; las fuentes seleccionadas permanecieron estables durante la ejecución. Controles adicionales: contrato del informe 7/7 y erratas de entidad 4/4.
 
@@ -28,7 +28,26 @@ La corrección se comprobó en un venv temporal con acceso a los paquetes locale
 
 Es una comprobación local Windows; el paso de importación/modelo del siguiente Cloud Build verificará el entorno Linux. No se cambió el PyArrow global instalado ni se enviaron mensajes al teléfono.
 
-**Estado: corrección local aprobada; reintento y nueva revisión todavía no acreditados.**
+Corrección de dependencia: `038dd0b`, integrada y respaldada en `origin/main` mediante `8cc37a0`. Reintento ejecutado con el mismo script, desde ese estado limpio de Git. Log: `logs/despliegue_8cc37a0_20261009.log`.
+
+Segundo Cloud Build: `f64cdb59-d39a-46b0-b309-a5271089e5be`, iniciado el `2026-10-09T20:25:23.928483899Z`.
+
+**Segundo intento completado y verificado:** Cloud Build `SUCCESS`, terminado el `2026-10-09T20:43:37.816126Z`. Digest: `sha256:385477623bb0795c5acb879e2850ffd145bfb9c0cd2cd8181044477cff797642`. La imagen de la revisión tiene exactamente ese digest. El entorno Linux superó el paso de importación y descarga del modelo.
+
+Cloud Run: `texeira-whatsapp-00049-xf5`, con `latestCreatedRevisionName = latestReadyRevisionName`, **100 % del tráfico** y `Ready=True` desde `2026-10-09T20:47:52.598504Z`. Recursos leídos de la revisión: CPU `1`, memoria `2Gi`, máximo `2`, CPU boost activo. Se conservó `--min-instances 0` en el script; no aparece una anotación de mínimo cuando se utiliza ese valor predeterminado.
+
+URL canónica: [servicio desplegado](https://texeira-whatsapp-1038134693816.us-central1.run.app). Evidencias: `logs/servicio_00049_20261009.json`, `logs/revision_00049_20261009.json`, `logs/cloudbuild_f64cdb59_20261009.log`.
+
+## Comprobaciones posteriores en producción
+
+- `tests/verify_live_deployment.py`: código 0. `/health` devolvió HTTP 200 con `{"status":"ok"}`; `/` devolvió HTTP 200 con `status=running` y versión declarada `2.0.0-tesis`. `/dashboard` devolvió 401 sin credenciales y 200 con autenticación.
+- Las consultas sintéticas «ayuda» y «qué tours tienen» mediante `/test-chat` pasaron las aserciones de respuesta sin teléfonos ni imágenes no solicitadas. Neon registró dos interacciones y cuatro turnos del alias sintético; se eliminaron únicamente esos datos al terminar. Log: `logs/verificacion_api_00049_20261009.log`.
+- `tests/verify_panels_readonly.py`: código 0. `/handoffs`, `/catalogo`, `/dashboard` y `/operational-metrics` devolvieron 401 sin credenciales y 200 autenticados, con navegación y marcadores HTML esperados. Log: `logs/verificacion_paneles_00049_20261009.log`.
+- Lectura autenticada de `/api/catalog/tours?all=1`: permanecen exactamente activos `camino-inka`, `inka-jungle` y `maras-moray`. No se modificaron estados, tarifas ni horarios. Evidencias: `logs/catalogo_recomendacion_00049_20261009.json`, `logs/verificacion_catalogo_00049_20261009.log`.
+
+Estos checks acreditan salud observada, acceso, markup y persistencia del canal sintético. No acreditan todas las acciones de los paneles, las diez exploraciones del modelo real ni recepción de mensajes o imágenes en WhatsApp. Las correcciones conversacionales nuevas se verificaron en el banco local; no se presentan las dos consultas de smoke como ejecución de sus variantes en producción.
+
+El plan y registro formal conservan sus nombres para continuidad, con objetivo actualizado a `00049-xf5`. Los 42 casos y sus ejecuciones se mantienen sin cambios y sin aprobaciones ficticias. La evidencia JSON del lote sigue representando su ejecución local original; no se modifica su campo de verificación de producción después del hecho.
 
 ## Alcance pendiente
 
