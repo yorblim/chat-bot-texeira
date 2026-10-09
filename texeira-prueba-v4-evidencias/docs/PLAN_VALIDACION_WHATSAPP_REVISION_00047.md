@@ -2,13 +2,15 @@
 
 **Proyecto:** Automatización del Servicio al Cliente en Texeira Travel Tour mediante Agente Conversacional RAG
 **Fecha:** 8 de octubre de 2026; objetivo actualizado el 9 de octubre
-**Revisión objetivo en Cloud Run:** `texeira-whatsapp-00048-mvd`
+**Revisión objetivo en Cloud Run:** `texeira-whatsapp-00049-xf5`
 **Estado de esta evaluación:** Preparación; 0/42 casos ejecutados en el registro.
 **URL de Producción:** `https://texeira-whatsapp-a5uzavilla-uc.a.run.app`
-**Base de Código Desplegada:** Correcciones `6fd6131`, integradas en `61cafec`; ver [VERIFICACION_DESPLIEGUE_RECOMENDACIONES_20261009.md](VERIFICACION_DESPLIEGUE_RECOMENDACIONES_20261009.md).
-**Rama de actualización documental:** `feature/record-recommendation-deployment-20261009` (conforme a AGENTS.md). El plan y el registro conservan su nombre para continuidad; los 42 casos siguen pendientes.
+**Base de Código Desplegada:** Robustez conversacional `bc3b333`, integrada en `85f5c6e`; dependencia compatible `038dd0b`, integrada en `8cc37a0`; ver [VERIFICACION_DESPLIEGUE_ROBUSTEZ_20261009.md](VERIFICACION_DESPLIEGUE_ROBUSTEZ_20261009.md).
+**Rama de actualización documental:** `feature/record-robustness-deployment-20261009` (conforme a AGENTS.md). El plan y el registro conservan su nombre para continuidad; los 42 casos siguen pendientes.
 
-La referencia de partida del 08/10 fue `00047-khb`. El 09/10 se desplegaron las correcciones locales de recomendaciones y se comprobó `00048-mvd` con 100 % del tráfico, salud HTTP 200 y seguridad de paneles. El informe enlazado documenta su alcance. Antes de ejecutar el piloto, confirmar nuevamente la revisión activa; estas comprobaciones no sustituyen la ejecución de la matriz.
+**Método de ejecución actualizado el 09/10:** el [plan por lotes](PLAN_PRUEBAS_AUTOMATICAS_Y_CIERRE_20261009.md) automatiza las variantes de texto. Los 42 IDs se conservan como referencia de requisitos; no se pedirán al usuario 42 consultas manuales. La recepción y las acciones propias de WhatsApp se comprobarán en hasta cuatro recorridos breves, reutilizando las capturas recibidas. Las aprobaciones estructurales locales no se transfieren silenciosamente a esta matriz ni miden la calidad del LLM real.
+
+La referencia de partida del 08/10 fue `00047-khb`. El 09/10 se desplegaron las correcciones de recomendaciones en `00048-mvd` y después la robustez conversacional en `00049-xf5`, comprobada con 100 % del tráfico, salud HTTP 200, acceso a paneles y persistencia sintética. El informe enlazado documenta su alcance. Antes de ejecutar el piloto, confirmar nuevamente la revisión activa; estas comprobaciones no sustituyen la ejecución de la matriz.
 
 ---
 
@@ -39,6 +41,7 @@ La referencia de partida del 08/10 fue `00047-khb`. El 09/10 se desplegaron las 
 - Hasta preparar este plan el 08/10, los commits posteriores en `main` afectaron al evaluador académico offline, sus regresiones, pruebas conversacionales y documentación. No modificaron el código de la aplicación de esa revisión.
 - Dichos arreglos del evaluador **están cerrados (37 pruebas aprobadas)** y no alteraron el código de la aplicación web ni requirieron un nuevo despliegue. Esta descripción pertenece a la preparación del 08/10.
 - El 08–09/10 se reprodujeron y corrigieron defectos adicionales de recomendaciones, memoria e idioma en la aplicación. Se desplegaron el 09/10 en `00048-mvd`, que reemplaza a `00047-khb` como objetivo del piloto. No cambia la rúbrica ni los 42 casos y no convierte las regresiones locales en pruebas reales de WhatsApp.
+- Posteriormente el 09/10, el lote automático identificó y permitió corregir erratas de entidad, precio coloquial, idioma ES/EN y preferencias/duración. Se desplegaron en `00049-xf5`, nuevo objetivo del piloto. Los 138 casos estructurales aprobados y las 10 exploraciones pendientes no se transfieren como aprobaciones de los 42 IDs.
 
 ---
 
@@ -47,7 +50,7 @@ La referencia de partida del 08/10 fue `00047-khb`. El 09/10 se desplegaron las 
 1. **El resultado del 73,3% (22/30 aprobados):**
    - Corresponde estrictamente a la recalificación estricta de las **30 respuestas históricas capturadas el 21 de septiembre de 2026** bajo la revisión `00021-9mp` con Groq Qwen.
    - Refleja deficiencias de respuestas antiguas del modelo (como paradas omitidas en el City Tour o respuestas genéricas de incertidumbre) evaluadas con la rúbrica estricta en 4 dimensiones tras corregir las reglas de polaridad del calificador en `6af1ebd`.
-   - **No describe ni mide la precisión actual de la versión `00047-khb` en producción**, la cual incorpora enrutamiento determinista por evidencias, catálogo dinámico sincronizado, corrección de bucles y control estricto de intenciones.
+   - **No describe ni mide la precisión actual de la revisión objetivo `00049-xf5`**, la cual incorpora enrutamiento determinista por evidencias, catálogo dinámico sincronizado, corrección de bucles y control estricto de intenciones.
 2. **Integridad de evidencias históricas:**
    - Los archivos [docs/evaluaciones/RESULTADOS_POSPRUEBA_TESIS_20260921.json](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/docs/evaluaciones/RESULTADOS_POSPRUEBA_TESIS_20260921.json) y [docs/evaluaciones/RESULTADOS_POSPRUEBA_TESIS_20261004_RECALIBRADO.json](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/docs/evaluaciones/RESULTADOS_POSPRUEBA_TESIS_20261004_RECALIBRADO.json) se mantienen intactos con sus hashes SHA-256 preservados.
    - Este plan no sobrescribe ni sustituye ningún resultado histórico.
