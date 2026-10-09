@@ -1,0 +1,139 @@
+{
+  "revision_objetivo": "texeira-whatsapp-00047-khb",
+  "fecha": "2026-10-08",
+  "estado": "preparacion",
+  "evaluacion_actual_porcentaje": null,
+  "historico": {
+    "revision": "texeira-whatsapp-00021-9mp",
+    "fecha_respuestas": "2026-09-21",
+    "aprobados": 22,
+    "total": 30,
+    "porcentaje": 73.3,
+    "alcance": "Recalificación automática del banco histórico; no mide la revisión objetivo."
+  },
+  "esquema_ejecucion": {
+    "modalidades_permitidas": [
+      "aislada",
+      "api_chat",
+      "api_webhook",
+      "whatsapp_real"
+    ],
+    "resultados_permitidos": [
+      "pendiente",
+      "aprobado",
+      "fallido",
+      "bloqueado",
+      "no_aplica"
+    ],
+    "motor_observado_permitido": [
+      true,
+      false,
+      null
+    ],
+    "score_permitido": [
+      0,
+      1,
+      null
+    ],
+    "formato_fecha_utc": "ISO 8601 en UTC: YYYY-MM-DDTHH:MM:SSZ",
+    "instrucciones": [
+      "usuario_alias identifica al participante sin registrar su teléfono.",
+      "api_chat y api_webhook no acreditan entrega ni renderizado final en WhatsApp.",
+      "Motor observado: true = intervención acreditada; false = ausencia acreditada; null = no observable.",
+      "Cada criterio indica si aplica; null en valor no equivale a aprobación."
+    ],
+    "plantilla": {
+      "modalidad": null,
+      "fecha_utc": null,
+      "revision_verificada": null,
+      "usuario_alias": null,
+      "precondicion_verificada": null,
+      "catalogo_referencia": null,
+      "entrada_real": null,
+      "respuesta_observada": null,
+      "route": null,
+      "metadatos": {
+        "evidence_status": null,
+        "sources_used": [],
+        "latencia_cliente_ms": null,
+        "latencia_servidor_ms": null,
+        "handoff_id": null
+      },
+      "motor_observado": {
+        "reglas": null,
+        "recuperacion": null,
+        "llm": null
+      },
+      "evidencia": {
+        "ids": [],
+        "capturas": [],
+        "logs": [],
+        "panel": [],
+        "notas": null
+      },
+      "scores": {
+        "IP": {
+          "aplica": null,
+          "valor": null
+        },
+        "FF": {
+          "aplica": null,
+          "valor": null
+        },
+        "CI": {
+          "aplica": null,
+          "valor": null
+        },
+        "MI": {
+          "aplica": null,
+          "valor": null
+        }
+      },
+      "resultado": "pendiente"
+    }
+  },
+  "casos": [
+    {"id":"NAV-01","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"NAV-02","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"NAV-03","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"NAV-04","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"NAV-05","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"REC-01","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"REC-02","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"REC-03","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"REC-04","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"REC-05","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"SEG-01","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"SEG-02","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"SEG-03","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"SEG-04","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"TYPO-01","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"TYPO-02","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"TYPO-03","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"TYPO-04","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"TYPO-05","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"TYPO-06","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"TYPO-07","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"TYPO-08","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"LAN-01","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"LAN-02","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"LAN-03","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"LAN-04","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"LAN-05","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"CAT-01","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"CAT-02","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"CAT-03","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"CAT-04","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"CAT-05","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"PHO-01","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"PHO-02","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"PHO-03","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"PHO-04","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"PHO-05","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"HND-01","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"HND-02","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"HND-03","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"HND-04","estado":"no_ejecutado","ejecuciones":[]},
+    {"id":"HND-05","estado":"no_ejecutado","ejecuciones":[]}
+  ]
+}
