@@ -36,6 +36,9 @@ langdetect==1.0.9
 # --- Evaluación RAG (métricas de calidad) ---
 ragas==0.2.8
 datasets>=2.14.0
+# NumPy <2 is required by the pinned LangChain stack. PyArrow 26 requires
+# NumPy >=2; reproduce the PyArrow version from the last successful build.
+pyarrow==25.0.1
 
 # --- Búsqueda léxica BM25 (módulo híbrido) ---
 rank-bm25==0.2.2
