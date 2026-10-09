@@ -40,12 +40,34 @@ El usuario confirmó expresamente: **«Mantener solo esos tres por ahora»**. Se
 
 Esta consulta combina dos preferencias en un mensaje y no reproduce exactamente las precondiciones ni los pasos REC-03/REC-04 del plan. Se registra como observación adicional; no se marcan esos casos como aprobados, ni se calcula precisión actual. La ruta interna, intervención de recuperación/LLM, latencia y persistencia de esta interacción no se verificaron con logs del mensaje.
 
-## Siguiente paso, pendiente
+## Prueba de medio día: respuesta recibida
 
-Enviar desde el mismo WhatsApp:
+El usuario remitió una segunda captura con la consulta:
 
 > Recomiéndame un tour de medio día, no quiero hacer caminatas.
 
-Con el catálogo observado, Maras–Moray es el candidato esperado. Debe comprobarse la respuesta recibida antes de dar por aprobado el recorrido. Su clasificación como tour sin senderismo no implica ausencia absoluta de desplazamientos a pie ni una garantía de accesibilidad.
+Respuesta visible:
+
+> 🌟 Según lo que buscas, estas son nuestras recomendaciones verificadas:
+>
+> · Maras - Moray (Medio día, 08:40-14:00 — salineras artesanales y terrazas agrícolas circulares).
+>
+> Escribe el nombre de cualquiera de ellos para ver detalles, fotos o tarifas, o escribe 👉 asesor para coordinar con nuestro equipo 😊
+
+Los botones visibles son «Ver Tours» y «Consultar asesor». La captura muestra 2:32 a. m., sin fecha explícita ni medida de latencia. Copia local: `logs/whatsapp_recomendacion_medio_dia_20261009.png`.
+
+El producto, la duración y el horario coinciden con la instantánea de producción obtenida en esta revisión: `maras-moray`, activo, `Medio día`, `08:40-14:00`. Es el candidato esperado entre los tres tours activos. La respuesta no ofrece productos de cuatro días ni los tours desactivados, y no contiene teléfonos o fotos no solicitados.
+
+Resultado puntual: recomendación compatible observada en WhatsApp. No constituye aprobación de todas las recomendaciones ni acredita por sí sola el uso de RAG/LLM, la latencia o los registros internos. La consulta combina preferencias y no reproduce exactamente los casos REC-03/REC-04 del plan; continúa como observación adicional, sin modificar las aprobaciones de la matriz de 42 casos ni calcular un porcentaje de precisión.
+
+Su clasificación como tour sin senderismo no implica ausencia absoluta de desplazamientos a pie ni una garantía de accesibilidad.
+
+## Siguiente paso, pendiente
+
+Enviar en el mismo chat, inmediatamente después de esta recomendación:
+
+> Ninguno, dame otras opciones.
+
+Con la oferta actual solo Maras–Moray coincide con medio día y rechazo de senderismo. Si se rechaza, el bot debe explicar que no quedan otras opciones compatibles y ofrecer ajustar preferencias o volver a una opción anterior. No debe repetir Maras–Moray como una nueva alternativa, ofrecer tours inactivos ni perder las restricciones para sugerir productos de cuatro días.
 
 No se requiere despliegue para este registro documental. Continúan pendientes la matriz completa del piloto, la evidencia del uso real de RAG/LLM y la evaluación humana en campo. Messenger continúa aplazado.
