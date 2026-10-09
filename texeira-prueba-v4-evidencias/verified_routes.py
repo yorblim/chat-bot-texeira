@@ -95,9 +95,17 @@ def duration_preference(value):
     text = str(value or '').lower()
     if re.search(r'\b(?:medio\s*d[ií]a|half\s*day|pocas\s+horas|poco\s+tiempo)\b', text):
         return ('half', None)
-    amounts = list(re.finditer(r'\b(\d+)\s*(?:d[ií]as?|days?)\b', text))
+    word_days = {
+        'un': 1, 'uno': 1, 'una': 1, 'one': 1, 'dos': 2, 'two': 2,
+        'tres': 3, 'three': 3, 'cuatro': 4, 'four': 4, 'cinco': 5, 'five': 5,
+        'seis': 6, 'six': 6, 'siete': 7, 'seven': 7, 'ocho': 8, 'eight': 8,
+        'nueve': 9, 'nine': 9, 'diez': 10, 'ten': 10,
+    }
+    amounts = list(re.finditer(
+        r'\b(\d+|' + '|'.join(word_days) + r')\s*(?:d[ií]as?|days?|d)\b', text))
     if amounts:
-        days = int(amounts[-1].group(1))
+        amount = amounts[-1].group(1)
+        days = int(amount) if amount.isdigit() else word_days[amount]
         return ('1day' if days == 1 else 'multi', days) if days > 0 else None
     if re.search(r'\b(?:un\s*d[ií]a|one\s*day|full\s*day|d[ií]a\s+completo)\b', text):
         return ('1day', 1)
@@ -107,7 +115,7 @@ def duration_preference(value):
 def hiking_preference(value):
     """An explicit newer walking preference replaces an older one."""
     text = str(value or '').lower()
-    activity = r'(?:caminat\w*|trek\w*|hik(?:e|es|ing)|senderis\w*|subid\w*|walk\w*)'
+    activity = r'(?:caminat\w*|caminar|caminando|trek\w*|hik(?:e|es|ing)|senderis\w*|subid\w*|walk\w*)'
     if not re.search(r'\b' + activity + r'\b', text):
         return None
     desire = r'\b(?:quiero|deseo|prefier\w*|me\s+gust\w*|want|prefer|like|love)\b'
@@ -127,6 +135,49 @@ def hiking_preference(value):
     if re.search(desire + r'[^.!?;\n]{0,80}\b' + activity + r'\b', text):
         return True
     return None
+
+
+def _single_typo_cost(left, right):
+    """One insertion/deletion/substitution/transposition; reject larger edits."""
+    if left == right:
+        return 0
+    if abs(len(left) - len(right)) > 1:
+        return 2
+    if len(left) == len(right):
+        differences = [i for i, (a, b) in enumerate(zip(left, right)) if a != b]
+        if len(differences) == 1:
+            return 1
+        if len(differences) == 2:
+            i, j = differences
+            if j == i + 1 and left[i] == right[j] and left[j] == right[i]:
+                return 1
+        return 2
+    shorter, longer = (left, right) if len(left) < len(right) else (right, left)
+    for i in range(len(longer)):
+        if longer[:i] + longer[i + 1:] == shorter:
+            return 1
+    return 2
+
+
+def _unique_typo_entity(query, entity_aliases):
+    """Accept one minor typo in a multiword name only when the ID is unique.
+
+    Single-word destinations and multiple near matches remain unassigned.
+    This avoids treating every vaguely similar destination as a known product.
+    """
+    words = re.findall(r'\b\w+\b', query)
+    matches = set()
+    for entity_id, names in entity_aliases.items():
+        for name in names:
+            tokens = re.findall(r'\b\w+\b', name)
+            if len(tokens) < 2 or sum(map(len, tokens)) < 8:
+                continue
+            for start in range(len(words) - len(tokens) + 1):
+                window = words[start:start + len(tokens)]
+                cost = sum(_single_typo_cost(a, b) for a, b in zip(window, tokens))
+                if cost == 1:
+                    matches.add(entity_id)
+    return next(iter(matches)) if len(matches) == 1 else None
 
 
 CAT_SPECS_DICT = {
@@ -464,6 +515,7 @@ def install(ns, support, original):
         'waqra-pukara':['waqra pukara','waqrapukara'], 'puente-qeswachaca':['qeswachaca','q\'eswachaca',"q'eswachaca",'qeswachaka'],
         'inka-jungle':['inka jungle','inca jungle']})
     def entity(q):
+        typo_aliases = {eid: list(names) for eid, names in aliases.items()}
         if re.search(r'cuatrimotos?|\batv\b|quad bike',q) and re.search(r'maras|moray|tour cuatrimoto',q):
             return 'maras-moray-cuatrimoto'
         try:
@@ -471,6 +523,7 @@ def install(ns, support, original):
             active_kw = get_active_entity_keywords()
             hits = []
             for eid, kws in active_kw.items():
+                typo_aliases.setdefault(eid, []).extend(support.normalize(k) for k in kws if k)
                 for k in kws:
                     k_norm = support.normalize(k)
                     if k_norm and k_norm in q:
@@ -494,6 +547,8 @@ def install(ns, support, original):
             all_t = get_all_tours(active_only=False)
             deact_hits = []
             for t in all_t:
+                typo_aliases.setdefault(t['entity_id'], []).extend(
+                    support.normalize(k) for k in [t.get('name', ''), *t.get('aliases', [])] if k)
                 if not t.get('is_active', 1):
                     deact_eid = t.get('entity_id')
                     kws = list(t.get('aliases', []))
@@ -508,12 +563,12 @@ def install(ns, support, original):
         except Exception:
             pass
 
-        return None
+        return _unique_typo_entity(q, typo_aliases)
     def field(q):
         for key,pattern in [
             ('excludes',r'no incluye|no esta incluido|exclu|not include'),
             ('includes',r'inclu|include'),
-            ('price',r'precio|cuesta|cuanto cuesta|costo|costos|tarifa|tarifas|rate|rates|soles|\bpen\b|price|prices|cost|costs|how much'),
+            ('price',r'precio|cuesta|cuanto cuesta|cuanto (?:sale|vale)|costo|costos|tarifa|tarifas|rate|rates|soles|\bpen\b|price|prices|cost|costs|how much'),
             ('schedule',r'horario|hora|schedule|timetable|what time|departure'),
             ('duration',r'dura|how long'),
             ('stops',r'lugares|recorrido|\bruta\b|paradas|itinerary|\broute\b|places'),
@@ -1407,6 +1462,8 @@ def install(ns, support, original):
             if dynamic_value and fld in overrides and fld in {'schedule', 'duration', 'includes', 'excludes'}:
                 label = ({'schedule': 'Horario', 'duration': 'Duración', 'includes': 'Incluye', 'excludes': 'No incluye'}
                          if not en else {'schedule': 'Schedule', 'duration': 'Duration', 'includes': 'Includes', 'excludes': 'Does not include'})[fld]
+                if fld == 'duration' and en:
+                    dynamic_value = english_duration(dynamic_value)
                 if fld in {'includes', 'excludes'} and any(sep in dynamic_value for sep in [',', ';', '\n']):
                     items = [it.strip().lstrip('•-* ') for it in re.split(r'[,;\n]+', dynamic_value) if it.strip()]
                     formatted_val = ":\n" + "\n".join(f"• {it}" for it in items)

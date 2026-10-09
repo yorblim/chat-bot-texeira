@@ -125,8 +125,8 @@ def install(ns):
             return 'en'
         words = set(re.findall(r'\b\w+\b', normalize(text)))
         markers = {
-            'es': set('que cual cuanto cuesta incluye incluidas entradas puedo cancelar manana gracias hola precio precios como donde cuando salir salida horario hora boleto boletos llegar quiero necesito visita ruinas arqueologico arqueologica caminata trekking montana colores sagrao waqrapukara waqra pukara queswachaca puente mistico ver categorias categoria catalogo reserva reservar solicitar informacion info detalles cusco fotos foto'.split()),
-            'en': set('what which how does the include includes included tickets can cancel tomorrow thanks price where when want need is are do offer available hello hi categories category reservation reserve book view'.split()),
+            'es': set('que cual cuanto cuesta incluye incluidas entradas puedo cancelar manana gracias hola precio precios tarifa tarifas porfa favor como donde cuando salir salida horario hora boleto boletos llegar quiero necesito visita ruinas arqueologico arqueologica caminata caminatas caminar senderismo trekking medio dia dias recomiendame recomiendas recomienda sugieres aconsejas montana colores sagrao waqrapukara waqra pukara queswachaca puente mistico ver categorias categoria catalogo reserva reservar solicitar informacion info detalles cusco fotos foto'.split()),
+            'en': set('what which how does the include includes included inclusions exclusions exclude tickets can cancel tomorrow thanks price prices rate rates cost costs where when want need is are do offer available hello hi categories category reservation reserve book view recommend recommendations suggest advice advise something hiking hike walking half full day days duration schedule timetable departure like please pls without'.split()),
             'pt': set('quais quanto custa preco passeios voce quero ola obrigado'.split()),
             'fr': set('quels quelle combien bonjour prix je avec merci'.split()),
         }
