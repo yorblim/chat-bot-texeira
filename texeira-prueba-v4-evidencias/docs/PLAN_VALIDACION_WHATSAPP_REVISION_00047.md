@@ -1,16 +1,18 @@
 # Plan de Validación Técnica y Funcional — Revisión Desplegada en WhatsApp
 
-**Proyecto:** Automatización del Servicio al Cliente en Texeira Travel Tour mediante Agente Conversacional RAG  
-**Fecha:** 8 de octubre de 2026  
-**Revisión en Cloud Run:** `texeira-whatsapp-00047-khb`  
+**Proyecto:** Automatización del Servicio al Cliente en Texeira Travel Tour mediante Agente Conversacional RAG
+**Fecha:** 8 de octubre de 2026; objetivo actualizado el 9 de octubre
+**Revisión objetivo en Cloud Run:** `texeira-whatsapp-00048-mvd`
 **Estado de esta evaluación:** Preparación; 0/42 casos ejecutados en el registro.
-**URL de Producción:** `https://texeira-whatsapp-a5uzavilla-uc.a.run.app`  
-**Base de Código Desplegada:** Commit `9bc1175` / `10f3344` (documentado en [docs/VERIFICACION_FORMULARIO_00047_20261004.md](file:///c:/Users/HP/Desktop/Chat%20bot/texeira-prueba-v4-evidencias/docs/VERIFICACION_FORMULARIO_00047_20261004.md))  
-**Rama de esta corrección:** `feature/fix-whatsapp-validation-methodology` (conforme a AGENTS.md). Solo documentación y plantilla de resultados; la ejecución del piloto es posterior.
+**URL de Producción:** `https://texeira-whatsapp-a5uzavilla-uc.a.run.app`
+**Base de Código Desplegada:** Correcciones `6fd6131`, integradas en `61cafec`; ver [VERIFICACION_DESPLIEGUE_RECOMENDACIONES_20261009.md](VERIFICACION_DESPLIEGUE_RECOMENDACIONES_20261009.md).
+**Rama de actualización documental:** `feature/record-recommendation-deployment-20261009` (conforme a AGENTS.md). El plan y el registro conservan su nombre para continuidad; los 42 casos siguen pendientes.
+
+La referencia de partida del 08/10 fue `00047-khb`. El 09/10 se desplegaron las correcciones locales de recomendaciones y se comprobó `00048-mvd` con 100 % del tráfico, salud HTTP 200 y seguridad de paneles. El informe enlazado documenta su alcance. Antes de ejecutar el piloto, confirmar nuevamente la revisión activa; estas comprobaciones no sustituyen la ejecución de la matriz.
 
 ---
 
-## 1. Identificación y Estado de la Revisión Desplegada
+## 1. Referencia de partida observada el 08/10/2026
 
 | Parámetro | Valor Verificado en Nube | Observación Técnica |
 | :--- | :--- | :--- |
@@ -32,10 +34,11 @@
   4. Llamadas a Secret Manager y retención de registros en Cloud Logging.
   5. Consumo que sobrepase la cuota gratuita mensual de Google Cloud (2M solicitudes, 360,000 GiB-s, 180,000 vCPU-s).
 
-### Delimitación de Cambios Posteriores en el Repositorio
+### Delimitación de cambios hasta el 08/10 y actualización posterior
 - La revisión `00047-khb` contiene la base de aplicación integrada hasta el commit `9bc1175` (cierre funcional del formulario de catálogo, guardado de tarifas, deduplicación de webhooks y protección anti-eco).
-- Los commits posteriores en `main` afectaron al evaluador académico offline, sus regresiones, pruebas conversacionales y documentación. No modificaron el código de la aplicación.
-- Dichos arreglos del evaluador **están cerrados (37 pruebas aprobadas)** y no alteraron el código de la aplicación web ni requirieron un nuevo despliegue. Por tanto, la versión activa en WhatsApp objeto de esta validación es `00047-khb`.
+- Hasta preparar este plan el 08/10, los commits posteriores en `main` afectaron al evaluador académico offline, sus regresiones, pruebas conversacionales y documentación. No modificaron el código de la aplicación de esa revisión.
+- Dichos arreglos del evaluador **están cerrados (37 pruebas aprobadas)** y no alteraron el código de la aplicación web ni requirieron un nuevo despliegue. Esta descripción pertenece a la preparación del 08/10.
+- El 08–09/10 se reprodujeron y corrigieron defectos adicionales de recomendaciones, memoria e idioma en la aplicación. Se desplegaron el 09/10 en `00048-mvd`, que reemplaza a `00047-khb` como objetivo del piloto. No cambia la rúbrica ni los 42 casos y no convierte las regresiones locales en pruebas reales de WhatsApp.
 
 ---
 
@@ -51,7 +54,7 @@
 
 ---
 
-## 3. Separación Rigurosa de las Tres Modalidades de Prueba
+## 3. Separación rigurosa de las cuatro modalidades de prueba
 
 Cada ejecución usa una modalidad concreta. Si un caso se repite en otra modalidad, se añade otro registro. Un aprobado por API no sustituye su resultado en WhatsApp.
 
