@@ -29,6 +29,46 @@ def english_duration(value):
     v = v.replace('confirmar variante y noches', 'confirm variant and nights')
     return v
 
+
+def portuguese_duration(value):
+    """Translate duration labels, without deriving a missing catalog value."""
+    v = str(value or '')
+    for source, target in (
+        ('Medio día', 'Meio dia'), ('Medio dia', 'Meio dia'),
+        ('medio día', 'meio dia'), ('medio dia', 'meio dia'),
+        ('Día completo', 'Dia inteiro'), ('Dia completo', 'Dia inteiro'),
+        ('días', 'dias'), ('día', 'dia'), ('noches', 'noites'), ('noche', 'noite'),
+        ('horas', 'horas'), ('itinerario publicado', 'itinerário publicado'),
+        ('confirmar variante y noches', 'confirmar variante e noites'),
+    ):
+        v = v.replace(source, target)
+    return v
+
+
+def is_open_tour_advice(q):
+    """Interpretive questions must not become a general tour card.
+
+    Shared by recommendation and factual routing. Merely naming a hiking
+    activity is a preference, not advice about preparation for a named tour.
+    """
+    return bool(re.search(
+        r'\b(?:prepar\w*|equipo|equipaje|equipamento|empacar|mochila|'
+        r'ropa|roupa|vestir|calzado|calcado|zapat\w*|llevar|levar|'
+        r'clima|temperatura|dificultad|dificuldade|exigencia|exigente|'
+        r'altura|altitud|altitude|esfuerzo|cansado|experiencia|'
+        r'bring|wear|pack|clothing|clothes|gear|equipment|weather|'
+        r'difficult\w*|effort|steep|'
+        r'como\s+es|como\s+e|que\s+actividades|what\s+activities|'
+        r'how\s+is|por\s+que|expli\w*|cuenta\w*|tell\s+me\s+about)\b', q
+    ))
+
+
+def is_tour_comparison(q):
+    return bool(re.search(
+        r'\b(?:diferencia\w*|compar\w*|versus|vs|'
+        r'entre\s+\w+.*?(?:y|and|e)\s+\w+|differ\w*)\b', q
+    ))
+
 _SOCIAL_INTENTS = {
     'hola': 'hola',
     'buenos dias': 'buenos dias',
@@ -82,24 +122,26 @@ def is_recommendation_query(q_norm: str) -> bool:
 
 def is_rejection_query(q_norm: str) -> bool:
     """Detecta rechazos de opciones anteriores ('ninguno', 'ninguna', 'neither', 'none')."""
-    return bool(re.search(r'\b(?:ning[uú]n\w*|neither|none(?:\s+of\s+(?:them|these|those))?)\b', q_norm))
+    return bool(re.search(r'\b(?:ning[uú]n\w*|nenhum\w*|neither|none(?:\s+of\s+(?:them|these|those))?)\b', q_norm))
 
 
 def is_other_options_query(q_norm: str) -> bool:
     """Detecta peticiones de otras opciones o tours alternativos."""
-    return bool(re.search(r'\b(?:otr[oa]s?\s+(?:opci[oó]n\w*|tour\w*|alternativ\w*|destino\w*)|other\s+(?:option\w*|tour\w*|alternative\w*|destination\w*))\b', q_norm))
+    return bool(re.search(r'\b(?:otr[oa]s?\s+(?:opci[oó]n\w*|tour\w*|alternativ\w*|destino\w*)|outr[oa]s?\s+(?:opcoes|opcao|passeios?|alternativ\w*)|other\s+(?:option\w*|tour\w*|alternative\w*|destination\w*))\b', q_norm))
 
 
 def duration_preference(value):
-    """Read explicit days in either language; unknown text does not imply a day."""
+    """Read explicit ES/EN/PT days; unknown text does not imply a day."""
     text = str(value or '').lower()
-    if re.search(r'\b(?:medio\s*d[ií]a|half\s*day|pocas\s+horas|poco\s+tiempo)\b', text):
+    if re.search(r'\b(?:medio\s*d[ií]a|meio\s*dia|half\s*day|pocas\s+horas|poco\s+tiempo)\b', text):
         return ('half', None)
     word_days = {
         'un': 1, 'uno': 1, 'una': 1, 'one': 1, 'dos': 2, 'two': 2,
         'tres': 3, 'three': 3, 'cuatro': 4, 'four': 4, 'cinco': 5, 'five': 5,
         'seis': 6, 'six': 6, 'siete': 7, 'seven': 7, 'ocho': 8, 'eight': 8,
         'nueve': 9, 'nine': 9, 'diez': 10, 'ten': 10,
+        'um': 1, 'uma': 1, 'dois': 2, 'duas': 2, 'três': 3,
+        'quatro': 4, 'sete': 7, 'oito': 8, 'nove': 9, 'dez': 10,
     }
     amounts = list(re.finditer(
         r'\b(\d+|' + '|'.join(word_days) + r')\s*(?:d[ií]as?|days?|d)\b', text))
@@ -115,16 +157,16 @@ def duration_preference(value):
 def hiking_preference(value):
     """An explicit newer walking preference replaces an older one."""
     text = str(value or '').lower()
-    activity = r'(?:caminat\w*|caminar|caminando|trek\w*|hik(?:e|es|ing)|senderis\w*|subid\w*|walk\w*)'
+    activity = r'(?:caminat\w*|caminar|caminando|caminh\w*|trilh\w*|andar|trek\w*|hik(?:e|es|ing)|senderis\w*|subid\w*|walk\w*)'
     if not re.search(r'\b' + activity + r'\b', text):
         return None
-    desire = r'\b(?:quiero|deseo|prefier\w*|me\s+gust\w*|want|prefer|like|love)\b'
-    if re.match(r'\s*(?:hay|habra|tienen|inclu\w*|does|do|is|are|how|what|que|como|cuanto|cuanta)\b', text) and not re.search(desire, text):
+    desire = r'\b(?:quiero|deseo|quero|desejo|prefiro|gosto\s+de|prefier\w*|me\s+gust\w*|want|prefer|like|love)\b'
+    if re.match(r'\s*(?:hay|habra|ha|há|tienen|inclu\w*|does|do|is|are|how|what|que|como|cuanto|cuanta|quanto)\b', text) and not re.search(desire, text):
         return None
     negative = re.search(
-        r"\b(?:no|sin|nada\s+de|without|do\s+not|don['’]?t)\s+"
-        r'(?:(?:quiero|deseo|prefiero|me\s+gust[ae]n?|tengo\s+ganas\s+de|want|like|prefer)\s+)?'
-        r'(?:(?:hacer|realizar|ir\s+a|to|do|go|have)\s+)*'
+        r"\b(?:no|nao|não|sem|sin|nada\s+de|without|do\s+not|don['’]?t)\s+"
+        r'(?:(?:quiero|deseo|quero|desejo|prefiro|gosto\s+de|prefiero|me\s+gust[ae]n?|tengo\s+ganas\s+de|want|like|prefer)\s+)?'
+        r'(?:(?:hacer|fazer|realizar|ir\s+a|to|do|go|have)\s+)*'
         r'(?:(?:las?|los?|una?s?|ningun[ao]?s?|any|a|the)\s+)?'
         + activity + r'\b', text,
     )
@@ -591,8 +633,22 @@ def install(ns, support, original):
             ns['add_to_history'](user_id, 'ai', response)
 
     def chain(question,user_id='default'):
-        q=support.normalize(question); lang=ns['detect_language'](question); en=lang=='en'
+        q=support.normalize(question); lang=ns['detect_language'](question)
         prior=list(ns['get_history'](user_id))
+        # Numeric day replies have identical spelling in ES/PT. Retain an
+        # explicitly Portuguese conversation rather than guessing from "4 dias".
+        shared_reply = r'(?:(?:\d+|tres|cinco|seis)\s+dias?|cultura|aventura)'
+        if re.fullmatch(shared_reply, q.strip(' ?¿!.')):
+            for h in reversed(prior):
+                if h.get('role') != 'human':
+                    continue
+                previous_q = support.normalize(h.get('content', ''))
+                if re.fullmatch(shared_reply, previous_q.strip(' ?¿!.')):
+                    continue
+                if ns['detect_language'](h.get('content', '')) == 'pt':
+                    lang = 'pt'
+                break
+        en=lang=='en'; pt=lang=='pt'
         phone=' / '.join(catalog['agency']['phones'])
         active_tours, is_read_error, is_empty = get_current_tours_status()
 
@@ -633,7 +689,8 @@ def install(ns, support, original):
                 sources_used=sorted(set(sources)),
                 route=route,
                 response_route=route,
-                entity_id=entity_id
+                entity_id=entity_id,
+                language=lang,
             )
             if recommendation_state is not None:
                 result['recommended_tour_ids'] = recommendation_state['offered_ids']
@@ -664,6 +721,8 @@ def install(ns, support, original):
                 if not en else
                 "We encountered a temporary technical issue accessing the catalog. You can contact an advisor directly or try again in a moment."
             )
+            if pt:
+                msg = "Ocorreu um problema técnico temporário ao consultar o catálogo. Você pode consultar um assessor ou tentar novamente em alguns instantes."
             return finish(msg, 'evidence_catalog_error', pending=True)
 
         # 2. Catálogo vacío confirmado (lectura exitosa pero 0 tours activos)
@@ -673,14 +732,13 @@ def install(ns, support, original):
                 if not en else
                 "Currently there are no active tours available in our catalog. You can check custom options with an advisor."
             )
+            if pt:
+                msg = "No momento não há passeios ativos no nosso catálogo. Você pode consultar outras opções com um assessor."
             return finish(msg, 'evidence_catalog_empty', pending=True)
 
         # 3. Detección de referencias ambiguas ("el otro", "del otro", "the other", etc.)
         entity_in_q = support.detect_entity_from_question(q)
-        is_advice_on_tour = bool(entity_in_q and re.search(
-            r'\b(?:llevar|ropa|vestir|calzado|zapat\w*|mochila|equipaje|clima|tiempo|temperatura|dificultad|preparaci[oó]n|preparar|exigencia|altura|altitud|bring|wear|pack|clothing|clothes|gear|weather|difficulty|altitude)\b',
-            q
-        ))
+        is_advice_on_tour = bool(entity_in_q and (is_open_tour_advice(q) or is_tour_comparison(q)))
 
         # Peticiones de recomendación, rechazo ("ninguno") u otras opciones NUNCA son ambigüedad de tour
         is_rec_or_reject = (is_recommendation_query(q) and not is_advice_on_tour) or is_rejection_query(q) or is_other_options_query(q)
@@ -709,11 +767,13 @@ def install(ns, support, original):
                     if not en else
                     f"Which tour are you referring to? We discussed *{t1_name}* and *{t2_name}*. Please let me know which one you'd like to check or type its name 😊"
                 )
+                if pt:
+                    msg = f"A qual passeio você se refere? Conversamos sobre *{t1_name}* e *{t2_name}*. Diga qual deseja consultar ou escreva o nome 😊"
                 return finish(msg, 'evidence_ambiguous', pending=True, sources=[], entity_id=f"{recent_eids[0]},{recent_eids[1]}", needs_agency=False)
 
         # 3.5 Peticiones de recomendación, rechazo u orientación de preferencias
         is_pref_reply = bool(re.search(
-            r'\b(?:paisajes?|sitios?\s+hist[oó]ricos?|caminatas?|senderismo|aventura|cultura|landscapes?|hiking|historical\s+sites?|medio\s*d[ií]a|half\s*day|1\s*d[ií]a|un\s*d[ií]a|full\s*day|[2345]\s*d[ií]as?)\b',
+            r'\b(?:paisajes?|paisagens?|natureza|sitios?\s+hist[oó]ricos?|caminatas?|caminh\w*|trilh\w*|senderismo|aventura|cultura|landscapes?|hiking|historical\s+sites?|medio\s*d[ií]a|meio\s*dia|half\s*day|1\s*d[ií]a|un\s*d[ií]a|full\s*day|[2345]\s*d[ií]as?)\b',
             q
         ) or duration_preference(q) is not None or hiking_preference(q) is not None) and not entity_in_q and field(q) != 'product'
 
@@ -726,7 +786,7 @@ def install(ns, support, original):
                 r'(?:caminat\w*|trek\w*|hiking|senderis\w*|subid\w*)\b'
             )
             _PREF_PAT = re.compile(
-                r'\b(?:paisaje|histori|caminat|caminatas|d[ií]as?|day|days|medio|half|tiempo|prefer|aventur|cultur)\b'
+                r'\b(?:paisaje\w*|paisage\w*|natureza|histori\w*|caminat\w*|caminh\w*|trilh\w*|d[ií]as?|day|days|medio|meio|half|tiempo|tempo|prefer\w*|aventur\w*|cultur\w*)\b'
             )
             q_norm = support.normalize(q)
             time_pref = duration_preference(q_norm)
@@ -762,8 +822,8 @@ def install(ns, support, original):
             pref_text = ' '.join(reversed(pref_texts))
 
             no_hiking = walking_pref is False
-            has_hiking = walking_pref is True or ((not no_hiking) and bool(re.search(r'\b(caminat\w*|senderis\w*|aventur\w*|trek\w*|hike\w*|hiking|adventure)\b', pref_text)))
-            has_nature = bool(re.search(r'\b(paisaje\w*|naturalez\w*|laguna\w*|monta[nñ]a\w*|scener\w*|landscape\w*|nature|lake\w*)\b', pref_text))
+            has_hiking = walking_pref is True or ((not no_hiking) and bool(re.search(r'\b(caminat\w*|caminh\w*|trilh\w*|senderis\w*|aventur\w*|trek\w*|hike\w*|hiking|adventure)\b', pref_text)))
+            has_nature = bool(re.search(r'\b(paisaje\w*|paisage\w*|naturalez\w*|natureza|laguna\w*|monta[nñ]a\w*|scener\w*|landscape\w*|nature|lake\w*)\b', pref_text))
             has_history= bool(re.search(r'\b(hist[oó]ri\w*|arqueolog\w*|cultur\w*|ruina\w*|templo\w*|history|historical|archeolog\w*|ruins|culture)\b', pref_text))
 
             # Sin preferencias: preguntar brevemente por intereses y tiempo disponible
@@ -773,6 +833,12 @@ def install(ns, support, original):
                         "Sure! 😊 What interests you most: *landscapes, historical sites, or hiking*? "
                         "How much time do you have to visit?\n\n"
                         "_Tell me your preferences, explore our options with 🗺️ View Tours, or write 👉 advisor to coordinate directly._"
+                    )
+                elif pt:
+                    msg = (
+                        "Claro! 😊 O que interessa mais: *paisagens, locais históricos ou caminhadas*? "
+                        "Quanto tempo você tem para visitar?\n\n"
+                        "_Conte suas preferências, explore as opções em 🗺️ Ver passeios ou escreva 👉 assessor para falar com nossa equipe._"
                     )
                 else:
                     msg = (
@@ -794,7 +860,7 @@ def install(ns, support, original):
                     # Older histories lack IDs. Recognize only our own recommendation
                     # format; category lists and general assistant messages are unrelated.
                     content = h.get('content', '')
-                    if re.search(r'recomendaciones verificadas|top verified recommendations', content):
+                    if re.search(r'recomendaciones verificadas|top verified recommendations|recomendações verificadas', content):
                         title_ids = {}
                         for t in catalog.get('tours', []):
                             for name in [t.get('name', ''), *t.get('aliases', [])]:
@@ -815,6 +881,8 @@ def install(ns, support, original):
                     if en else
                     "¿Qué tours quieres descartar para que pueda proponerte otras opciones?"
                 )
+                if pt:
+                    msg = "Quais passeios você quer descartar para que eu possa sugerir outras opções?"
                 return finish(msg, 'evidence_recommendation', pending=True, needs_agency=False,
                               sources=['CATALOGO_OFICIAL'])
             rejected_ids = set()
@@ -883,7 +951,7 @@ def install(ns, support, original):
                     # Solo usar respaldo canónico si NO fue borrado administrativamente
                     from catalog_service import CANONICAL_TOUR_DURATIONS
                     dur = CANONICAL_TOUR_DURATIONS.get(c_eid, '')
-                dur_disp = english_duration(dur) if en else dur
+                dur_disp = english_duration(dur) if en else (portuguese_duration(dur) if pt else dur)
 
                 sched = str(c_data.get('schedule') or '').strip()
                 c_overrides = c_data.get('overridden_fields') or []
@@ -891,6 +959,10 @@ def install(ns, support, original):
                     sched = ""
 
                 desc = c_prof.get('desc_en' if en else 'desc_es', '')
+                if pt:
+                    # Keep the live documented duration/schedule. Do not present
+                    # an untranslated Spanish profile as a Portuguese response.
+                    desc = ''
 
                 details = [dur_disp]
                 if c_eid == 'laguna-humantay':
@@ -899,7 +971,8 @@ def install(ns, support, original):
                     details.append(sched)
 
                 details_str = ", ".join(d for d in details if d)
-                rec_lines.append(f"• *{disp_name}* ({details_str} — {desc}).")
+                summary = ' — '.join(part for part in (details_str, desc) if part)
+                rec_lines.append(f"• *{disp_name}*" + (f" ({summary})." if summary else "."))
 
             if not rec_lines:
                 if rejected_ids:
@@ -918,12 +991,22 @@ def install(ns, support, original):
                         "No puedo confirmar opciones activas que coincidan con esas preferencias con la información disponible en el catálogo. "
                         "¿Quieres ajustar tus preferencias o confirmar los datos que faltan con un asesor?"
                     )
+                if pt:
+                    if rejected_ids:
+                        msg = ("Não há outras opções verificadas com essas preferências após os passeios que você recusou. "
+                               "Quer mudar suas preferências ou voltar a uma opção anterior?")
+                    else:
+                        msg = ("Não posso confirmar opções ativas que correspondam a essas preferências com os dados disponíveis no catálogo. "
+                               "Quer ajustar suas preferências ou confirmar os dados que faltam com um assessor?")
                 return finish(msg, 'evidence_recommendation', pending=True, needs_agency=False, sources=['CATALOGO_OFICIAL'], recommendation_state=recommendation_state)
 
             body = "\n".join(rec_lines)
             if en:
                 header = "🌟 Based on what you like, here are our top verified recommendations:\n"
                 footer = "\n\n_Type the name of any tour for full details, photos or rates, or write 👉 advisor to coordinate with our team 😊_"
+            elif pt:
+                header = "🌟 Com suas preferências, estas são nossas recomendações verificadas:\n"
+                footer = "\n\n_Escreva o nome de um passeio para consultar detalhes, fotos ou preços, ou escreva 👉 assessor para falar com nossa equipe 😊_"
             else:
                 header = "🌟 Según lo que buscas, estas son nuestras recomendaciones verificadas:\n"
                 footer = "\n\n_Escribe el nombre de cualquiera de ellos para ver detalles, fotos o tarifas, o escribe 👉 asesor para coordinar con nuestro equipo 😊_"
@@ -940,10 +1023,16 @@ def install(ns, support, original):
             'cuales tours tienen', 'cuales son los tours', 'todos los tours',
             'que opciones tienen', 'que opciones hay', 'todas las opciones',
             'what tours do you offer', 'what tours do you have', 'all tours',
-            'show me all options', 'list of tours'
+            'show me all options', 'list of tours',
+            'passeio', 'passeios', 'ver passeios', 'ver categorias de passeios'
         }
         # ---- CATÁLOGO NAVEGABLE POR CATEGORÍAS (DINÁMICO) ----
         CAT_SPECS = get_dynamic_cat_specs(active_tours)
+        pt_cat_titles = {
+            'treks': '🏔️ *Machu Picchu e trilhas*',
+            'cusco': '🌄 *Montanhas e clássicos (Cusco)*',
+            'reg': '🚌 *Rotas regionais*',
+        }
 
         # 1. Petición de categoría específica (ej. "categoria treks", "category treks", "categoria cusco", etc.)
         is_cat_treks = bool(re.search(r'\b(categor[iy]a?\s+treks?|categor[iy]a?\s+machu|categor[iy]a?\s+1|treks?\s+y\s+machu|treks?\s+and\s+machu)\b', q))
@@ -966,9 +1055,13 @@ def install(ns, support, original):
                 msg = (f"Actualmente no hay tours disponibles en la categoría {cat_name}. 📋\n\nPuedes explorar otras categorías o comunicarte con un asesor 😊"
                        if not en else
                        f"Currently there are no tours available in the category {cat_name}. 📋\n\nYou can explore other categories or contact an advisor 😊")
+                if pt:
+                    msg = f"No momento não há passeios disponíveis em {pt_cat_titles[selected_cat_key]}. Você pode explorar outras categorias ou consultar um assessor."
                 return finish(msg, 'evidence_category_empty', sources=['CATALOGO_OFICIAL'], entity_id=f"cat_{selected_cat_key}")
 
             cat_title = cat_data.get('title_es', '') if not en else cat_data.get('title_en', '')
+            if pt:
+                cat_title = pt_cat_titles[selected_cat_key]
 
             m_page = re.search(r'\b(?:p[aá]gina|page)\s+(\d+)\b', q)
             requested_page = int(m_page.group(1)) if m_page else 0
@@ -980,6 +1073,8 @@ def install(ns, support, original):
 
             if total_pages <= 1:
                 lines = [f"{cat_title} disponibles:\n" if not en else f"{cat_title} available:\n"]
+                if pt:
+                    lines = [f"{cat_title} disponíveis:\n"]
                 for eid, default_label, default_dur in page_slice:
                     t_obj = active_tours.get(eid, {})
                     if en:
@@ -990,6 +1085,8 @@ def install(ns, support, original):
                     dur = (t_obj.get('duration') or default_dur or '').strip()
                     if en and dur:
                         dur = english_duration(dur)
+                    elif pt and dur:
+                        dur = portuguese_duration(dur)
                     sched = str(t_obj.get('schedule') or '').strip()
                     if dur and sched:
                         detail_str = f"{dur} | {sched}"
@@ -998,19 +1095,23 @@ def install(ns, support, original):
                     elif sched:
                         detail_str = sched
                     else:
-                        detail_str = "Por confirmar" if not en else "To be confirmed"
+                        detail_str = "A confirmar" if pt else ("Por confirmar" if not en else "To be confirmed")
                     lines.append(f"• *{tour_name}* ({detail_str})")
                 footer = (
                     "\n_Escribe directamente el nombre de cualquier tour para ver detalles completos, o selecciona una opción abajo:_\nEscribe 👉 *asesor* si necesitas ayuda personalizada 😊"
                     if not en else
                     "\n_Type the name of any tour for full details, or select an option below:_\nWrite 👉 *advisor* for personalized help 😊"
                 )
+                if pt:
+                    footer = "\n_Escreva o nome de um passeio para consultar detalhes ou selecione uma opção abaixo:_\nEscreva 👉 *assessor* se precisar de ajuda personalizada 😊"
             else:
                 header = (
                     f"{cat_title} (Página {requested_page + 1} de {total_pages}):\n"
                     if not en else
                     f"{cat_title} (Page {requested_page + 1} of {total_pages}):\n"
                 )
+                if pt:
+                    header = f"{cat_title} (Página {requested_page + 1} de {total_pages}):\n"
                 lines = [header]
                 for eid, default_label, default_dur in page_slice:
                     t_obj = active_tours.get(eid, {})
@@ -1022,6 +1123,8 @@ def install(ns, support, original):
                     dur = (t_obj.get('duration') or default_dur or '').strip()
                     if en and dur:
                         dur = english_duration(dur)
+                    elif pt and dur:
+                        dur = portuguese_duration(dur)
                     sched = str(t_obj.get('schedule') or '').strip()
                     if dur and sched:
                         detail_str = f"{dur} | {sched}"
@@ -1030,7 +1133,7 @@ def install(ns, support, original):
                     elif sched:
                         detail_str = sched
                     else:
-                        detail_str = "Por confirmar" if not en else "To be confirmed"
+                        detail_str = "A confirmar" if pt else ("Por confirmar" if not en else "To be confirmed")
                     lines.append(f"• *{tour_name}* ({detail_str})")
 
                 if requested_page + 1 < total_pages:
@@ -1050,6 +1153,11 @@ def install(ns, support, original):
                     if not en else
                     f"{nav_note}\nWrite 👉 *advisor* for personalized help 😊"
                 )
+                if pt:
+                    nav_note = ("\n_Selecione um passeio, avance em ➡️ Mais passeios ou volte a ⬅️ Categorias._"
+                                if requested_page + 1 < total_pages else
+                                "\n_Você chegou ao final desta categoria. Selecione um passeio ou volte a ⬅️ Categorias._")
+                    footer = f"{nav_note}\nEscreva 👉 *assessor* se precisar de ajuda personalizada 😊"
             lines.append(footer)
             return finish("\n".join(lines), 'evidence_category_tours', sources=['CATALOGO_OFICIAL'], entity_id=f"cat_{selected_cat_key}")
 
@@ -1095,6 +1203,15 @@ def install(ns, support, original):
                         cat_lines.append(f"{num_emojis[idx]} {cat_data['title_en']} ({cnt} tours)")
                 body = "\n".join(cat_lines)
                 footer = "\n\n_Tap a category or write the name of the tour you're looking for (e.g. Inca Trail, Humantay Lake)._\nWrite 👉 *advisor* to reach our team."
+            elif pt:
+                title = "🗺️ *Catálogo de experiências — Texeira Travel*\nSelecione uma categoria para explorar nossos passeios:\n\n"
+                cat_lines = []
+                for idx, (cat_key, cat_data) in enumerate(CAT_SPECS.items()):
+                    cnt = sum(1 for eid, _, _ in cat_data['tours'] if eid in active_tours and is_product_confirmed(eid))
+                    if cnt:
+                        cat_lines.append(f"{['1️⃣', '2️⃣', '3️⃣'][idx]} {pt_cat_titles[cat_key]} ({cnt} passeios)")
+                body = "\n".join(cat_lines)
+                footer = "\n\n_Selecione uma categoria ou escreva o nome do passeio que procura._\nEscreva 👉 *assessor* para falar com nossa equipe."
             else:
                 if is_asking_unique:
                     title = "¡Para nada! No es el único. En *Texeira Travel* organizamos nuestros destinos en estas categorías: 🗺️\n\n"
@@ -1301,6 +1418,8 @@ def install(ns, support, original):
                     pass
                 tour_name = tour_info.get('name', eid) if tour_info else eid
                 msg = f"*{tour_name}* is not currently in our active catalog. You can explore other tours or consult this destination with an advisor." if en else f"*{tour_name}* no figura actualmente en nuestro catálogo activo. Puedes explorar otros tours o consultar este destino con un asesor."
+                if pt:
+                    msg = f"*{tour_name}* não está no catálogo ativo no momento. Você pode explorar outros passeios ou consultar um assessor."
                 return finish(msg, 'evidence_inactive_tour', pending=True, sources=[], entity_id=eid)
 
             img_data = get_tour_image_data(question, user_msg=question, entity_id=eid or "")
@@ -1309,9 +1428,13 @@ def install(ns, support, original):
             if img_data:
                 img_url, img_caption = img_data
                 msg = f"Here is the official photo of *{tour_name or 'our tours with Texeira Travel'}*. 📸✨" if en else f"Te compartimos la fotografía oficial de *{tour_name or 'nuestros destinos con Texeira Travel'}*. 📸✨"
+                if pt:
+                    msg = f"Esta é a foto oficial de *{tour_name or 'nossos passeios com Texeira Travel'}*. 📸"
                 return finish(msg, 'evidence_photo', sources=['ASSET_OFICIAL'], entity_id=eid)
             else:
                 msg = f"Currently we don't have online photos for *{tour_name or 'this tour'}*, but our advisor will share our complete gallery with you." if en else f"Actualmente no disponemos de fotos en línea para *{tour_name or 'este tour'}*, pero nuestro asesor te compartirá nuestra galería completa."
+                if pt:
+                    msg = f"No momento não temos fotos online de *{tour_name or 'este passeio'}*. Você pode consultar a galeria com um assessor."
                 return finish(msg, 'evidence_photo_unavailable', sources=['ASSET_OFICIAL'], entity_id=eid)
 
         if is_brochure_requested(question):
@@ -1353,15 +1476,14 @@ def install(ns, support, original):
                 msg = f"*{tour_name}* is not currently in our active catalog (not available). You can explore other tours or consult this destination with an advisor."
             else:
                 msg = f"*{tour_name}* no figura actualmente en nuestro catálogo activo (no se encuentra disponible). Puedes explorar otros tours o consultar este destino con un asesor."
+            if pt:
+                msg = f"*{tour_name}* não está no catálogo ativo no momento. Você pode explorar outros passeios ou consultar um assessor."
             return finish(msg, 'evidence_inactive_tour', pending=True, sources=[], entity_id=eid)
 
         # Si la consulta es una comparación entre tours o una pregunta interpretativa abierta,
         # no debe ser absorbida por reglas deterministas de un solo tour/campo para permitir el uso del RAG.
-        is_comparison = bool(re.search(r'\b(diferencia\w*|compar\w*|versus|\bvs\b|entre\s+\w+.*?(?:y|and)\s+\w+|differ\w*|compare|comparison)\b', q, re.I))
-        is_open_interpretive = bool(re.search(
-            r'\b(c[oó]mo\s+es|qu[eé]\s+actividades|dificultad|preparaci[oó]n|clima|ropa|llevar|experiencia|recomend\w*|por\s+qu[eé]|expl[ií]ca\w*|cu[eé]nta\w*|altura|altitud|exigente|cansado|esfuerzo|subida|caminata|how\s+is|what\s+activities|difficulty|altitude|weather|recommend\w*|explain|tell\s+me\s+about|effort|steep|hike)\b',
-            q, re.I
-        ))
+        is_comparison = is_tour_comparison(q)
+        is_open_interpretive = is_open_tour_advice(q)
         if is_comparison or is_open_interpretive:
             eid = None
             fld = None
@@ -1373,8 +1495,27 @@ def install(ns, support, original):
 
         # Tour directo o ficha técnica (ej. "camino inka", "· Camino Inca Clásico 4D/3N", "información de camino inka")
         # Si la entidad se heredó del historial (no en q), solo activar ficha si pide explícitamente información general
-        direct_in_q = bool(entity(q))
-        wants_overview = direct_in_q or bool(re.search(r'\b(informaci[oó]n|info|detalles|ficha|overview|details)\b', q, re.I))
+        direct_eid = entity(q)
+        overview_names = set(aliases.get(direct_eid, []))
+        if direct_eid in active_tours:
+            obj = active_tours[direct_eid]
+            overview_names.update([obj.get('name', ''), *obj.get('aliases', [])])
+        stripped_q = q.strip(' ?¿!.•*')
+        query_words = re.findall(r'\b\w+\b', stripped_q)
+        bare_name = any(stripped_q == support.normalize(name) for name in overview_names if name)
+        if not bare_name and direct_eid:
+            # Retain the existing uniquely identified one-edit tour-name UX;
+            # extra question words are never accepted as a bare name.
+            for name in overview_names:
+                name_words = re.findall(r'\b\w+\b', support.normalize(name))
+                if len(query_words) == len(name_words) >= 2 and sum(
+                    _single_typo_cost(a, b) for a, b in zip(query_words, name_words)
+                ) == 1:
+                    bare_name = True
+                    break
+        wants_overview = bare_name or bool(re.search(
+            r'\b(?:informaci[oó]n|information|info|detalles|ficha|overview|details|'
+            r'saber\s+(?:de|del|sobre))\b', q, re.I))
         if eid and fld is None and wants_overview and lang in {'es', 'en'}:
             tour_obj = active_tours.get(eid, {})
             name = tour_obj.get('name', eid)
@@ -1614,11 +1755,12 @@ def install(ns, support, original):
             result=original(question,user_id)
         # La ausencia explícita de evidencia no equivale a resolución autónoma.
         answer_norm = support.normalize(result.get('response', ''))
-        if re.search(r'cannot confirm|can.t confirm|does not contain.*information|no incluye el nombre|no especifica|no (?:puedo|podemos) confirmar|no (?:esta|estan) documentad', answer_norm):
+        if re.search(r'cannot confirm|can.t confirm|does not contain.*information|no incluye el nombre|no especifica|no (?:puedo|podemos) confirmar|no (?:esta|estan) documentad|nao (?:posso|podemos) confirmar|nao (?:esta|estao) documentad|nao ha (?:dados|informacoes)', answer_norm):
             result['needs_agency_confirmation'] = True
             result['needs_confirmation'] = True
             result['resolved_autonomously'] = False
         record(user_id, question, result['response'])
+        result.setdefault('language', lang)
         result['is_escalation']=False
         if result.get('is_rate_limit') or result.get('is_fallback'):result['resolved_autonomously']=False
         return result

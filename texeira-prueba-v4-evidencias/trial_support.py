@@ -125,16 +125,21 @@ def install(ns):
             return 'en'
         words = set(re.findall(r'\b\w+\b', normalize(text)))
         markers = {
-            'es': set('que cual cuanto cuesta incluye incluidas entradas puedo cancelar manana gracias hola precio precios tarifa tarifas porfa favor como donde cuando salir salida horario hora boleto boletos llegar quiero necesito visita ruinas arqueologico arqueologica caminata caminatas caminar senderismo trekking medio dia dias recomiendame recomiendas recomienda sugieres aconsejas montana colores sagrao waqrapukara waqra pukara queswachaca puente mistico ver categorias categoria catalogo reserva reservar solicitar informacion info detalles cusco fotos foto'.split()),
-            'en': set('what which how does the include includes included inclusions exclusions exclude tickets can cancel tomorrow thanks price prices rate rates cost costs where when want need is are do offer available hello hi categories category reservation reserve book view recommend recommendations suggest advice advise something hiking hike walking half full day days duration schedule timetable departure like please pls without'.split()),
-            'pt': set('quais quanto custa preco passeios voce quero ola obrigado'.split()),
+            'es': set('que cual cuanto cuesta incluye incluidas incluido excluido entradas puedo cancelar manana gracias hola precio precios tarifa tarifas porfa favor como donde cuando salir salida horario hora boleto boletos llegar quiero necesito visita ruinas arqueologico arqueologica caminata caminatas caminar senderismo trekking medio dia dias recomiendame recomiendas recomienda sugieres aconsejas montana colores sagrao waqrapukara waqra pukara queswachaca puente mistico ver categorias categoria catalogo reserva reservar solicitar informacion info detalles cusco fotos foto'.split()),
+            'en': set('what which how does the include includes included inclusions exclusions exclude tickets can cancel tomorrow thanks price prices rate rates cost costs where when want need is are do offer available hello hi categories category reservation reserve book view recommend recommendations suggest advice advise something hiking hike walking half full day days duration schedule timetable departure like please pls without information details overview preparation gear should bring wear'.split()),
+            'pt': set('quais qual quanto custa preco precos passeio passeios voce quero ola obrigado meio nao sem caminhar caminhadas caminhos trilhas fazer devo levar equipamento roupa calcado preparacao informacoes incluido em assessor tenho agora nenhum outras opcoes quatro dois duas uma paisagens natureza gosta interessa diferenca locais ver categoria categorias reserva solicitar cusco fotos foto dia dias que como favor cultura aventura'.split()),
             'fr': set('quels quelle combien bonjour prix je avec merci'.split()),
         }
         scores = {lang: len(words & values) for lang, values in markers.items()}
         best = max(scores, key=scores.get)
+        # Shared words (dia, que, quero) must not outvote explicit PT markers.
+        if scores['pt'] and scores['pt'] == scores[best]:
+            pt_distinctive = markers['pt'] - markers['es'] - markers['en']
+            if words & pt_distinctive:
+                best = 'pt'
         if scores[best]:
             return best
-        if words <= {'tour', 'tours', 'machu', 'picchu', 'pichu', 'humantay', 'salkantay', 'valle', 'sagrado', 'wayna', 'waynapicchu', 'huayna', 'huaynapicchu', 'colca', 'vinicunca', 'choquequirao', 'waqrapukara', 'waqra', 'pukara', 'queswachaca', 'qeswachaca', 'arqueologico', 'arqueologica', 'mistico', 'maras', 'moray', 'montana'}:
+        if words <= {'tour', 'tours', 'camino', 'inca', 'inka', 'trail', 'jungle', 'machu', 'picchu', 'pichu', 'humantay', 'salkantay', 'valle', 'sagrado', 'wayna', 'waynapicchu', 'huayna', 'huaynapicchu', 'colca', 'vinicunca', 'choquequirao', 'waqrapukara', 'waqra', 'pukara', 'queswachaca', 'qeswachaca', 'arqueologico', 'arqueologica', 'mistico', 'maras', 'moray', 'montana'}:
             return 'es'
         try:
             return ns['LANG_MAP'].get(ns['detect'](text), 'es')
@@ -162,8 +167,8 @@ REGLAS OBLIGATORIAS (sin excepción):
 3. Respuestas cortas — máximo 4 líneas. Sin párrafos largos.
 4. Usa formato WhatsApp: *negrita* para nombres de tours, precios y datos clave.
 5. Usa emojis con moderación (1-2 por mensaje). ✅ 💰 📍 ⏱️ 📋
-6. SIEMPRE cierra con: Escribe 👉 *asesor* para reservar o más información 😊
-7. Si el idioma es inglés, usa: Write 👉 *advisor* to book or for more info 😊
+6. Responde en el mismo idioma que la pregunta; conserva los nombres propios y traduce las etiquetas y explicaciones. No cambies al español si la pregunta está en portugués.
+7. Cierra en ese mismo idioma: en español, Escribe 👉 *asesor* para solicitar una reserva o más información 😊; en inglés, Write 👉 *advisor* to request a booking or for more info 😊; en portugués, Escreva 👉 *assessor* para solicitar uma reserva ou mais informações 😊. No afirmes que el cupo o la reserva están confirmados.
 8. Nunca menciones que eres una IA ni pongas disclaimers técnicos.
 9. Si hay conflicto de datos, di que lo confirmamos con el equipo — no elijas un valor.
 10. Si la pregunta consulta varios puntos y el contexto contiene información para uno (ej. altitud documentada) pero carece de datos para otro (ej. duración o dificultad de caminata, o actividades no registradas): responde el dato documentado y aclara que el aspecto pendiente requiere confirmación con el equipo/asesor. Nunca rechaces toda la pregunta si puedes responder una parte.
@@ -189,6 +194,13 @@ Pregunta: {question}'''
     def chain(question, user_id='default'):
         lang = ns['detect_language'](question)
         q = normalize(question)
+
+        # The outer verified router has already checked catalog activity.
+        # Do not recapture open/comparative questions as a single factual field
+        # here (e.g. "what gear is included and how should I prepare?").
+        from verified_routes import is_open_tour_advice, is_tour_comparison
+        if lang == 'pt' or is_open_tour_advice(q) or is_tour_comparison(q):
+            return original(question, user_id)
 
         if lang == 'es' and re.search(r'\b(cancel\w*|reembolso\w*)\b', q):
             text = ('No hay una politica de cancelacion o reembolso confirmada en los datos disponibles. '
