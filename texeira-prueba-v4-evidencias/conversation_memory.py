@@ -56,12 +56,15 @@ class ConversationMemory:
     def clear(self, user_id):
         self.mutate(user_id, lambda messages: [])
 
-    def add_turn(self, user_id, question, response):
+    def add_turn(self, user_id, question, response, metadata=None):
         if not _suspended.get():
             now = time.time()
+            answer = dict(role='ai', content=response, timestamp=now)
+            if metadata:
+                answer['metadata'] = metadata
             self.mutate(user_id, lambda messages: messages + [
                 dict(role='human', content=question, timestamp=now),
-                dict(role='ai', content=response, timestamp=now),
+                answer,
             ])
 
     def update_last_response(self, user_id, content):

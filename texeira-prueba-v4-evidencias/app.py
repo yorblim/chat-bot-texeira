@@ -348,8 +348,8 @@ def add_to_history(user_id: str, role: str, content: str):
     conversation_history.append(user_id, role, content)
 
 
-def add_history_turn(user_id: str, question: str, response: str):
-    conversation_history.add_turn(user_id, question, response)
+def add_history_turn(user_id: str, question: str, response: str, metadata=None):
+    conversation_history.add_turn(user_id, question, response, metadata=metadata)
 
 
 def clear_history(user_id: str):
