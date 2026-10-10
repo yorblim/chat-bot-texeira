@@ -34,6 +34,8 @@ Se conservan intactos los históricos de septiembre, la recalificación de 22/30
 
 ## Git y producción
 
-La integración y el despliegue deben completarse después de la validación local, mediante el script existente `actualizar_nube.bat`. Mantener `min-instances=0`, `max-instances=2`, memoria `2Gi`, proveedor y secretos existentes. La escala a cero no garantiza una factura de $0.
+Commit de implementación `45c2d76`, integrado y respaldado en `origin/main` mediante `6096bcc`. Se ejecutó el script existente `actualizar_nube.bat`. Cloud Build terminó correctamente; una pérdida de resolución DNS del cliente impidió completar la activación desde ese comando. Se retomó con el digest de la misma imagen, sin recompilar ni modificar el script.
 
-Pendiente registrar commit, revisión activa y resultados de `/health`, paneles y dos turnos deterministas PT por API. La prueba de API utiliza un usuario sintético único y elimina solo sus interacciones y memoria en Neon; no modifica el catálogo ni solicita atención real.
+La revisión `texeira-whatsapp-00050-wh7` está activa con 100 % del tráfico y digest coincidente con la compilación. Los dos turnos deterministas PT por API y los GET de los cuatro paneles pasaron; se conservaron los timeouts iniciales como incidencias observadas. La prueba PT eliminó solo sus interacciones y memoria en Neon; no modificó el catálogo ni solicitó atención real. El [registro de despliegue](VERIFICACION_DESPLIEGUE_PREGUNTAS_PT_20261009.md) reúne las evidencias y el resultado final de la suite general de API.
+
+Se mantienen `min-instances=0`, `max-instances=2`, memoria `2Gi`, proveedor y secretos existentes. La escala a cero no garantiza una factura de $0. La calidad del LLM real y la recepción física en WhatsApp permanecen pendientes; no se presentan estas comprobaciones como una precisión del 100 %.
