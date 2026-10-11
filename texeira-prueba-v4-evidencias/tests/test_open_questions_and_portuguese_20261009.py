@@ -278,12 +278,17 @@ class OpenQuestionsAndPortuguese(unittest.TestCase):
         self.retrieval_invoke.assert_not_called()
         self.generation_factory.assert_not_called()
 
-    def use_nonfactual_context_and_generation_marker(self, response_marker):
+    def use_nonfactual_context_and_generation_marker(self, response_marker, entity_id=None):
         """Instrumented pipeline seam; neither document nor output is a tour fact."""
-        self.retrieval_invoke.return_value = [Document(
-            page_content="PIPELINE_SENTINEL_CONTEXT_NOT_A_TOUR_FACT",
-            metadata={"tour_id": "camino-inka", "tour_name": FIXTURE["camino-inka"]["name"]},
-        )]
+        def mock_retrieve(query):
+            eid = entity_id
+            if not eid:
+                eid = "maras-moray" if "maras" in query.lower() else "camino-inka"
+            return [Document(
+                page_content="PIPELINE_SENTINEL_CONTEXT_NOT_A_TOUR_FACT",
+                metadata={"tour_id": eid, "tour_name": FIXTURE.get(eid, {}).get("name", eid)},
+            )]
+        self.retrieval_invoke.side_effect = mock_retrieve
         generation_invoke = Mock(return_value=SimpleNamespace(content=response_marker))
         self.generation_factory.side_effect = None
         self.generation_factory.return_value = SimpleNamespace(invoke=generation_invoke)

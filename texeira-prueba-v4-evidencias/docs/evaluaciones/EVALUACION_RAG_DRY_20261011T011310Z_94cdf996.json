@@ -1,0 +1,1215 @@
+{
+  "started_at": "2026-10-11T01:13:10.285719+00:00",
+  "run_id": "20261011T011310Z_94cdf996",
+  "mode": "offline_dry_sentinel",
+  "provider": "groq",
+  "model": "qwen/qwen3.8-27b",
+  "max_invocations": 10,
+  "max_retries": 0,
+  "request_timeout_seconds": 45,
+  "max_output_tokens": 900,
+  "catalog_snapshot": "C:\\Users\\HP\\Desktop\\Chat bot\\texeira-prueba-v4-evidencias\\docs\\evaluaciones\\CATALOGO_REFERENCIA_LLM_20261010T060618Z_3bb459a1.json",
+  "catalog_snapshot_sha256": "a4e3c5a732ed87368d7316896a6da98ba4dc637d3b51e06420b7f9cf94904de8",
+  "active_entity_ids": [
+    "camino-inka",
+    "inka-jungle",
+    "maras-moray"
+  ],
+  "whatsapp_sends": 0,
+  "production_database_writes": 0,
+  "semantic_precision": null,
+  "semantic_approval": false,
+  "cases": [
+    {
+      "case_id": "EXP-139",
+      "declared_input_language": "pt",
+      "question": "Recomende um passeio de meio dia, não quero fazer caminhadas.",
+      "detected_language": "pt",
+      "result": {
+        "response": "🌟 Com suas preferências, estas são nossas recomendações verificadas:\n• *Maras - Moray* (Meio dia, 08:40-14:00).\n\n_Escreva o nome de um passeio para consultar detalhes, fotos ou preços, ou escreva 👉 assessor para falar com nossa equipe 😊_",
+        "context_used": true,
+        "is_predefined": true,
+        "is_fallback": false,
+        "resolved_autonomously": true,
+        "is_escalation": false,
+        "needs_agency_confirmation": false,
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "evidence_status": "documented",
+        "sources_used": [
+          "CATALOGO_OFICIAL"
+        ],
+        "route": "evidence_recommendation",
+        "response_route": "evidence_recommendation",
+        "entity_id": null,
+        "language": "pt",
+        "recommended_tour_ids": [
+          "maras-moray"
+        ]
+      },
+      "retrieval": [],
+      "generation_calls": [],
+      "real_llm_calls": 0,
+      "dry_generation_calls": 0,
+      "elapsed_ms": 52.47,
+      "review_status": "pending",
+      "semantic_passed": null,
+      "structural_checks": {
+        "response_is_nonempty_string": true,
+        "rag_llm_route_has_its_own_successful_call": true,
+        "current_question_preserved_in_all_model_prompts": true,
+        "call_budget_respected": true
+      }
+    },
+    {
+      "case_id": "EXP-140",
+      "declared_input_language": "pt",
+      "question": "Quanto custa o passeio Maras Moray e o que está incluído?",
+      "detected_language": "pt",
+      "result": {
+        "response": "[DRY_RUN_NONFACTUAL_GENERATION: no factual answer was generated or approved]\nEscreva 👉 *assessor* para falar com nossa equipe na agência.",
+        "context_used": true,
+        "is_fallback": false,
+        "is_escalation": false,
+        "is_predefined": false,
+        "needs_agency_confirmation": true,
+        "resolved_autonomously": false,
+        "response_route": "rag_llm",
+        "evidence_status": "rag_context",
+        "needs_confirmation": true,
+        "conflict_detected": false,
+        "sources_used": [],
+        "language": "pt"
+      },
+      "retrieval": [
+        {
+          "query": "Quanto custa o passeio Maras Moray e o que está incluído",
+          "documents": [
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMaras - Moray\n- confirmed_product: sí (fuente: F1)\n- schedule: 08:40-14:00 (fuente: F1, página: None)\n- includes/bus_turistico_o_cuatrimotos_(modalidad_por_confirmar): confirmado por F1\n- includes/guia_profesional: confirmado por F1\n- stops/awana_chinchero: confirmado por F1\n- stops/moray: confirmado por F1\n- stops/salineras: confirmado por F1",
+              "metadata": {
+                "tour_id": "maras-moray",
+                "tour_name": "Maras - Moray",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 3.946474948785117,
+                "rank": 1,
+                "rrf_score": 0.031319,
+                "bm25_rank": 1,
+                "vector_rank": 7
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nTour Cuatrimoto / Maras-Moray\n- confirmed_product: sí (fuente: F3)\n- includes/cuatrimotos_modernas: confirmado por F3\n- includes/casco_equipo_proteccion: confirmado por F3\n- includes/visita_salineras: confirmado por F3\n- includes/visita_moray: confirmado por F3\n- includes/transporte_ida_vuelta: confirmado por F3",
+              "metadata": {
+                "tour_id": "maras-moray-cuatrimoto",
+                "tour_name": "Tour Cuatrimoto / Maras-Moray",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 3.5927523110713917,
+                "rank": 2,
+                "rrf_score": 0.031281,
+                "bm25_rank": 2,
+                "vector_rank": 6
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMachu Picchu by Car\n- confirmed_product: sí (fuente: F2)",
+              "metadata": {
+                "tour_id": "machu-picchu-car",
+                "tour_name": "Machu Picchu by Car",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 0.0,
+                "rank": 9,
+                "rrf_score": 0.028778,
+                "bm25_rank": 9,
+                "vector_rank": 10
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nTour Místico\n- confirmed_product: sí (fuente: F2)",
+              "metadata": {
+                "category": "evidence_based",
+                "chunk_index": 0,
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "source": "evidence-v4-2026-09-11",
+                "tour_id": "tour-mistico",
+                "tour_name": "Tour Místico",
+                "retrieval_method": "hybrid_rrf",
+                "rrf_score": 0.016393,
+                "bm25_rank": null,
+                "vector_rank": 1
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nInka Jungle to Machu Picchu\n- confirmed_product: sí (fuente: F2)\n- duration: 4 días (itinerario publicado; confirmar variante y noches) (fuente: F2, página: 17)\n- altitude: Abra Málaga a 4,350 m.s.n.m. (punto más alto del circuito) (fuente: F2, página: 17)\n- route: Día 1: Descenso en bicicleta desde Abra Málaga (4,350 m.s.n.m.) hasta Santa María (1,450 m.s.n.m.). Otras actividades de aventura y tiempos de caminata requieren confirmación con la agencia. (fuente: F2, página: 17)",
+              "metadata": {
+                "category": "evidence_based",
+                "chunk_index": 0,
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "source": "evidence-v4-2026-09-11",
+                "tour_id": "inka-jungle",
+                "tour_name": "Inka Jungle to Machu Picchu",
+                "retrieval_method": "hybrid_rrf",
+                "rrf_score": 0.016129,
+                "bm25_rank": null,
+                "vector_rank": 2
+              }
+            }
+          ],
+          "status": "completed",
+          "latency_ms": 112.26
+        }
+      ],
+      "generation_calls": [
+        {
+          "call_index": 1,
+          "input_messages": [
+            {
+              "role": "system",
+              "content": "Eres el asistente de *Texeira Travel*, una agencia de turismo en Cusco, Perú.\n\nREGLAS OBLIGATORIAS (sin excepción):\n1. Responde SOLO con datos del contexto proporcionado. Nunca inventes precios, horarios, incluidos o excluidos.\n2. Si el dato no está en el contexto, NO lo menciones. Di que lo confirmamos con el equipo.\n3. Respuestas cortas — máximo 4 líneas. Sin párrafos largos.\n4. Usa formato WhatsApp: *negrita* para nombres de tours, precios y datos clave.\n5. Usa emojis con moderación (1-2 por mensaje). ✅ 💰 📍 ⏱️ 📋\n6. Responde en el mismo idioma que la pregunta; conserva los nombres propios y traduce las etiquetas y explicaciones. No cambies al español si la pregunta está en portugués.\n7. Cierra en ese mismo idioma: en español, Escribe 👉 *asesor* para solicitar una reserva o más información 😊; en inglés, Write 👉 *advisor* to request a booking or for more info 😊; en portugués, Escreva 👉 *assessor* para solicitar uma reserva ou mais informações 😊. No afirmes que el cupo o la reserva están confirmados.\n8. Nunca menciones que eres una IA ni pongas disclaimers técnicos.\n9. Si hay conflicto de datos, di que lo confirmamos con el equipo — no elijas un valor.\n10. Si la pregunta consulta varios puntos y el contexto contiene información para uno (ej. altitud documentada) pero carece de datos para otro (ej. duración o dificultad de caminata, o actividades no registradas): responde el dato documentado y aclara que el aspecto pendiente requiere confirmación con el equipo/asesor. Nunca rechaces toda la pregunta si puedes responder una parte.\n\nContexto: [DATOS OFICIALES Y TARIFAS VIGENTES DE LA AGENCIA PARA MARAS - MORAY]\nTour: Maras - Moray\nTarifa Oficial: 50 USD por persona\nHorario Oficial: 08:40-14:00\nDuración: Medio día\nincludes: SIN DATO VIGENTE; el administrador borró este campo. Confirmar con el equipo; no recuperar valores anteriores.\nexcludes: SIN DATO VIGENTE; el administrador borró este campo. Confirmar con el equipo; no recuperar valores anteriores.\n\n[Información del tour]\n\nTour: Maras - Moray\n\nID: maras-moray\n\nCategoría: evidence_based\n\n\n\n- confirmed_product: sí (fuente: F1)\n- stops/awana_chinchero: confirmado por F1\n- stops/moray: confirmado por F1\n- stops/salineras: confirmado por F1\n- duration: Medio día (fuente: ADMIN_VIGENTE, página: None)\n- official_price: 50 USD (fuente: ADMIN_VIGENTE, página: None)\n- schedule: 08:40-14:00 (fuente: ADMIN_VIGENTE, página: None)\nPregunta: Quanto custa o passeio Maras Moray e o que está incluído?"
+            },
+            {
+              "role": "human",
+              "content": "Quanto custa o passeio Maras Moray e o que está incluído?"
+            }
+          ],
+          "execution": "nonfactual_dry_sentinel",
+          "started_at": "2026-10-11T01:13:32.875670+00:00",
+          "status": "completed",
+          "raw_response": "[DRY_RUN_NONFACTUAL_GENERATION: no factual answer was generated or approved]",
+          "token_usage": {},
+          "reported_model": null,
+          "finish_reason": null,
+          "latency_ms": 0.01,
+          "finished_at": "2026-10-11T01:13:32.875670+00:00"
+        }
+      ],
+      "real_llm_calls": 0,
+      "dry_generation_calls": 1,
+      "elapsed_ms": 166.75,
+      "review_status": "pending",
+      "semantic_passed": null,
+      "structural_checks": {
+        "response_is_nonempty_string": true,
+        "rag_llm_route_has_its_own_successful_call": true,
+        "current_question_preserved_in_all_model_prompts": true,
+        "call_budget_respected": true
+      }
+    },
+    {
+      "case_id": "EXP-141",
+      "declared_input_language": "fr",
+      "question": "Je cherche une excursion d'une demi-journée sans randonnée.",
+      "detected_language": "fr",
+      "result": {
+        "response": "🌟 Voici nos recommandations vérifiées selon vos préférences:\n• *Maras - Moray* (Demi-journée, 08:40-14:00).\n\n_Écrivez le nom d'un circuit pour consulter ses détails, photos ou tarifs, ou contactez un conseiller 😊_",
+        "context_used": true,
+        "is_predefined": true,
+        "is_fallback": false,
+        "resolved_autonomously": true,
+        "is_escalation": false,
+        "needs_agency_confirmation": false,
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "evidence_status": "documented",
+        "sources_used": [
+          "CATALOGO_OFICIAL"
+        ],
+        "route": "evidence_recommendation",
+        "response_route": "evidence_recommendation",
+        "entity_id": null,
+        "language": "fr",
+        "recommended_tour_ids": [
+          "maras-moray"
+        ]
+      },
+      "retrieval": [],
+      "generation_calls": [],
+      "real_llm_calls": 0,
+      "dry_generation_calls": 0,
+      "elapsed_ms": 22.67,
+      "review_status": "pending",
+      "semantic_passed": null,
+      "structural_checks": {
+        "response_is_nonempty_string": true,
+        "rag_llm_route_has_its_own_successful_call": true,
+        "current_question_preserved_in_all_model_prompts": true,
+        "call_budget_respected": true
+      }
+    },
+    {
+      "case_id": "EXP-142",
+      "declared_input_language": "fr",
+      "question": "Quel est le prix du chemin de l'Inca ?",
+      "detected_language": "fr",
+      "result": {
+        "response": "[DRY_RUN_NONFACTUAL_GENERATION: no factual answer was generated or approved]",
+        "context_used": true,
+        "is_fallback": false,
+        "is_escalation": false,
+        "is_predefined": false,
+        "needs_agency_confirmation": false,
+        "resolved_autonomously": true,
+        "response_route": "rag_llm",
+        "evidence_status": "rag_context",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": [],
+        "language": "fr"
+      },
+      "retrieval": [
+        {
+          "query": "Quel est le prix du chemin de l'Inca",
+          "documents": [
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nCamino Inca Clásico 4D/3N\n- confirmed_product: sí (fuente: F2)",
+              "metadata": {
+                "tour_id": "camino-inka",
+                "tour_name": "Camino Inca Clásico 4D/3N",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 3.3533675036955817,
+                "rank": 1,
+                "rrf_score": 0.032787,
+                "bm25_rank": 1,
+                "vector_rank": 1
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMachu Picchu by Car\n- confirmed_product: sí (fuente: F2)",
+              "metadata": {
+                "tour_id": "machu-picchu-car",
+                "tour_name": "Machu Picchu by Car",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 0.0,
+                "rank": 8,
+                "rrf_score": 0.029631,
+                "bm25_rank": 8,
+                "vector_rank": 7
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nWaqra Pukara\n- confirmed_product: sí (fuente: F2+F3)\n- includes/transporte_turistico: confirmado por F3\n- includes/guia_profesional: confirmado por F3",
+              "metadata": {
+                "tour_id": "waqra-pukara",
+                "tour_name": "Waqra Pukara",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 0.0,
+                "rank": 7,
+                "rrf_score": 0.029211,
+                "bm25_rank": 7,
+                "vector_rank": 10
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nCity Tour Cusco\n- confirmed_product: sí (fuente: F2)\n- schedule: 10:00-14:00 / 13:30-18:30 (fuente: F1, página: None)\n- stops/koricancha: confirmado por F1+F2\n- stops/sacsayhuaman: confirmado por F1+F2\n- stops/qenqo: confirmado por F1+F2\n- stops/puka_pukara: confirmado por F1+F2\n- stops/tambomachay: confirmado por F1+F2\n- includes/bus_turistico: confirmado por F1\n- includes/guia_profesional: confirmado por F1",
+              "metadata": {
+                "tour_id": "city-tour-cusco",
+                "tour_name": "City Tour Cusco",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 0.0,
+                "rank": 2,
+                "rrf_score": 0.016129,
+                "bm25_rank": 2,
+                "vector_rank": null
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nRuta del Sol Cusco-Puno\n- confirmed_product: sí (fuente: F2)",
+              "metadata": {
+                "category": "evidence_based",
+                "chunk_index": 0,
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "source": "evidence-v4-2026-09-11",
+                "tour_id": "ruta-del-sol",
+                "tour_name": "Ruta del Sol Cusco-Puno",
+                "retrieval_method": "hybrid_rrf",
+                "rrf_score": 0.016129,
+                "bm25_rank": null,
+                "vector_rank": 2
+              }
+            }
+          ],
+          "status": "completed",
+          "latency_ms": 34.58
+        }
+      ],
+      "generation_calls": [
+        {
+          "call_index": 2,
+          "input_messages": [
+            {
+              "role": "system",
+              "content": "Eres el asistente de *Texeira Travel*, una agencia de turismo en Cusco, Perú.\n\nREGLAS OBLIGATORIAS (sin excepción):\n1. Responde SOLO con datos del contexto proporcionado. Nunca inventes precios, horarios, incluidos o excluidos.\n2. Si el dato no está en el contexto, NO lo menciones. Di que lo confirmamos con el equipo.\n3. Respuestas cortas — máximo 4 líneas. Sin párrafos largos.\n4. Usa formato WhatsApp: *negrita* para nombres de tours, precios y datos clave.\n5. Usa emojis con moderación (1-2 por mensaje). ✅ 💰 📍 ⏱️ 📋\n6. Responde en el mismo idioma que la pregunta; conserva los nombres propios y traduce las etiquetas y explicaciones. No cambies al español si la pregunta está en portugués.\n7. Cierra en ese mismo idioma: en español, Escribe 👉 *asesor* para solicitar una reserva o más información 😊; en inglés, Write 👉 *advisor* to request a booking or for more info 😊; en portugués, Escreva 👉 *assessor* para solicitar uma reserva ou mais informações 😊. No afirmes que el cupo o la reserva están confirmados.\n8. Nunca menciones que eres una IA ni pongas disclaimers técnicos.\n9. Si hay conflicto de datos, di que lo confirmamos con el equipo — no elijas un valor.\n10. Si la pregunta consulta varios puntos y el contexto contiene información para uno (ej. altitud documentada) pero carece de datos para otro (ej. duración o dificultad de caminata, o actividades no registradas): responde el dato documentado y aclara que el aspecto pendiente requiere confirmación con el equipo/asesor. Nunca rechaces toda la pregunta si puedes responder una parte.\n\nContexto: [DATOS OFICIALES Y TARIFAS VIGENTES DE LA AGENCIA PARA CAMINO INCA CLÁSICO 4D/3N]\nTour: Camino Inca Clásico 4D/3N\nTarifa Oficial: 790 USD por persona\nHorario Oficial: Recojo 4:30 a. m. – 5:00 a. m.\nDuración: 4 días / 3 noches\nIncluye: Recojo del hotel en Cusco, transporte turístico hasta el Km 82, permiso de ingreso al Camino Inca, ingreso a Machu Picchu, guía profesional bilingüe español/inglés, porteadores para el equipo de campamento, cocinero, carpas y equipo de campamento, alimentación durante la caminata, bus de Machu Picchu a Aguas Calientes, tren turístico de retorno a Ollantaytambo y transporte terrestre de retorno a Cusco, botiquín de primeros auxilios y oxígeno de emergencia.\nNo incluye: Desayuno del primer día, almuerzo del último día, bolsa de dormir, bastones de trekking, porteador personal adicional, bebidas adicionales, seguro de viaje, gastos personales, propinas y entradas adicionales a Huayna Picchu o Montaña Machu Picchu.\n\n[Información del tour]\n\nTour: Camino Inca Clásico 4D/3N\n\nID: camino-inka\n\nCategoría: evidence_based\n\n\n\n- confirmed_product: sí (fuente: F2)\n- official_price: 790 USD (fuente: ADMIN_VIGENTE, página: None)\n- schedule: Recojo 4:30 a. m. – 5:00 a. m. (fuente: ADMIN_VIGENTE, página: None)\nPregunta: Quel est le prix du chemin de l'Inca ?"
+            },
+            {
+              "role": "human",
+              "content": "Quel est le prix du chemin de l'Inca ?"
+            }
+          ],
+          "execution": "nonfactual_dry_sentinel",
+          "started_at": "2026-10-11T01:13:32.979290+00:00",
+          "status": "completed",
+          "raw_response": "[DRY_RUN_NONFACTUAL_GENERATION: no factual answer was generated or approved]",
+          "token_usage": {},
+          "reported_model": null,
+          "finish_reason": null,
+          "latency_ms": 0.01,
+          "finished_at": "2026-10-11T01:13:32.979290+00:00"
+        }
+      ],
+      "real_llm_calls": 0,
+      "dry_generation_calls": 1,
+      "elapsed_ms": 63.54,
+      "review_status": "pending",
+      "semantic_passed": null,
+      "structural_checks": {
+        "response_is_nonempty_string": true,
+        "rag_llm_route_has_its_own_successful_call": true,
+        "current_question_preserved_in_all_model_prompts": true,
+        "call_budget_respected": true
+      }
+    },
+    {
+      "case_id": "EXP-143",
+      "declared_input_language": "it",
+      "question": "Consigliami un tour di mezza giornata senza escursioni a piedi.",
+      "detected_language": "it",
+      "result": {
+        "response": "🌟 Ecco i nostri suggerimenti verificati secondo le tue preferenze:\n• *Maras - Moray* (Mezza giornata, 08:40-14:00).\n\n_Scrivi il nome di un tour per dettagli, foto o prezzi, oppure contatta un consulente 😊_",
+        "context_used": true,
+        "is_predefined": true,
+        "is_fallback": false,
+        "resolved_autonomously": true,
+        "is_escalation": false,
+        "needs_agency_confirmation": false,
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "evidence_status": "documented",
+        "sources_used": [
+          "CATALOGO_OFICIAL"
+        ],
+        "route": "evidence_recommendation",
+        "response_route": "evidence_recommendation",
+        "entity_id": null,
+        "language": "it",
+        "recommended_tour_ids": [
+          "maras-moray"
+        ]
+      },
+      "retrieval": [],
+      "generation_calls": [],
+      "real_llm_calls": 0,
+      "dry_generation_calls": 0,
+      "elapsed_ms": 20.51,
+      "review_status": "pending",
+      "semantic_passed": null,
+      "structural_checks": {
+        "response_is_nonempty_string": true,
+        "rag_llm_route_has_its_own_successful_call": true,
+        "current_question_preserved_in_all_model_prompts": true,
+        "call_budget_respected": true
+      }
+    },
+    {
+      "case_id": "EXP-144",
+      "declared_input_language": "it",
+      "question": "A che ora parte il tour Maras Moray?",
+      "detected_language": "it",
+      "result": {
+        "response": "[DRY_RUN_NONFACTUAL_GENERATION: no factual answer was generated or approved]",
+        "context_used": true,
+        "is_fallback": false,
+        "is_escalation": false,
+        "is_predefined": false,
+        "needs_agency_confirmation": false,
+        "resolved_autonomously": true,
+        "response_route": "rag_llm",
+        "evidence_status": "rag_context",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": [],
+        "language": "it"
+      },
+      "retrieval": [
+        {
+          "query": "A che ora parte il tour Maras Moray",
+          "documents": [
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMaras - Moray\n- confirmed_product: sí (fuente: F1)\n- schedule: 08:40-14:00 (fuente: F1, página: None)\n- includes/bus_turistico_o_cuatrimotos_(modalidad_por_confirmar): confirmado por F1\n- includes/guia_profesional: confirmado por F1\n- stops/awana_chinchero: confirmado por F1\n- stops/moray: confirmado por F1\n- stops/salineras: confirmado por F1",
+              "metadata": {
+                "tour_id": "maras-moray",
+                "tour_name": "Maras - Moray",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 3.946474948785117,
+                "rank": 2,
+                "rrf_score": 0.032522,
+                "bm25_rank": 2,
+                "vector_rank": 1
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nTour Cuatrimoto / Maras-Moray\n- confirmed_product: sí (fuente: F3)\n- includes/cuatrimotos_modernas: confirmado por F3\n- includes/casco_equipo_proteccion: confirmado por F3\n- includes/visita_salineras: confirmado por F3\n- includes/visita_moray: confirmado por F3\n- includes/transporte_ida_vuelta: confirmado por F3",
+              "metadata": {
+                "tour_id": "maras-moray-cuatrimoto",
+                "tour_name": "Tour Cuatrimoto / Maras-Moray",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 5.194093554298166,
+                "rank": 1,
+                "rrf_score": 0.030886,
+                "bm25_rank": 1,
+                "vector_rank": 9
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nCity Tour Cusco\n- confirmed_product: sí (fuente: F2)\n- schedule: 10:00-14:00 / 13:30-18:30 (fuente: F1, página: None)\n- stops/koricancha: confirmado por F1+F2\n- stops/sacsayhuaman: confirmado por F1+F2\n- stops/qenqo: confirmado por F1+F2\n- stops/puka_pukara: confirmado por F1+F2\n- stops/tambomachay: confirmado por F1+F2\n- includes/bus_turistico: confirmado por F1\n- includes/guia_profesional: confirmado por F1",
+              "metadata": {
+                "tour_id": "city-tour-cusco",
+                "tour_name": "City Tour Cusco",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 1.2182859809197102,
+                "rank": 4,
+                "rrf_score": 0.030777,
+                "bm25_rank": 4,
+                "vector_rank": 6
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nValle Sur\n- confirmed_product: sí (fuente: F2)\n- schedule: 08:40-14:00 (fuente: F1, página: None)\n- stops/tipon: confirmado por F1+F2\n- stops/pikillaqta: confirmado por F1+F2\n- stops/andahuaylillas: confirmado por F1+F2\n- includes/transporte_ida_vuelta: confirmado por F2\n- includes/guia_profesional_bilingue: confirmado por F2",
+              "metadata": {
+                "tour_id": "valle-sur",
+                "tour_name": "Valle Sur",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 0.0,
+                "rank": 6,
+                "rrf_score": 0.030777,
+                "bm25_rank": 6,
+                "vector_rank": 4
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nValle Sagrado\n- confirmed_product: sí (fuente: F2)\n- schedule: 07:30-18:30 (fuente: F1, página: None)\n- stops/chinchero: confirmado por F1\n- stops/moray: confirmado por F1\n- stops/maras_salineras: confirmado por F1\n- stops/ollantaytambo: confirmado por F1\n- stops/pisac: confirmado por F1\n- stops/urubamba: confirmado por F1\n- includes/transporte_ida_vuelta: confirmado por F2\n- includes/guia_profesional_bilingue: confirmado por F2\n- includes/almuerzo: confirmado por F2\n- includes/almuerzo_buffet: confirmado por F3\n- includes/bus_turistico: confirmado por F3\n- excludes/boleto_turistico: confirmado por F3",
+              "metadata": {
+                "tour_id": "valle-sagrado",
+                "tour_name": "Valle Sagrado",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 1.1118957827023865,
+                "rank": 5,
+                "rrf_score": 0.030769,
+                "bm25_rank": 5,
+                "vector_rank": 5
+              }
+            }
+          ],
+          "status": "completed",
+          "latency_ms": 31.57
+        }
+      ],
+      "generation_calls": [
+        {
+          "call_index": 3,
+          "input_messages": [
+            {
+              "role": "system",
+              "content": "Eres el asistente de *Texeira Travel*, una agencia de turismo en Cusco, Perú.\n\nREGLAS OBLIGATORIAS (sin excepción):\n1. Responde SOLO con datos del contexto proporcionado. Nunca inventes precios, horarios, incluidos o excluidos.\n2. Si el dato no está en el contexto, NO lo menciones. Di que lo confirmamos con el equipo.\n3. Respuestas cortas — máximo 4 líneas. Sin párrafos largos.\n4. Usa formato WhatsApp: *negrita* para nombres de tours, precios y datos clave.\n5. Usa emojis con moderación (1-2 por mensaje). ✅ 💰 📍 ⏱️ 📋\n6. Responde en el mismo idioma que la pregunta; conserva los nombres propios y traduce las etiquetas y explicaciones. No cambies al español si la pregunta está en portugués.\n7. Cierra en ese mismo idioma: en español, Escribe 👉 *asesor* para solicitar una reserva o más información 😊; en inglés, Write 👉 *advisor* to request a booking or for more info 😊; en portugués, Escreva 👉 *assessor* para solicitar uma reserva ou mais informações 😊. No afirmes que el cupo o la reserva están confirmados.\n8. Nunca menciones que eres una IA ni pongas disclaimers técnicos.\n9. Si hay conflicto de datos, di que lo confirmamos con el equipo — no elijas un valor.\n10. Si la pregunta consulta varios puntos y el contexto contiene información para uno (ej. altitud documentada) pero carece de datos para otro (ej. duración o dificultad de caminata, o actividades no registradas): responde el dato documentado y aclara que el aspecto pendiente requiere confirmación con el equipo/asesor. Nunca rechaces toda la pregunta si puedes responder una parte.\n\nContexto: [DATOS OFICIALES Y TARIFAS VIGENTES DE LA AGENCIA PARA MARAS - MORAY]\nTour: Maras - Moray\nTarifa Oficial: 50 USD por persona\nHorario Oficial: 08:40-14:00\nDuración: Medio día\nincludes: SIN DATO VIGENTE; el administrador borró este campo. Confirmar con el equipo; no recuperar valores anteriores.\nexcludes: SIN DATO VIGENTE; el administrador borró este campo. Confirmar con el equipo; no recuperar valores anteriores.\n\n[Información del tour]\n\nTour: Maras - Moray\n\nID: maras-moray\n\nCategoría: evidence_based\n\n\n\n- confirmed_product: sí (fuente: F1)\n- stops/awana_chinchero: confirmado por F1\n- stops/moray: confirmado por F1\n- stops/salineras: confirmado por F1\n- duration: Medio día (fuente: ADMIN_VIGENTE, página: None)\n- official_price: 50 USD (fuente: ADMIN_VIGENTE, página: None)\n- schedule: 08:40-14:00 (fuente: ADMIN_VIGENTE, página: None)\nPregunta: A che ora parte il tour Maras Moray?"
+            },
+            {
+              "role": "human",
+              "content": "A che ora parte il tour Maras Moray?"
+            }
+          ],
+          "execution": "nonfactual_dry_sentinel",
+          "started_at": "2026-10-11T01:13:33.065609+00:00",
+          "status": "completed",
+          "raw_response": "[DRY_RUN_NONFACTUAL_GENERATION: no factual answer was generated or approved]",
+          "token_usage": {},
+          "reported_model": null,
+          "finish_reason": null,
+          "latency_ms": 0.01,
+          "finished_at": "2026-10-11T01:13:33.066606+00:00"
+        }
+      ],
+      "real_llm_calls": 0,
+      "dry_generation_calls": 1,
+      "elapsed_ms": 58.89,
+      "review_status": "pending",
+      "semantic_passed": null,
+      "structural_checks": {
+        "response_is_nonempty_string": true,
+        "rag_llm_route_has_its_own_successful_call": true,
+        "current_question_preserved_in_all_model_prompts": true,
+        "call_budget_respected": true
+      }
+    },
+    {
+      "case_id": "EXP-145",
+      "declared_input_language": "mixed",
+      "question": "I have medio día y no quiero hiking, what do you recommend?",
+      "detected_language": "en",
+      "result": {
+        "response": "🌟 Based on what you like, here are our top verified recommendations:\n• *Maras - Moray* (Half day, 08:40-14:00 — salt mines and circular agricultural terraces).\n\n_Type the name of any tour for full details, photos or rates, or write 👉 advisor to coordinate with our team 😊_",
+        "context_used": true,
+        "is_predefined": true,
+        "is_fallback": false,
+        "resolved_autonomously": true,
+        "is_escalation": false,
+        "needs_agency_confirmation": false,
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "evidence_status": "documented",
+        "sources_used": [
+          "CATALOGO_OFICIAL"
+        ],
+        "route": "evidence_recommendation",
+        "response_route": "evidence_recommendation",
+        "entity_id": null,
+        "language": "en",
+        "recommended_tour_ids": [
+          "maras-moray"
+        ]
+      },
+      "retrieval": [],
+      "generation_calls": [],
+      "real_llm_calls": 0,
+      "dry_generation_calls": 0,
+      "elapsed_ms": 21.44,
+      "review_status": "pending",
+      "semantic_passed": null,
+      "structural_checks": {
+        "response_is_nonempty_string": true,
+        "rag_llm_route_has_its_own_successful_call": true,
+        "current_question_preserved_in_all_model_prompts": true,
+        "call_budget_respected": true
+      }
+    },
+    {
+      "case_id": "EXP-146",
+      "declared_input_language": "mixed",
+      "question": "precio de Inca Trail please, sin inventar discounts",
+      "detected_language": "es",
+      "result": {
+        "response": "💰 *Camino Inca Clásico 4D/3N*\nTarifa oficial: *790 USD* por persona\n\nEscribe 👉 *asesor* para reservar o consultar fechas 😊",
+        "context_used": true,
+        "is_predefined": true,
+        "is_fallback": false,
+        "resolved_autonomously": true,
+        "is_escalation": false,
+        "needs_agency_confirmation": false,
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "evidence_status": "documented",
+        "sources_used": [
+          "CATALOGO_OFICIAL"
+        ],
+        "route": "evidence_confirmed_price",
+        "response_route": "evidence_confirmed_price",
+        "entity_id": "camino-inka",
+        "language": "es"
+      },
+      "retrieval": [],
+      "generation_calls": [],
+      "real_llm_calls": 0,
+      "dry_generation_calls": 0,
+      "elapsed_ms": 21.2,
+      "review_status": "pending",
+      "semantic_passed": null,
+      "structural_checks": {
+        "response_is_nonempty_string": true,
+        "rag_llm_route_has_its_own_successful_call": true,
+        "current_question_preserved_in_all_model_prompts": true,
+        "call_budget_respected": true
+      }
+    },
+    {
+      "case_id": "EXP-147",
+      "declared_input_language": "es_open",
+      "question": "Compara Camino Inca con Inka Jungle para alguien que disfruta naturaleza.",
+      "detected_language": "es",
+      "result": {
+        "response": "[DRY_RUN_NONFACTUAL_GENERATION: no factual answer was generated or approved]",
+        "context_used": true,
+        "is_fallback": false,
+        "is_escalation": false,
+        "is_predefined": false,
+        "needs_agency_confirmation": false,
+        "resolved_autonomously": true,
+        "response_route": "rag_llm",
+        "evidence_status": "rag_context",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": [],
+        "language": "es"
+      },
+      "retrieval": [
+        {
+          "query": "Compara Camino Inca con Inka Jungle para alguien que disfruta naturaleza",
+          "documents": [
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nCamino Inca Clásico 4D/3N\n- confirmed_product: sí (fuente: F2)",
+              "metadata": {
+                "tour_id": "camino-inka",
+                "tour_name": "Camino Inca Clásico 4D/3N",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 6.706735007391163,
+                "rank": 1,
+                "rrf_score": 0.032522,
+                "bm25_rank": 1,
+                "vector_rank": 2
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nInka Jungle to Machu Picchu\n- confirmed_product: sí (fuente: F2)\n- duration: 4 días (itinerario publicado; confirmar variante y noches) (fuente: F2, página: 17)\n- altitude: Abra Málaga a 4,350 m.s.n.m. (punto más alto del circuito) (fuente: F2, página: 17)\n- route: Día 1: Descenso en bicicleta desde Abra Málaga (4,350 m.s.n.m.) hasta Santa María (1,450 m.s.n.m.). Otras actividades de aventura y tiempos de caminata requieren confirmación con la agencia. (fuente: F2, página: 17)",
+              "metadata": {
+                "tour_id": "inka-jungle",
+                "tour_name": "Inka Jungle to Machu Picchu",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 3.883146805257524,
+                "rank": 2,
+                "rrf_score": 0.032522,
+                "bm25_rank": 2,
+                "vector_rank": 1
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMachu Picchu by Car\n- confirmed_product: sí (fuente: F2)",
+              "metadata": {
+                "tour_id": "machu-picchu-car",
+                "tour_name": "Machu Picchu by Car",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 0.0,
+                "rank": 9,
+                "rrf_score": 0.029199,
+                "bm25_rank": 9,
+                "vector_rank": 8
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMachu Picchu en Tren\n- confirmed_product: sí (fuente: F1)\n- includes/traslado_cusco_ollanta_cusco: confirmado por F1\n- includes/tren_ida_vuelta: confirmado por F1\n- includes/bus_subida_bajada: confirmado por F1\n- includes/ingresos_machu_picchu: confirmado por F1\n- includes/guia_profesional: confirmado por F1+F3\n- includes/recojo_hotel: confirmado por F3\n- includes/tickets_tren: confirmado por F3\n- includes/entradas_ciudadela: confirmado por F3",
+              "metadata": {
+                "tour_id": "machu-picchu-tren",
+                "tour_name": "Machu Picchu en Tren",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 0.0,
+                "rank": 10,
+                "rrf_score": 0.028571,
+                "bm25_rank": 10,
+                "vector_rank": 10
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nCity Tour Cusco\n- confirmed_product: sí (fuente: F2)\n- schedule: 10:00-14:00 / 13:30-18:30 (fuente: F1, página: None)\n- stops/koricancha: confirmado por F1+F2\n- stops/sacsayhuaman: confirmado por F1+F2\n- stops/qenqo: confirmado por F1+F2\n- stops/puka_pukara: confirmado por F1+F2\n- stops/tambomachay: confirmado por F1+F2\n- includes/bus_turistico: confirmado por F1\n- includes/guia_profesional: confirmado por F1",
+              "metadata": {
+                "tour_id": "city-tour-cusco",
+                "tour_name": "City Tour Cusco",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 0.0,
+                "rank": 3,
+                "rrf_score": 0.015873,
+                "bm25_rank": 3,
+                "vector_rank": null
+              }
+            }
+          ],
+          "status": "completed",
+          "latency_ms": 33.67
+        }
+      ],
+      "generation_calls": [
+        {
+          "call_index": 4,
+          "input_messages": [
+            {
+              "role": "system",
+              "content": "Eres el asistente de *Texeira Travel*, una agencia de turismo en Cusco, Perú.\n\nREGLAS OBLIGATORIAS (sin excepción):\n1. Responde SOLO con datos del contexto proporcionado. Nunca inventes precios, horarios, incluidos o excluidos.\n2. Si el dato no está en el contexto, NO lo menciones. Di que lo confirmamos con el equipo.\n3. Respuestas cortas — máximo 4 líneas. Sin párrafos largos.\n4. Usa formato WhatsApp: *negrita* para nombres de tours, precios y datos clave.\n5. Usa emojis con moderación (1-2 por mensaje). ✅ 💰 📍 ⏱️ 📋\n6. Responde en el mismo idioma que la pregunta; conserva los nombres propios y traduce las etiquetas y explicaciones. No cambies al español si la pregunta está en portugués.\n7. Cierra en ese mismo idioma: en español, Escribe 👉 *asesor* para solicitar una reserva o más información 😊; en inglés, Write 👉 *advisor* to request a booking or for more info 😊; en portugués, Escreva 👉 *assessor* para solicitar uma reserva ou mais informações 😊. No afirmes que el cupo o la reserva están confirmados.\n8. Nunca menciones que eres una IA ni pongas disclaimers técnicos.\n9. Si hay conflicto de datos, di que lo confirmamos con el equipo — no elijas un valor.\n10. Si la pregunta consulta varios puntos y el contexto contiene información para uno (ej. altitud documentada) pero carece de datos para otro (ej. duración o dificultad de caminata, o actividades no registradas): responde el dato documentado y aclara que el aspecto pendiente requiere confirmación con el equipo/asesor. Nunca rechaces toda la pregunta si puedes responder una parte.\n\nContexto: [DATOS OFICIALES Y TARIFAS VIGENTES DE LA AGENCIA PARA CAMINO INCA CLÁSICO 4D/3N]\nTour: Camino Inca Clásico 4D/3N\nTarifa Oficial: 790 USD por persona\nHorario Oficial: Recojo 4:30 a. m. – 5:00 a. m.\nDuración: 4 días / 3 noches\nIncluye: Recojo del hotel en Cusco, transporte turístico hasta el Km 82, permiso de ingreso al Camino Inca, ingreso a Machu Picchu, guía profesional bilingüe español/inglés, porteadores para el equipo de campamento, cocinero, carpas y equipo de campamento, alimentación durante la caminata, bus de Machu Picchu a Aguas Calientes, tren turístico de retorno a Ollantaytambo y transporte terrestre de retorno a Cusco, botiquín de primeros auxilios y oxígeno de emergencia.\nNo incluye: Desayuno del primer día, almuerzo del último día, bolsa de dormir, bastones de trekking, porteador personal adicional, bebidas adicionales, seguro de viaje, gastos personales, propinas y entradas adicionales a Huayna Picchu o Montaña Machu Picchu.\n\n[DATOS OFICIALES Y TARIFAS VIGENTES DE LA AGENCIA PARA INKA JUNGLE TO MACHU PICCHU]\nTour: Inka Jungle to Machu Picchu\nTarifa Oficial: 460 USD por persona\nHorario Oficial: Recojo 5:30 a. m. aprox.\nDuración: 4 días / 3 noches\nIncluye: Transporte turístico desde Cusco, guía profesional, bicicleta y equipo de seguridad, rafting, zip line, alojamiento por 3 noches, entrada a Machu Picchu, alimentación durante el recorrido, bus a Machu Picchu, tren de retorno a Ollantaytambo y transporte de regreso a Cusco.\nNo incluye: Desayuno del primer día, almuerzo y cena del último día, gastos personales, seguro de viaje, propinas, bastones de trekking y entradas adicionales a Huayna Picchu o Montaña Machu Picchu.\n\n[Información del tour]\n\nTour: Camino Inca Clásico 4D/3N\n\nID: camino-inka\n\nCategoría: evidence_based\n\n\n\n- confirmed_product: sí (fuente: F2)\n- official_price: 790 USD (fuente: ADMIN_VIGENTE, página: None)\n- schedule: Recojo 4:30 a. m. – 5:00 a. m. (fuente: ADMIN_VIGENTE, página: None)\n\n[Información del tour]\n\nTour: Inka Jungle to Machu Picchu\n\nID: inka-jungle\n\nCategoría: evidence_based\n\n\n\n- confirmed_product: sí (fuente: F2)\n- altitude: Abra Málaga a 4,350 m.s.n.m. (punto más alto del circuito) (fuente: F2, página: 17)\n- route: Día 1: Descenso en bicicleta desde Abra Málaga (4,350 m.s.n.m.) hasta Santa María (1,450 m.s.n.m.). Otras actividades de aventura y tiempos de caminata requieren confirmación con la agencia. (fuente: F2, página: 17)\n- includes: Transporte turístico desde Cusco, guía profesional, bicicleta y equipo de seguridad, rafting, zip line, alojamiento por 3 noches, entrada a Machu Picchu, alimentación durante el recorrido, bus a Machu Picchu, tren de retorno a Ollantaytambo y transporte de regreso a Cusco. (fuente: ADMIN_VIGENTE, página: None)\n- excludes: Desayuno del primer día, almuerzo y cena del último día, gastos personales, seguro de viaje, propinas, bastones de trekking y entradas adicionales a Huayna Picchu o Montaña Machu Picchu. (fuente: ADMIN_VIGENTE, página: None)\n- duration: 4 días / 3 noches (fuente: ADMIN_VIGENTE, página: None)\n- official_price: 460 USD (fuente: ADMIN_VIGENTE, página: None)\n- schedule: Recojo 5:30 a. m. aprox. (fuente: ADMIN_VIGENTE, página: None)\nPregunta: Compara Camino Inca con Inka Jungle para alguien que disfruta naturaleza."
+            },
+            {
+              "role": "human",
+              "content": "Compara Camino Inca con Inka Jungle para alguien que disfruta naturaleza."
+            }
+          ],
+          "execution": "nonfactual_dry_sentinel",
+          "started_at": "2026-10-11T01:13:33.184292+00:00",
+          "status": "completed",
+          "raw_response": "[DRY_RUN_NONFACTUAL_GENERATION: no factual answer was generated or approved]",
+          "token_usage": {},
+          "reported_model": null,
+          "finish_reason": null,
+          "latency_ms": 0.01,
+          "finished_at": "2026-10-11T01:13:33.184292+00:00"
+        }
+      ],
+      "real_llm_calls": 0,
+      "dry_generation_calls": 1,
+      "elapsed_ms": 75.11,
+      "review_status": "pending",
+      "semantic_passed": null,
+      "structural_checks": {
+        "response_is_nonempty_string": true,
+        "rag_llm_route_has_its_own_successful_call": true,
+        "current_question_preserved_in_all_model_prompts": true,
+        "call_budget_respected": true
+      }
+    },
+    {
+      "case_id": "EXP-148",
+      "declared_input_language": "en_open",
+      "question": "How should I prepare for the Inca Trail and what gear is documented?",
+      "detected_language": "en",
+      "result": {
+        "response": "[DRY_RUN_NONFACTUAL_GENERATION: no factual answer was generated or approved]",
+        "context_used": true,
+        "is_fallback": false,
+        "is_escalation": false,
+        "is_predefined": false,
+        "needs_agency_confirmation": false,
+        "resolved_autonomously": true,
+        "response_route": "rag_llm",
+        "evidence_status": "rag_context",
+        "needs_confirmation": false,
+        "conflict_detected": false,
+        "sources_used": [],
+        "language": "en"
+      },
+      "retrieval": [
+        {
+          "query": "How should I prepare for the Inca Trail and what gear is documented?",
+          "documents": [
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nCamino Inca Clásico 4D/3N\n- confirmed_product: sí (fuente: F2)",
+              "metadata": {
+                "tour_id": "camino-inka",
+                "tour_name": "Camino Inca Clásico 4D/3N",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 3.3533675036955817,
+                "rank": 1,
+                "rrf_score": 0.032522,
+                "bm25_rank": 1,
+                "vector_rank": 2
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nLaguna Humantay\n- confirmed_product: sí (fuente: F2)\n- schedule: 04:30-17:00 (fuente: F1, página: None)\n- includes/transporte: confirmado por F1\n- includes/guia_profesional: confirmado por F1\n- includes/desayuno: confirmado por F1\n- includes/almuerzo: confirmado por F1+F2\n- includes/transporte_ida_vuelta: confirmado por F2\n- includes/guia_profesional_bilingue: confirmado por F2\n- altitude: 4,200 m.s.n.m. (Soraypampa a 3,920 m.s.n.m.) (fuente: F2, página: 9)\n- route: Ascenso a pie desde Soraypampa (3,920 m.s.n.m.) hasta Laguna Humantay (4,200 m.s.n.m.). La duración o dificultad de la subida a pie requieren confirmación con la agencia. (fuente: F2, página: 9)",
+              "metadata": {
+                "tour_id": "laguna-humantay",
+                "tour_name": "Laguna Humantay",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 0.0,
+                "rank": 6,
+                "rrf_score": 0.029437,
+                "bm25_rank": 6,
+                "vector_rank": 10
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nMachu Picchu by Car\n- confirmed_product: sí (fuente: F2)",
+              "metadata": {
+                "tour_id": "machu-picchu-car",
+                "tour_name": "Machu Picchu by Car",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 0.0,
+                "rank": 8,
+                "rrf_score": 0.029199,
+                "bm25_rank": 8,
+                "vector_rank": 9
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nInka Jungle to Machu Picchu\n- confirmed_product: sí (fuente: F2)\n- duration: 4 días (itinerario publicado; confirmar variante y noches) (fuente: F2, página: 17)\n- altitude: Abra Málaga a 4,350 m.s.n.m. (punto más alto del circuito) (fuente: F2, página: 17)\n- route: Día 1: Descenso en bicicleta desde Abra Málaga (4,350 m.s.n.m.) hasta Santa María (1,450 m.s.n.m.). Otras actividades de aventura y tiempos de caminata requieren confirmación con la agencia. (fuente: F2, página: 17)",
+              "metadata": {
+                "category": "evidence_based",
+                "chunk_index": 0,
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "source": "evidence-v4-2026-09-11",
+                "tour_id": "inka-jungle",
+                "tour_name": "Inka Jungle to Machu Picchu",
+                "retrieval_method": "hybrid_rrf",
+                "rrf_score": 0.016393,
+                "bm25_rank": null,
+                "vector_rank": 1
+              }
+            },
+            {
+              "content": "Información de los materiales de Texeira. Tarifas, cupos y vigencia por confirmar con la agencia.\nCity Tour Cusco\n- confirmed_product: sí (fuente: F2)\n- schedule: 10:00-14:00 / 13:30-18:30 (fuente: F1, página: None)\n- stops/koricancha: confirmado por F1+F2\n- stops/sacsayhuaman: confirmado por F1+F2\n- stops/qenqo: confirmado por F1+F2\n- stops/puka_pukara: confirmado por F1+F2\n- stops/tambomachay: confirmado por F1+F2\n- includes/bus_turistico: confirmado por F1\n- includes/guia_profesional: confirmado por F1",
+              "metadata": {
+                "tour_id": "city-tour-cusco",
+                "tour_name": "City Tour Cusco",
+                "chunk_index": 0,
+                "source": "evidence-v4-2026-09-11",
+                "category": "evidence_based",
+                "evidence_status": "no_conflict",
+                "needs_confirmation": false,
+                "retrieval_method": "hybrid_rrf",
+                "bm25_score": 0.0,
+                "rank": 2,
+                "rrf_score": 0.016129,
+                "bm25_rank": 2,
+                "vector_rank": null
+              }
+            }
+          ],
+          "status": "completed",
+          "latency_ms": 36.56
+        }
+      ],
+      "generation_calls": [
+        {
+          "call_index": 5,
+          "input_messages": [
+            {
+              "role": "system",
+              "content": "Eres el asistente de *Texeira Travel*, una agencia de turismo en Cusco, Perú.\n\nREGLAS OBLIGATORIAS (sin excepción):\n1. Responde SOLO con datos del contexto proporcionado. Nunca inventes precios, horarios, incluidos o excluidos.\n2. Si el dato no está en el contexto, NO lo menciones. Di que lo confirmamos con el equipo.\n3. Respuestas cortas — máximo 4 líneas. Sin párrafos largos.\n4. Usa formato WhatsApp: *negrita* para nombres de tours, precios y datos clave.\n5. Usa emojis con moderación (1-2 por mensaje). ✅ 💰 📍 ⏱️ 📋\n6. Responde en el mismo idioma que la pregunta; conserva los nombres propios y traduce las etiquetas y explicaciones. No cambies al español si la pregunta está en portugués.\n7. Cierra en ese mismo idioma: en español, Escribe 👉 *asesor* para solicitar una reserva o más información 😊; en inglés, Write 👉 *advisor* to request a booking or for more info 😊; en portugués, Escreva 👉 *assessor* para solicitar uma reserva ou mais informações 😊. No afirmes que el cupo o la reserva están confirmados.\n8. Nunca menciones que eres una IA ni pongas disclaimers técnicos.\n9. Si hay conflicto de datos, di que lo confirmamos con el equipo — no elijas un valor.\n10. Si la pregunta consulta varios puntos y el contexto contiene información para uno (ej. altitud documentada) pero carece de datos para otro (ej. duración o dificultad de caminata, o actividades no registradas): responde el dato documentado y aclara que el aspecto pendiente requiere confirmación con el equipo/asesor. Nunca rechaces toda la pregunta si puedes responder una parte.\n\nContexto: [DATOS OFICIALES Y TARIFAS VIGENTES DE LA AGENCIA PARA CAMINO INCA CLÁSICO 4D/3N]\nTour: Camino Inca Clásico 4D/3N\nTarifa Oficial: 790 USD por persona\nHorario Oficial: Recojo 4:30 a. m. – 5:00 a. m.\nDuración: 4 días / 3 noches\nIncluye: Recojo del hotel en Cusco, transporte turístico hasta el Km 82, permiso de ingreso al Camino Inca, ingreso a Machu Picchu, guía profesional bilingüe español/inglés, porteadores para el equipo de campamento, cocinero, carpas y equipo de campamento, alimentación durante la caminata, bus de Machu Picchu a Aguas Calientes, tren turístico de retorno a Ollantaytambo y transporte terrestre de retorno a Cusco, botiquín de primeros auxilios y oxígeno de emergencia.\nNo incluye: Desayuno del primer día, almuerzo del último día, bolsa de dormir, bastones de trekking, porteador personal adicional, bebidas adicionales, seguro de viaje, gastos personales, propinas y entradas adicionales a Huayna Picchu o Montaña Machu Picchu.\n\n[Información del tour]\n\nTour: Camino Inca Clásico 4D/3N\n\nID: camino-inka\n\nCategoría: evidence_based\n\n\n\n- confirmed_product: sí (fuente: F2)\n- official_price: 790 USD (fuente: ADMIN_VIGENTE, página: None)\n- schedule: Recojo 4:30 a. m. – 5:00 a. m. (fuente: ADMIN_VIGENTE, página: None)\nPregunta: How should I prepare for the Inca Trail and what gear is documented?"
+            },
+            {
+              "role": "human",
+              "content": "How should I prepare for the Inca Trail and what gear is documented?"
+            }
+          ],
+          "execution": "nonfactual_dry_sentinel",
+          "started_at": "2026-10-11T01:13:33.259112+00:00",
+          "status": "completed",
+          "raw_response": "[DRY_RUN_NONFACTUAL_GENERATION: no factual answer was generated or approved]",
+          "token_usage": {},
+          "reported_model": null,
+          "finish_reason": null,
+          "latency_ms": 0.01,
+          "finished_at": "2026-10-11T01:13:33.259112+00:00"
+        }
+      ],
+      "real_llm_calls": 0,
+      "dry_generation_calls": 1,
+      "elapsed_ms": 63.34,
+      "review_status": "pending",
+      "semantic_passed": null,
+      "structural_checks": {
+        "response_is_nonempty_string": true,
+        "rag_llm_route_has_its_own_successful_call": true,
+        "current_question_preserved_in_all_model_prompts": true,
+        "call_budget_respected": true
+      }
+    }
+  ],
+  "generation_calls": [
+    {
+      "call_index": 1,
+      "input_messages": [
+        {
+          "role": "system",
+          "content": "Eres el asistente de *Texeira Travel*, una agencia de turismo en Cusco, Perú.\n\nREGLAS OBLIGATORIAS (sin excepción):\n1. Responde SOLO con datos del contexto proporcionado. Nunca inventes precios, horarios, incluidos o excluidos.\n2. Si el dato no está en el contexto, NO lo menciones. Di que lo confirmamos con el equipo.\n3. Respuestas cortas — máximo 4 líneas. Sin párrafos largos.\n4. Usa formato WhatsApp: *negrita* para nombres de tours, precios y datos clave.\n5. Usa emojis con moderación (1-2 por mensaje). ✅ 💰 📍 ⏱️ 📋\n6. Responde en el mismo idioma que la pregunta; conserva los nombres propios y traduce las etiquetas y explicaciones. No cambies al español si la pregunta está en portugués.\n7. Cierra en ese mismo idioma: en español, Escribe 👉 *asesor* para solicitar una reserva o más información 😊; en inglés, Write 👉 *advisor* to request a booking or for more info 😊; en portugués, Escreva 👉 *assessor* para solicitar uma reserva ou mais informações 😊. No afirmes que el cupo o la reserva están confirmados.\n8. Nunca menciones que eres una IA ni pongas disclaimers técnicos.\n9. Si hay conflicto de datos, di que lo confirmamos con el equipo — no elijas un valor.\n10. Si la pregunta consulta varios puntos y el contexto contiene información para uno (ej. altitud documentada) pero carece de datos para otro (ej. duración o dificultad de caminata, o actividades no registradas): responde el dato documentado y aclara que el aspecto pendiente requiere confirmación con el equipo/asesor. Nunca rechaces toda la pregunta si puedes responder una parte.\n\nContexto: [DATOS OFICIALES Y TARIFAS VIGENTES DE LA AGENCIA PARA MARAS - MORAY]\nTour: Maras - Moray\nTarifa Oficial: 50 USD por persona\nHorario Oficial: 08:40-14:00\nDuración: Medio día\nincludes: SIN DATO VIGENTE; el administrador borró este campo. Confirmar con el equipo; no recuperar valores anteriores.\nexcludes: SIN DATO VIGENTE; el administrador borró este campo. Confirmar con el equipo; no recuperar valores anteriores.\n\n[Información del tour]\n\nTour: Maras - Moray\n\nID: maras-moray\n\nCategoría: evidence_based\n\n\n\n- confirmed_product: sí (fuente: F1)\n- stops/awana_chinchero: confirmado por F1\n- stops/moray: confirmado por F1\n- stops/salineras: confirmado por F1\n- duration: Medio día (fuente: ADMIN_VIGENTE, página: None)\n- official_price: 50 USD (fuente: ADMIN_VIGENTE, página: None)\n- schedule: 08:40-14:00 (fuente: ADMIN_VIGENTE, página: None)\nPregunta: Quanto custa o passeio Maras Moray e o que está incluído?"
+        },
+        {
+          "role": "human",
+          "content": "Quanto custa o passeio Maras Moray e o que está incluído?"
+        }
+      ],
+      "execution": "nonfactual_dry_sentinel",
+      "started_at": "2026-10-11T01:13:32.875670+00:00",
+      "status": "completed",
+      "raw_response": "[DRY_RUN_NONFACTUAL_GENERATION: no factual answer was generated or approved]",
+      "token_usage": {},
+      "reported_model": null,
+      "finish_reason": null,
+      "latency_ms": 0.01,
+      "finished_at": "2026-10-11T01:13:32.875670+00:00"
+    },
+    {
+      "call_index": 2,
+      "input_messages": [
+        {
+          "role": "system",
+          "content": "Eres el asistente de *Texeira Travel*, una agencia de turismo en Cusco, Perú.\n\nREGLAS OBLIGATORIAS (sin excepción):\n1. Responde SOLO con datos del contexto proporcionado. Nunca inventes precios, horarios, incluidos o excluidos.\n2. Si el dato no está en el contexto, NO lo menciones. Di que lo confirmamos con el equipo.\n3. Respuestas cortas — máximo 4 líneas. Sin párrafos largos.\n4. Usa formato WhatsApp: *negrita* para nombres de tours, precios y datos clave.\n5. Usa emojis con moderación (1-2 por mensaje). ✅ 💰 📍 ⏱️ 📋\n6. Responde en el mismo idioma que la pregunta; conserva los nombres propios y traduce las etiquetas y explicaciones. No cambies al español si la pregunta está en portugués.\n7. Cierra en ese mismo idioma: en español, Escribe 👉 *asesor* para solicitar una reserva o más información 😊; en inglés, Write 👉 *advisor* to request a booking or for more info 😊; en portugués, Escreva 👉 *assessor* para solicitar uma reserva ou mais informações 😊. No afirmes que el cupo o la reserva están confirmados.\n8. Nunca menciones que eres una IA ni pongas disclaimers técnicos.\n9. Si hay conflicto de datos, di que lo confirmamos con el equipo — no elijas un valor.\n10. Si la pregunta consulta varios puntos y el contexto contiene información para uno (ej. altitud documentada) pero carece de datos para otro (ej. duración o dificultad de caminata, o actividades no registradas): responde el dato documentado y aclara que el aspecto pendiente requiere confirmación con el equipo/asesor. Nunca rechaces toda la pregunta si puedes responder una parte.\n\nContexto: [DATOS OFICIALES Y TARIFAS VIGENTES DE LA AGENCIA PARA CAMINO INCA CLÁSICO 4D/3N]\nTour: Camino Inca Clásico 4D/3N\nTarifa Oficial: 790 USD por persona\nHorario Oficial: Recojo 4:30 a. m. – 5:00 a. m.\nDuración: 4 días / 3 noches\nIncluye: Recojo del hotel en Cusco, transporte turístico hasta el Km 82, permiso de ingreso al Camino Inca, ingreso a Machu Picchu, guía profesional bilingüe español/inglés, porteadores para el equipo de campamento, cocinero, carpas y equipo de campamento, alimentación durante la caminata, bus de Machu Picchu a Aguas Calientes, tren turístico de retorno a Ollantaytambo y transporte terrestre de retorno a Cusco, botiquín de primeros auxilios y oxígeno de emergencia.\nNo incluye: Desayuno del primer día, almuerzo del último día, bolsa de dormir, bastones de trekking, porteador personal adicional, bebidas adicionales, seguro de viaje, gastos personales, propinas y entradas adicionales a Huayna Picchu o Montaña Machu Picchu.\n\n[Información del tour]\n\nTour: Camino Inca Clásico 4D/3N\n\nID: camino-inka\n\nCategoría: evidence_based\n\n\n\n- confirmed_product: sí (fuente: F2)\n- official_price: 790 USD (fuente: ADMIN_VIGENTE, página: None)\n- schedule: Recojo 4:30 a. m. – 5:00 a. m. (fuente: ADMIN_VIGENTE, página: None)\nPregunta: Quel est le prix du chemin de l'Inca ?"
+        },
+        {
+          "role": "human",
+          "content": "Quel est le prix du chemin de l'Inca ?"
+        }
+      ],
+      "execution": "nonfactual_dry_sentinel",
+      "started_at": "2026-10-11T01:13:32.979290+00:00",
+      "status": "completed",
+      "raw_response": "[DRY_RUN_NONFACTUAL_GENERATION: no factual answer was generated or approved]",
+      "token_usage": {},
+      "reported_model": null,
+      "finish_reason": null,
+      "latency_ms": 0.01,
+      "finished_at": "2026-10-11T01:13:32.979290+00:00"
+    },
+    {
+      "call_index": 3,
+      "input_messages": [
+        {
+          "role": "system",
+          "content": "Eres el asistente de *Texeira Travel*, una agencia de turismo en Cusco, Perú.\n\nREGLAS OBLIGATORIAS (sin excepción):\n1. Responde SOLO con datos del contexto proporcionado. Nunca inventes precios, horarios, incluidos o excluidos.\n2. Si el dato no está en el contexto, NO lo menciones. Di que lo confirmamos con el equipo.\n3. Respuestas cortas — máximo 4 líneas. Sin párrafos largos.\n4. Usa formato WhatsApp: *negrita* para nombres de tours, precios y datos clave.\n5. Usa emojis con moderación (1-2 por mensaje). ✅ 💰 📍 ⏱️ 📋\n6. Responde en el mismo idioma que la pregunta; conserva los nombres propios y traduce las etiquetas y explicaciones. No cambies al español si la pregunta está en portugués.\n7. Cierra en ese mismo idioma: en español, Escribe 👉 *asesor* para solicitar una reserva o más información 😊; en inglés, Write 👉 *advisor* to request a booking or for more info 😊; en portugués, Escreva 👉 *assessor* para solicitar uma reserva ou mais informações 😊. No afirmes que el cupo o la reserva están confirmados.\n8. Nunca menciones que eres una IA ni pongas disclaimers técnicos.\n9. Si hay conflicto de datos, di que lo confirmamos con el equipo — no elijas un valor.\n10. Si la pregunta consulta varios puntos y el contexto contiene información para uno (ej. altitud documentada) pero carece de datos para otro (ej. duración o dificultad de caminata, o actividades no registradas): responde el dato documentado y aclara que el aspecto pendiente requiere confirmación con el equipo/asesor. Nunca rechaces toda la pregunta si puedes responder una parte.\n\nContexto: [DATOS OFICIALES Y TARIFAS VIGENTES DE LA AGENCIA PARA MARAS - MORAY]\nTour: Maras - Moray\nTarifa Oficial: 50 USD por persona\nHorario Oficial: 08:40-14:00\nDuración: Medio día\nincludes: SIN DATO VIGENTE; el administrador borró este campo. Confirmar con el equipo; no recuperar valores anteriores.\nexcludes: SIN DATO VIGENTE; el administrador borró este campo. Confirmar con el equipo; no recuperar valores anteriores.\n\n[Información del tour]\n\nTour: Maras - Moray\n\nID: maras-moray\n\nCategoría: evidence_based\n\n\n\n- confirmed_product: sí (fuente: F1)\n- stops/awana_chinchero: confirmado por F1\n- stops/moray: confirmado por F1\n- stops/salineras: confirmado por F1\n- duration: Medio día (fuente: ADMIN_VIGENTE, página: None)\n- official_price: 50 USD (fuente: ADMIN_VIGENTE, página: None)\n- schedule: 08:40-14:00 (fuente: ADMIN_VIGENTE, página: None)\nPregunta: A che ora parte il tour Maras Moray?"
+        },
+        {
+          "role": "human",
+          "content": "A che ora parte il tour Maras Moray?"
+        }
+      ],
+      "execution": "nonfactual_dry_sentinel",
+      "started_at": "2026-10-11T01:13:33.065609+00:00",
+      "status": "completed",
+      "raw_response": "[DRY_RUN_NONFACTUAL_GENERATION: no factual answer was generated or approved]",
+      "token_usage": {},
+      "reported_model": null,
+      "finish_reason": null,
+      "latency_ms": 0.01,
+      "finished_at": "2026-10-11T01:13:33.066606+00:00"
+    },
+    {
+      "call_index": 4,
+      "input_messages": [
+        {
+          "role": "system",
+          "content": "Eres el asistente de *Texeira Travel*, una agencia de turismo en Cusco, Perú.\n\nREGLAS OBLIGATORIAS (sin excepción):\n1. Responde SOLO con datos del contexto proporcionado. Nunca inventes precios, horarios, incluidos o excluidos.\n2. Si el dato no está en el contexto, NO lo menciones. Di que lo confirmamos con el equipo.\n3. Respuestas cortas — máximo 4 líneas. Sin párrafos largos.\n4. Usa formato WhatsApp: *negrita* para nombres de tours, precios y datos clave.\n5. Usa emojis con moderación (1-2 por mensaje). ✅ 💰 📍 ⏱️ 📋\n6. Responde en el mismo idioma que la pregunta; conserva los nombres propios y traduce las etiquetas y explicaciones. No cambies al español si la pregunta está en portugués.\n7. Cierra en ese mismo idioma: en español, Escribe 👉 *asesor* para solicitar una reserva o más información 😊; en inglés, Write 👉 *advisor* to request a booking or for more info 😊; en portugués, Escreva 👉 *assessor* para solicitar uma reserva ou mais informações 😊. No afirmes que el cupo o la reserva están confirmados.\n8. Nunca menciones que eres una IA ni pongas disclaimers técnicos.\n9. Si hay conflicto de datos, di que lo confirmamos con el equipo — no elijas un valor.\n10. Si la pregunta consulta varios puntos y el contexto contiene información para uno (ej. altitud documentada) pero carece de datos para otro (ej. duración o dificultad de caminata, o actividades no registradas): responde el dato documentado y aclara que el aspecto pendiente requiere confirmación con el equipo/asesor. Nunca rechaces toda la pregunta si puedes responder una parte.\n\nContexto: [DATOS OFICIALES Y TARIFAS VIGENTES DE LA AGENCIA PARA CAMINO INCA CLÁSICO 4D/3N]\nTour: Camino Inca Clásico 4D/3N\nTarifa Oficial: 790 USD por persona\nHorario Oficial: Recojo 4:30 a. m. – 5:00 a. m.\nDuración: 4 días / 3 noches\nIncluye: Recojo del hotel en Cusco, transporte turístico hasta el Km 82, permiso de ingreso al Camino Inca, ingreso a Machu Picchu, guía profesional bilingüe español/inglés, porteadores para el equipo de campamento, cocinero, carpas y equipo de campamento, alimentación durante la caminata, bus de Machu Picchu a Aguas Calientes, tren turístico de retorno a Ollantaytambo y transporte terrestre de retorno a Cusco, botiquín de primeros auxilios y oxígeno de emergencia.\nNo incluye: Desayuno del primer día, almuerzo del último día, bolsa de dormir, bastones de trekking, porteador personal adicional, bebidas adicionales, seguro de viaje, gastos personales, propinas y entradas adicionales a Huayna Picchu o Montaña Machu Picchu.\n\n[DATOS OFICIALES Y TARIFAS VIGENTES DE LA AGENCIA PARA INKA JUNGLE TO MACHU PICCHU]\nTour: Inka Jungle to Machu Picchu\nTarifa Oficial: 460 USD por persona\nHorario Oficial: Recojo 5:30 a. m. aprox.\nDuración: 4 días / 3 noches\nIncluye: Transporte turístico desde Cusco, guía profesional, bicicleta y equipo de seguridad, rafting, zip line, alojamiento por 3 noches, entrada a Machu Picchu, alimentación durante el recorrido, bus a Machu Picchu, tren de retorno a Ollantaytambo y transporte de regreso a Cusco.\nNo incluye: Desayuno del primer día, almuerzo y cena del último día, gastos personales, seguro de viaje, propinas, bastones de trekking y entradas adicionales a Huayna Picchu o Montaña Machu Picchu.\n\n[Información del tour]\n\nTour: Camino Inca Clásico 4D/3N\n\nID: camino-inka\n\nCategoría: evidence_based\n\n\n\n- confirmed_product: sí (fuente: F2)\n- official_price: 790 USD (fuente: ADMIN_VIGENTE, página: None)\n- schedule: Recojo 4:30 a. m. – 5:00 a. m. (fuente: ADMIN_VIGENTE, página: None)\n\n[Información del tour]\n\nTour: Inka Jungle to Machu Picchu\n\nID: inka-jungle\n\nCategoría: evidence_based\n\n\n\n- confirmed_product: sí (fuente: F2)\n- altitude: Abra Málaga a 4,350 m.s.n.m. (punto más alto del circuito) (fuente: F2, página: 17)\n- route: Día 1: Descenso en bicicleta desde Abra Málaga (4,350 m.s.n.m.) hasta Santa María (1,450 m.s.n.m.). Otras actividades de aventura y tiempos de caminata requieren confirmación con la agencia. (fuente: F2, página: 17)\n- includes: Transporte turístico desde Cusco, guía profesional, bicicleta y equipo de seguridad, rafting, zip line, alojamiento por 3 noches, entrada a Machu Picchu, alimentación durante el recorrido, bus a Machu Picchu, tren de retorno a Ollantaytambo y transporte de regreso a Cusco. (fuente: ADMIN_VIGENTE, página: None)\n- excludes: Desayuno del primer día, almuerzo y cena del último día, gastos personales, seguro de viaje, propinas, bastones de trekking y entradas adicionales a Huayna Picchu o Montaña Machu Picchu. (fuente: ADMIN_VIGENTE, página: None)\n- duration: 4 días / 3 noches (fuente: ADMIN_VIGENTE, página: None)\n- official_price: 460 USD (fuente: ADMIN_VIGENTE, página: None)\n- schedule: Recojo 5:30 a. m. aprox. (fuente: ADMIN_VIGENTE, página: None)\nPregunta: Compara Camino Inca con Inka Jungle para alguien que disfruta naturaleza."
+        },
+        {
+          "role": "human",
+          "content": "Compara Camino Inca con Inka Jungle para alguien que disfruta naturaleza."
+        }
+      ],
+      "execution": "nonfactual_dry_sentinel",
+      "started_at": "2026-10-11T01:13:33.184292+00:00",
+      "status": "completed",
+      "raw_response": "[DRY_RUN_NONFACTUAL_GENERATION: no factual answer was generated or approved]",
+      "token_usage": {},
+      "reported_model": null,
+      "finish_reason": null,
+      "latency_ms": 0.01,
+      "finished_at": "2026-10-11T01:13:33.184292+00:00"
+    },
+    {
+      "call_index": 5,
+      "input_messages": [
+        {
+          "role": "system",
+          "content": "Eres el asistente de *Texeira Travel*, una agencia de turismo en Cusco, Perú.\n\nREGLAS OBLIGATORIAS (sin excepción):\n1. Responde SOLO con datos del contexto proporcionado. Nunca inventes precios, horarios, incluidos o excluidos.\n2. Si el dato no está en el contexto, NO lo menciones. Di que lo confirmamos con el equipo.\n3. Respuestas cortas — máximo 4 líneas. Sin párrafos largos.\n4. Usa formato WhatsApp: *negrita* para nombres de tours, precios y datos clave.\n5. Usa emojis con moderación (1-2 por mensaje). ✅ 💰 📍 ⏱️ 📋\n6. Responde en el mismo idioma que la pregunta; conserva los nombres propios y traduce las etiquetas y explicaciones. No cambies al español si la pregunta está en portugués.\n7. Cierra en ese mismo idioma: en español, Escribe 👉 *asesor* para solicitar una reserva o más información 😊; en inglés, Write 👉 *advisor* to request a booking or for more info 😊; en portugués, Escreva 👉 *assessor* para solicitar uma reserva ou mais informações 😊. No afirmes que el cupo o la reserva están confirmados.\n8. Nunca menciones que eres una IA ni pongas disclaimers técnicos.\n9. Si hay conflicto de datos, di que lo confirmamos con el equipo — no elijas un valor.\n10. Si la pregunta consulta varios puntos y el contexto contiene información para uno (ej. altitud documentada) pero carece de datos para otro (ej. duración o dificultad de caminata, o actividades no registradas): responde el dato documentado y aclara que el aspecto pendiente requiere confirmación con el equipo/asesor. Nunca rechaces toda la pregunta si puedes responder una parte.\n\nContexto: [DATOS OFICIALES Y TARIFAS VIGENTES DE LA AGENCIA PARA CAMINO INCA CLÁSICO 4D/3N]\nTour: Camino Inca Clásico 4D/3N\nTarifa Oficial: 790 USD por persona\nHorario Oficial: Recojo 4:30 a. m. – 5:00 a. m.\nDuración: 4 días / 3 noches\nIncluye: Recojo del hotel en Cusco, transporte turístico hasta el Km 82, permiso de ingreso al Camino Inca, ingreso a Machu Picchu, guía profesional bilingüe español/inglés, porteadores para el equipo de campamento, cocinero, carpas y equipo de campamento, alimentación durante la caminata, bus de Machu Picchu a Aguas Calientes, tren turístico de retorno a Ollantaytambo y transporte terrestre de retorno a Cusco, botiquín de primeros auxilios y oxígeno de emergencia.\nNo incluye: Desayuno del primer día, almuerzo del último día, bolsa de dormir, bastones de trekking, porteador personal adicional, bebidas adicionales, seguro de viaje, gastos personales, propinas y entradas adicionales a Huayna Picchu o Montaña Machu Picchu.\n\n[Información del tour]\n\nTour: Camino Inca Clásico 4D/3N\n\nID: camino-inka\n\nCategoría: evidence_based\n\n\n\n- confirmed_product: sí (fuente: F2)\n- official_price: 790 USD (fuente: ADMIN_VIGENTE, página: None)\n- schedule: Recojo 4:30 a. m. – 5:00 a. m. (fuente: ADMIN_VIGENTE, página: None)\nPregunta: How should I prepare for the Inca Trail and what gear is documented?"
+        },
+        {
+          "role": "human",
+          "content": "How should I prepare for the Inca Trail and what gear is documented?"
+        }
+      ],
+      "execution": "nonfactual_dry_sentinel",
+      "started_at": "2026-10-11T01:13:33.259112+00:00",
+      "status": "completed",
+      "raw_response": "[DRY_RUN_NONFACTUAL_GENERATION: no factual answer was generated or approved]",
+      "token_usage": {},
+      "reported_model": null,
+      "finish_reason": null,
+      "latency_ms": 0.01,
+      "finished_at": "2026-10-11T01:13:33.259112+00:00"
+    }
+  ],
+  "status": "completed_pending_semantic_review",
+  "source_hashes_before": {
+    "admin_dashboard.py": "c31be1a8da431f6927ec5bfdd7888ec4d48955e656bd39782cc1bcf3ade0f08f",
+    "admin_theme.py": "2445a41c74fd69031dc45d08b8695a18ccd53d63550c370948ea07d7b3ba5125",
+    "advisor_entry.py": "04390eaf47eedb863436ebcbbc0d488e77f8acbbd03e8527ee18c841203e8759",
+    "app.py": "98d7e006f216e0109f3d4080e2a5eec4a2e87d16431f02646941b5877ddb302d",
+    "auth_middleware.py": "f671902bbec11b194ae9a88efac41c13dca96eb7647fa9c604cbb0b9e0321972",
+    "build_index.py": "30595f27ad9b5d0b39b9d90e5035d1ca5545607e320377fb1fa35eaf9ad93f10",
+    "catalog_service.py": "02bae8c9264a712697d60d23aae0d8d2cd522b028b383764e8c9a3d4caa2523c",
+    "catalog_support.py": "e6b2f528147f53e8f05f3c38fb594aa137d3411f3cb10fd1edb1e60534cdfbfc",
+    "catalog_ui.py": "844cc1e0885032d1779798a8394b481669bc7fa40a384d459bf3d34b5461ba56",
+    "chat_ui.py": "405a0153c0997f033124c158aaea36bbcf6a28500bdca6cfeabd05de0e369076",
+    "chroma_catalogo_20260926_db\\325b4fa7-8373-4193-acbb-e347a4c406a5\\data_level0.bin": "d3c9fd302f000d7790aa403c2d0d8fec363fe46f30b07d53020b6e33b22435a9",
+    "chroma_catalogo_20260926_db\\325b4fa7-8373-4193-acbb-e347a4c406a5\\header.bin": "e87a1dc8bcae6f2c4bea6d5dd5005454d4dace8637dae29bff3c037ea771411e",
+    "chroma_catalogo_20260926_db\\325b4fa7-8373-4193-acbb-e347a4c406a5\\length.bin": "5b8c52aa0ac03551b47da2b8ffadff80e15e7aaef7a0fbf4822d96ffbd55e63d",
+    "chroma_catalogo_20260926_db\\325b4fa7-8373-4193-acbb-e347a4c406a5\\link_lists.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "chroma_catalogo_20260926_db\\chroma.sqlite3": "695cae8cbf4c4b284a6a661ccdfbd5b0ba2a75e03fffdae21f5d0827a3251278",
+    "chroma_catalogo_20260926_db\\READY.json": "2a5341becd4669c41aae82cf5f87baeb220043413b6e2853ab12c5ae3432f4c3",
+    "conversation_memory.py": "e4ca4983100b41e88d9ee014811dd350ad0af606a0db99d46acb796981156491",
+    "data\\agency_brochure_v3.json": "3fed96368778d2982b11ad67c14ad6e0099b8ed38797bbd739fe3b3fc6e6680a",
+    "data\\conflicts.json": "ade58941f5d48319733b59db9535d25fc266f11be187c0fb0f041d1e36dccef8",
+    "data\\evidence_facts.json": "78935ca32078103ad36749a2a621286ed4cd45687fb52807214bdabb41fc0d38",
+    "data\\provisional.json": "9fe71fa1ffd152d4707e4f7d0c72b29812fe47f99c4e7ea2c67d09e1f6fb9c10",
+    "data\\source_registry.json": "6e37658978f486b42b637598848a216dd6f388278d0266848e4593b86c630054",
+    "data\\tours_catalog.json": "0209e3971d7d5a5235d21885512da13b053ef7271d6f0dc2fbbb80f43ce115e4",
+    "database.py": "5dd86ff0cb38064854c59eb0b4c73569b06dc12d522022b0f0181dbffe8e9492",
+    "db_adapter.py": "9d8accf6819595c14ae5839a6daf6e8f701e19786615c7dbf71bf8e1c0b9e501",
+    "docs\\evaluaciones\\INFORME_POSPRUEBA_TESIS_20260921.md": "05dcde96e2ee475a5fa9bb316723ce5507d3823697326c7fe4a29c9e06c0a8ac",
+    "docs\\evaluaciones\\RESULTADOS_POSPRUEBA_TESIS_20260921.json": "7030845ec01017ca6c4d94359d4c53a9c38ddf7c254799496a8ed931c1af4310",
+    "docs\\evaluaciones\\RESULTADOS_POSPRUEBA_TESIS_20261004_RECALIBRADO.json": "94cf536525bd19fb215968908345919a5c3fe907969b8901acdd18a080de4b59",
+    "docs\\REGISTRO_VALIDACION_WHATSAPP_00047.json": "1b6234d59c6d2473fa43f0ff8e1e05b81e9c0f1c486f79c6d0fe112df2ef81af",
+    "handoff_support.py": "1df03bd1675e193504e9ec480b48c9d46881dee2392f1c145a54133fa13a3a11",
+    "operational_metrics.py": "9d5562fec758bca141bb96458887dca867a5e7feac8880b08a35878d64440e6c",
+    "runtime_settings.py": "34e9ecb8edb896c71c6c956b781d50ee2b8f0a84f210986159762d8d041ab2eb",
+    "src\\__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src\\agent.py": "a439fff9ee993af21f1571be01afd29213a0e62a1cd8b24829cff5f99451101f",
+    "src\\evaluation.py": "6a173cce6c90304cd0ab15ef2aa61989b8d61e547269a4daeff5e006ec87731d",
+    "src\\evidence.py": "658e368345197cec42991a8d4eac5ad5ab5981dae56e3162ffb61558b86d2898",
+    "src\\preprocessing.py": "05c0c929c08dc7f9d27287ec096b7f2503ecb9fcb8695eeec37d35ee3c64b129",
+    "src\\retriever.py": "ae55d253423efd50d186e69dafa9a3be6ecbfb08e25a0208f1966cf60f4aa1fe",
+    "src\\services\\__init__.py": "23f4d47970dce1d6b2981aa90e616e8e5eef3ffcbab3b9d0f58a45e201e8dc40",
+    "src\\services\\messenger.py": "6eaa2787a4eb3327ed68a6f670d8fb2fe0475365cda25adf0710a00632a0d5af",
+    "src\\services\\whatsapp.py": "54a15629af6acb299e874028e57969beb0d305bf99dc1b4ba2c5c8c2636cc9b2",
+    "src\\visual\\__init__.py": "d7286eac01a9fbfb2bbb665b1116e4c5b7682373fa7f963a7d8320ed5ff40124",
+    "src\\visual\\visual_engine.py": "adc51fcb1a729af92328a384cb12ddbff82652d36a06050cdadd288dccf4284d",
+    "trial_support.py": "3ddbb7cf1411578deeb2f02862c3716ed97d58841e3699a83ddf5a86f409dc20",
+    "verified_routes.py": "84c2ab92b000d8a3761a93fae864d53ab28df4bb939b8901bf7dda5ccb404581",
+    "whatsapp_entry.py": "4d183581bc8a5b800a58951f4289470fc14314ecdac736e2fcc31c782dd1f50c"
+  },
+  "limitations": [
+    "Ten original finite explorations are not exhaustive and do not estimate general precision.",
+    "All semantic/language judgments require review against supplied sources and administrative snapshot.",
+    "Dry output is a nonfactual sentinel, never evidence of a real model response.",
+    "Direct rag_chain evaluation does not verify WhatsApp buttons, transport, or phone delivery."
+  ],
+  "temporary_chroma_systems_closed": 1,
+  "finished_at": "2026-10-11T01:13:33.320294+00:00",
+  "source_hashes_after": {
+    "admin_dashboard.py": "c31be1a8da431f6927ec5bfdd7888ec4d48955e656bd39782cc1bcf3ade0f08f",
+    "admin_theme.py": "2445a41c74fd69031dc45d08b8695a18ccd53d63550c370948ea07d7b3ba5125",
+    "advisor_entry.py": "04390eaf47eedb863436ebcbbc0d488e77f8acbbd03e8527ee18c841203e8759",
+    "app.py": "98d7e006f216e0109f3d4080e2a5eec4a2e87d16431f02646941b5877ddb302d",
+    "auth_middleware.py": "f671902bbec11b194ae9a88efac41c13dca96eb7647fa9c604cbb0b9e0321972",
+    "build_index.py": "30595f27ad9b5d0b39b9d90e5035d1ca5545607e320377fb1fa35eaf9ad93f10",
+    "catalog_service.py": "02bae8c9264a712697d60d23aae0d8d2cd522b028b383764e8c9a3d4caa2523c",
+    "catalog_support.py": "e6b2f528147f53e8f05f3c38fb594aa137d3411f3cb10fd1edb1e60534cdfbfc",
+    "catalog_ui.py": "844cc1e0885032d1779798a8394b481669bc7fa40a384d459bf3d34b5461ba56",
+    "chat_ui.py": "405a0153c0997f033124c158aaea36bbcf6a28500bdca6cfeabd05de0e369076",
+    "chroma_catalogo_20260926_db\\325b4fa7-8373-4193-acbb-e347a4c406a5\\data_level0.bin": "d3c9fd302f000d7790aa403c2d0d8fec363fe46f30b07d53020b6e33b22435a9",
+    "chroma_catalogo_20260926_db\\325b4fa7-8373-4193-acbb-e347a4c406a5\\header.bin": "e87a1dc8bcae6f2c4bea6d5dd5005454d4dace8637dae29bff3c037ea771411e",
+    "chroma_catalogo_20260926_db\\325b4fa7-8373-4193-acbb-e347a4c406a5\\length.bin": "5b8c52aa0ac03551b47da2b8ffadff80e15e7aaef7a0fbf4822d96ffbd55e63d",
+    "chroma_catalogo_20260926_db\\325b4fa7-8373-4193-acbb-e347a4c406a5\\link_lists.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "chroma_catalogo_20260926_db\\chroma.sqlite3": "695cae8cbf4c4b284a6a661ccdfbd5b0ba2a75e03fffdae21f5d0827a3251278",
+    "chroma_catalogo_20260926_db\\READY.json": "2a5341becd4669c41aae82cf5f87baeb220043413b6e2853ab12c5ae3432f4c3",
+    "conversation_memory.py": "e4ca4983100b41e88d9ee014811dd350ad0af606a0db99d46acb796981156491",
+    "data\\agency_brochure_v3.json": "3fed96368778d2982b11ad67c14ad6e0099b8ed38797bbd739fe3b3fc6e6680a",
+    "data\\conflicts.json": "ade58941f5d48319733b59db9535d25fc266f11be187c0fb0f041d1e36dccef8",
+    "data\\evidence_facts.json": "78935ca32078103ad36749a2a621286ed4cd45687fb52807214bdabb41fc0d38",
+    "data\\provisional.json": "9fe71fa1ffd152d4707e4f7d0c72b29812fe47f99c4e7ea2c67d09e1f6fb9c10",
+    "data\\source_registry.json": "6e37658978f486b42b637598848a216dd6f388278d0266848e4593b86c630054",
+    "data\\tours_catalog.json": "0209e3971d7d5a5235d21885512da13b053ef7271d6f0dc2fbbb80f43ce115e4",
+    "database.py": "5dd86ff0cb38064854c59eb0b4c73569b06dc12d522022b0f0181dbffe8e9492",
+    "db_adapter.py": "9d8accf6819595c14ae5839a6daf6e8f701e19786615c7dbf71bf8e1c0b9e501",
+    "docs\\evaluaciones\\INFORME_POSPRUEBA_TESIS_20260921.md": "05dcde96e2ee475a5fa9bb316723ce5507d3823697326c7fe4a29c9e06c0a8ac",
+    "docs\\evaluaciones\\RESULTADOS_POSPRUEBA_TESIS_20260921.json": "7030845ec01017ca6c4d94359d4c53a9c38ddf7c254799496a8ed931c1af4310",
+    "docs\\evaluaciones\\RESULTADOS_POSPRUEBA_TESIS_20261004_RECALIBRADO.json": "94cf536525bd19fb215968908345919a5c3fe907969b8901acdd18a080de4b59",
+    "docs\\REGISTRO_VALIDACION_WHATSAPP_00047.json": "1b6234d59c6d2473fa43f0ff8e1e05b81e9c0f1c486f79c6d0fe112df2ef81af",
+    "handoff_support.py": "1df03bd1675e193504e9ec480b48c9d46881dee2392f1c145a54133fa13a3a11",
+    "operational_metrics.py": "9d5562fec758bca141bb96458887dca867a5e7feac8880b08a35878d64440e6c",
+    "runtime_settings.py": "34e9ecb8edb896c71c6c956b781d50ee2b8f0a84f210986159762d8d041ab2eb",
+    "src\\__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src\\agent.py": "a439fff9ee993af21f1571be01afd29213a0e62a1cd8b24829cff5f99451101f",
+    "src\\evaluation.py": "6a173cce6c90304cd0ab15ef2aa61989b8d61e547269a4daeff5e006ec87731d",
+    "src\\evidence.py": "658e368345197cec42991a8d4eac5ad5ab5981dae56e3162ffb61558b86d2898",
+    "src\\preprocessing.py": "05c0c929c08dc7f9d27287ec096b7f2503ecb9fcb8695eeec37d35ee3c64b129",
+    "src\\retriever.py": "ae55d253423efd50d186e69dafa9a3be6ecbfb08e25a0208f1966cf60f4aa1fe",
+    "src\\services\\__init__.py": "23f4d47970dce1d6b2981aa90e616e8e5eef3ffcbab3b9d0f58a45e201e8dc40",
+    "src\\services\\messenger.py": "6eaa2787a4eb3327ed68a6f670d8fb2fe0475365cda25adf0710a00632a0d5af",
+    "src\\services\\whatsapp.py": "54a15629af6acb299e874028e57969beb0d305bf99dc1b4ba2c5c8c2636cc9b2",
+    "src\\visual\\__init__.py": "d7286eac01a9fbfb2bbb665b1116e4c5b7682373fa7f963a7d8320ed5ff40124",
+    "src\\visual\\visual_engine.py": "adc51fcb1a729af92328a384cb12ddbff82652d36a06050cdadd288dccf4284d",
+    "trial_support.py": "3ddbb7cf1411578deeb2f02862c3716ed97d58841e3699a83ddf5a86f409dc20",
+    "verified_routes.py": "84c2ab92b000d8a3761a93fae864d53ab28df4bb939b8901bf7dda5ccb404581",
+    "whatsapp_entry.py": "4d183581bc8a5b800a58951f4289470fc14314ecdac736e2fcc31c782dd1f50c"
+  },
+  "changed_protected_paths": [],
+  "protected_sources_unchanged": true,
+  "total_real_llm_calls": 0,
+  "total_dry_generation_calls": 5,
+  "provider_quota_wait_seconds": []
+}

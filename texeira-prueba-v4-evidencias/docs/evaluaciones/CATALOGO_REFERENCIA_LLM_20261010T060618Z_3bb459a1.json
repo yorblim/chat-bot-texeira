@@ -1,0 +1,89 @@
+[
+  {
+    "entity_id": "camino-inka",
+    "name": "Camino Inca Clásico 4D/3N",
+    "aliases": [
+      "camino inca",
+      "camino inka",
+      "inca trail",
+      "camino inca clasico",
+      "classic inca trail",
+      "trek machu picchu",
+      "trekking machu picchu",
+      "camino inca clásico 4d/3n"
+    ],
+    "official_price": "790",
+    "currency": "USD",
+    "schedule": "Recojo 4:30 a. m. – 5:00 a. m.",
+    "duration": "4 días / 3 noches",
+    "includes": "Recojo del hotel en Cusco, transporte turístico hasta el Km 82, permiso de ingreso al Camino Inca, ingreso a Machu Picchu, guía profesional bilingüe español/inglés, porteadores para el equipo de campamento, cocinero, carpas y equipo de campamento, alimentación durante la caminata, bus de Machu Picchu a Aguas Calientes, tren turístico de retorno a Ollantaytambo y transporte terrestre de retorno a Cusco, botiquín de primeros auxilios y oxígeno de emergencia.",
+    "excludes": "Desayuno del primer día, almuerzo del último día, bolsa de dormir, bastones de trekking, porteador personal adicional, bebidas adicionales, seguro de viaje, gastos personales, propinas y entradas adicionales a Huayna Picchu o Montaña Machu Picchu.",
+    "photo_filename": "camino-inka_photo_318de13780.jpg",
+    "brochure_filename": "",
+    "is_canonical": true,
+    "is_active": true,
+    "created_at": "2026-09-22T04:36:30.518071",
+    "updated_at": "2026-09-27T04:23:10.192903",
+    "overridden_fields": []
+  },
+  {
+    "entity_id": "inka-jungle",
+    "name": "Inka Jungle to Machu Picchu",
+    "aliases": [
+      "inka jungle",
+      "inca jungle",
+      "inca jungle trek",
+      "machu picchu aventura",
+      "jungle trek",
+      "inka jungle to machu picchu"
+    ],
+    "official_price": "460",
+    "currency": "USD",
+    "schedule": "Recojo 5:30 a. m. aprox.",
+    "duration": "4 días / 3 noches",
+    "includes": "Transporte turístico desde Cusco, guía profesional, bicicleta y equipo de seguridad, rafting, zip line, alojamiento por 3 noches, entrada a Machu Picchu, alimentación durante el recorrido, bus a Machu Picchu, tren de retorno a Ollantaytambo y transporte de regreso a Cusco.",
+    "excludes": "Desayuno del primer día, almuerzo y cena del último día, gastos personales, seguro de viaje, propinas, bastones de trekking y entradas adicionales a Huayna Picchu o Montaña Machu Picchu.",
+    "photo_filename": "inka-jungle_photo_805b3bc192.jpg",
+    "brochure_filename": "",
+    "is_canonical": true,
+    "is_active": true,
+    "created_at": "2026-09-22T04:36:30.518071",
+    "updated_at": "2026-10-03T21:22:18.151006",
+    "overridden_fields": [
+      "official_price",
+      "schedule",
+      "duration",
+      "includes",
+      "excludes"
+    ]
+  },
+  {
+    "entity_id": "maras-moray",
+    "name": "Maras - Moray",
+    "aliases": [
+      "maras moray",
+      "maras-moray",
+      "moray maras",
+      "maras - moray"
+    ],
+    "official_price": "50",
+    "currency": "USD",
+    "schedule": "08:40-14:00",
+    "duration": "Medio día",
+    "includes": "",
+    "excludes": "",
+    "photo_filename": "",
+    "brochure_filename": "",
+    "is_canonical": true,
+    "is_active": true,
+    "created_at": "2026-09-22T04:36:30.518071",
+    "updated_at": "2026-10-04T05:02:38.044620",
+    "overridden_fields": [
+      "official_price",
+      "schedule",
+      "duration",
+      "includes",
+      "excludes"
+    ]
+  }
+]

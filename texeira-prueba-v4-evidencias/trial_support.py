@@ -53,8 +53,31 @@ def normalize(text):
     return ''.join(c for c in unicodedata.normalize('NFD', text.lower()) if unicodedata.category(c) != 'Mn')
 
 
+def normalize_entity_query(text):
+    """Recognize translated product names without changing the user's language."""
+    q = normalize(text)
+    return re.sub(r"\b(?:chemin de l['’]inca|sentiero (?:degli|dell['’])\s*inca)\b", "camino inca", q)
+
+
+def requested_catalog_fields(text):
+    q = normalize(text)
+    patterns = {
+        'price': r'\b(?:precio|tarifas?|price|rates?|costs?|cuesta|custa|prix|prezzo)\b',
+        'includes': r'\b(?:inclu\w*|comprend\w*|compris)\b',
+        'schedule': r'\b(?:horario|schedule|departure|hora|ora|heure)\b',
+        'duration': r'\b(?:duracion|duration|durata|duree)\b|how long|quanto dura',
+    }
+    return {field for field, pattern in patterns.items() if re.search(pattern, q)}
+
+
+def commercial_query_text(text):
+    """A prohibition on inventing discounts is not a request for a discount."""
+    q = normalize(text)
+    return re.sub(r"\b(?:sin inventar|no inventes|without inventing|don['’]?t invent|do not invent)\s+(?:descuentos?|discounts?)\b", "", q)
+
+
 def detect_entity_from_question(question: str) -> str:
-    q = normalize(question)
+    q = normalize_entity_query(question)
     try:
         from catalog_service import get_active_entity_keywords
         entity_keywords = get_active_entity_keywords()
@@ -125,17 +148,22 @@ def install(ns):
             return 'en'
         words = set(re.findall(r'\b\w+\b', normalize(text)))
         markers = {
-            'es': set('que cual cuanto cuesta incluye incluidas incluido excluido entradas puedo cancelar manana gracias hola precio precios tarifa tarifas porfa favor como donde cuando salir salida horario hora boleto boletos llegar quiero necesito visita ruinas arqueologico arqueologica caminata caminatas caminar senderismo trekking medio dia dias recomiendame recomiendas recomienda sugieres aconsejas montana colores sagrao waqrapukara waqra pukara queswachaca puente mistico ver categorias categoria catalogo reserva reservar solicitar informacion info detalles cusco fotos foto'.split()),
+            'es': set('que cual cuanto cuesta incluye incluidas incluido excluido entradas puedo cancelar manana gracias hola precio precios tarifa tarifas porfa favor como donde cuando salir salida horario hora boleto boletos llegar quiero necesito visita ruinas arqueologico arqueologica caminata caminatas caminar senderismo trekking medio dia dias recomiendame recomiendas recomienda recomiendes ninguno ninguna sugieres aconsejas montana colores sagrao waqrapukara waqra pukara queswachaca puente mistico ver categorias categoria catalogo reserva reservar solicitar informacion info detalles cusco fotos foto'.split()),
             'en': set('what which how does the include includes included inclusions exclusions exclude tickets can cancel tomorrow thanks price prices rate rates cost costs where when want need is are do offer available hello hi categories category reservation reserve book view recommend recommendations suggest advice advise something hiking hike walking half full day days duration schedule timetable departure like please pls without information details overview preparation gear should bring wear'.split()),
             'pt': set('quais qual quanto custa preco precos passeio passeios voce quero ola obrigado meio nao sem caminhar caminhadas caminhos trilhas fazer devo levar equipamento roupa calcado preparacao informacoes incluido em assessor tenho agora nenhum outras opcoes quatro dois duas uma paisagens natureza gosta interessa diferenca locais ver categoria categorias reserva solicitar cusco fotos foto dia dias que como favor cultura aventura'.split()),
-            'fr': set('quels quelle combien bonjour prix je avec merci'.split()),
+            # "dois" and "devo/quanto" also occur in Portuguese. Count the
+            # surrounding native cues instead of letting those isolated words
+            # determine French equipment or Italian price/preparation requests.
+            'fr': set('quel quels quelle quelles combien bonjour prix je avec merci equipement apporter porter cherche excursion demi journee sans randonnee chemin est dois pour jours dure'.split()),
+            'it': set('quanto costa come devo prepararmi preparazione quale attrezzatura portare consigliami mezza giornata senza escursioni piedi che ora parte il di per prezzo grazie ciao'.split()),
         }
         scores = {lang: len(words & values) for lang, values in markers.items()}
         best = max(scores, key=scores.get)
         # Shared words (dia, que, quero) must not outvote explicit PT markers.
         if scores['pt'] and scores['pt'] == scores[best]:
             pt_distinctive = markers['pt'] - markers['es'] - markers['en']
-            if words & pt_distinctive:
+            es_distinctive = markers['es'] - markers['pt'] - markers['en']
+            if (words & pt_distinctive) and not (words & es_distinctive):
                 best = 'pt'
         if scores[best]:
             return best
@@ -199,7 +227,7 @@ Pregunta: {question}'''
         # Do not recapture open/comparative questions as a single factual field
         # here (e.g. "what gear is included and how should I prepare?").
         from verified_routes import is_open_tour_advice, is_tour_comparison
-        if lang == 'pt' or is_open_tour_advice(q) or is_tour_comparison(q):
+        if lang in {'pt', 'fr', 'it'} or len(requested_catalog_fields(q)) > 1 or is_open_tour_advice(q) or is_tour_comparison(q):
             return original(question, user_id)
 
         if lang == 'es' and re.search(r'\b(cancel\w*|reembolso\w*)\b', q):

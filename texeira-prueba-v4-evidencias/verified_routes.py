@@ -45,6 +45,25 @@ def portuguese_duration(value):
     return v
 
 
+def localized_duration(value, lang):
+    """Translate documented labels; never infer missing duration or nights."""
+    if lang == 'en':
+        return english_duration(value)
+    if lang == 'pt':
+        return portuguese_duration(value)
+    if lang not in ('fr', 'it'):
+        return str(value or '')
+    targets = {
+        'fr': ('Demi-journée', 'Journée complète', 'jours', 'jour', 'nuits', 'nuit', 'heures', 'heure'),
+        'it': ('Mezza giornata', 'Giornata intera', 'giorni', 'giorno', 'notti', 'notte', 'ore', 'ora'),
+    }[lang]
+    text = str(value or '')
+    patterns = (r'medio\s+d[ií]a', r'd[ií]a\s+completo', r'd[ií]as', r'd[ií]a', r'noches', r'noche', r'horas', r'hora')
+    for pattern, target in zip(patterns, targets):
+        text = re.sub(r'\b' + pattern + r'\b', target, text, flags=re.I)
+    return text
+
+
 def is_open_tour_advice(q):
     """Interpretive questions must not become a general tour card.
 
@@ -113,7 +132,7 @@ _HELP_RESPONSE = '¡Claro! 😊 Puedo ayudarte con *tours, horarios y servicios*
 
 def is_recommendation_query(q_norm: str) -> bool:
     """Detecta peticiones de recomendación, sugerencia o consejo, tolerando erratas."""
-    if re.search(r'\b(?:recomie\w*|recomen\w*|recomnd\w*|sugier\w*|suger\w*|aconsej\w*|recommend\w*|suggest\w*|advice|advise)\b', q_norm):
+    if re.search(r'\b(?:recomie\w*|recomen\w*|recomnd\w*|sugier\w*|suger\w*|aconsej\w*|recommend\w*|suggest\w*|advice|advise|conseill\w*|consigli\w*)\b', q_norm):
         return True
     if re.search(r'\b(?:que|cual|cuales)\s+(?:me\s+)?(?:conviene|elijo|escojo|hago|tomar|hacer|tours?\s+(?:me\s+)?(?:das|ofreces))\b', q_norm):
         return True
@@ -131,9 +150,9 @@ def is_other_options_query(q_norm: str) -> bool:
 
 
 def duration_preference(value):
-    """Read explicit ES/EN/PT days; unknown text does not imply a day."""
+    """Read explicit supported-language days; unknown text does not imply a day."""
     text = str(value or '').lower()
-    if re.search(r'\b(?:medio\s*d[ií]a|meio\s*dia|half\s*day|pocas\s+horas|poco\s+tiempo)\b', text):
+    if re.search(r'\b(?:medio\s*d[ií]a|meio\s*dia|half\s*day|demi[-\s]journ[eé]e|mezza\s+giornata|pocas\s+horas|poco\s+tiempo)\b', text):
         return ('half', None)
     word_days = {
         'un': 1, 'uno': 1, 'una': 1, 'one': 1, 'dos': 2, 'two': 2,
@@ -142,14 +161,16 @@ def duration_preference(value):
         'nueve': 9, 'nine': 9, 'diez': 10, 'ten': 10,
         'um': 1, 'uma': 1, 'dois': 2, 'duas': 2, 'três': 3,
         'quatro': 4, 'sete': 7, 'oito': 8, 'nove': 9, 'dez': 10,
+        'une': 1, 'deux': 2, 'trois': 3, 'quatre': 4, 'cinq': 5,
+        'sei': 6, 'due': 2, 'tre': 3, 'quattro': 4, 'cinque': 5,
     }
     amounts = list(re.finditer(
-        r'\b(\d+|' + '|'.join(word_days) + r')\s*(?:d[ií]as?|days?|d)\b', text))
+        r'\b(\d+|' + '|'.join(word_days) + r')\s*(?:d[ií]as?|days?|jours?|giorni|giorno|d)\b', text))
     if amounts:
         amount = amounts[-1].group(1)
         days = int(amount) if amount.isdigit() else word_days[amount]
         return ('1day' if days == 1 else 'multi', days) if days > 0 else None
-    if re.search(r'\b(?:un\s*d[ií]a|one\s*day|full\s*day|d[ií]a\s+completo)\b', text):
+    if re.search(r'\b(?:un\s*d[ií]a|one\s*day|full\s*day|d[ií]a\s+completo|journ[eé]e\s+compl[eè]te|giornata\s+intera)\b', text):
         return ('1day', 1)
     return None
 
@@ -157,14 +178,14 @@ def duration_preference(value):
 def hiking_preference(value):
     """An explicit newer walking preference replaces an older one."""
     text = str(value or '').lower()
-    activity = r'(?:caminat\w*|caminar|caminando|caminh\w*|trilh\w*|andar|trek\w*|hik(?:e|es|ing)|senderis\w*|subid\w*|walk\w*)'
+    activity = r'(?:caminat\w*|caminar|caminando|caminh\w*|trilh\w*|andar|trek\w*|hik(?:e|es|ing)|senderis\w*|subid\w*|walk\w*|randonn\w*|escursion\w*(?:\s+a\s+piedi)?|cammin\w*)'
     if not re.search(r'\b' + activity + r'\b', text):
         return None
-    desire = r'\b(?:quiero|deseo|quero|desejo|prefiro|gosto\s+de|prefier\w*|me\s+gust\w*|want|prefer|like|love)\b'
+    desire = r'\b(?:quiero|deseo|quero|desejo|prefiro|gosto\s+de|prefier\w*|me\s+gust\w*|want|prefer|like|love|veux|souhaite|aime|voglio|vorrei|preferisco)\b'
     if re.match(r'\s*(?:hay|habra|ha|há|tienen|inclu\w*|does|do|is|are|how|what|que|como|cuanto|cuanta|quanto)\b', text) and not re.search(desire, text):
         return None
     negative = re.search(
-        r"\b(?:no|nao|não|sem|sin|nada\s+de|without|do\s+not|don['’]?t)\s+"
+        r"\b(?:no|nao|não|sem|sin|sans|senza|non|nada\s+de|without|do\s+not|don['’]?t)\s+"
         r'(?:(?:quiero|deseo|quero|desejo|prefiro|gosto\s+de|prefiero|me\s+gust[ae]n?|tengo\s+ganas\s+de|want|like|prefer)\s+)?'
         r'(?:(?:hacer|fazer|realizar|ir\s+a|to|do|go|have)\s+)*'
         r'(?:(?:las?|los?|una?s?|ningun[ao]?s?|any|a|the)\s+)?'
@@ -557,6 +578,7 @@ def install(ns, support, original):
         'waqra-pukara':['waqra pukara','waqrapukara'], 'puente-qeswachaca':['qeswachaca','q\'eswachaca',"q'eswachaca",'qeswachaka'],
         'inka-jungle':['inka jungle','inca jungle']})
     def entity(q):
+        q = support.normalize_entity_query(q)
         typo_aliases = {eid: list(names) for eid, names in aliases.items()}
         if re.search(r'cuatrimotos?|\batv\b|quad bike',q) and re.search(r'maras|moray|tour cuatrimoto',q):
             return 'maras-moray-cuatrimoto'
@@ -648,7 +670,7 @@ def install(ns, support, original):
                 if ns['detect_language'](h.get('content', '')) == 'pt':
                     lang = 'pt'
                 break
-        en=lang=='en'; pt=lang=='pt'
+        en=lang=='en'; pt=lang=='pt'; fr=lang=='fr'; it=lang=='it'
         phone=' / '.join(catalog['agency']['phones'])
         active_tours, is_read_error, is_empty = get_current_tours_status()
 
@@ -840,6 +862,14 @@ def install(ns, support, original):
                         "Quanto tempo você tem para visitar?\n\n"
                         "_Conte suas preferências, explore as opções em 🗺️ Ver passeios ou escreva 👉 assessor para falar com nossa equipe._"
                     )
+                elif fr:
+                    msg = ("Bien sûr ! 😊 Qu'est-ce qui vous intéresse : *paysages, sites historiques ou randonnée* ? "
+                           "Combien de temps avez-vous ?\n\n"
+                           "_Indiquez vos préférences, explorez les circuits ou contactez un conseiller._")
+                elif it:
+                    msg = ("Certo! 😊 Cosa ti interessa: *paesaggi, siti storici o camminate*? "
+                           "Quanto tempo hai?\n\n"
+                           "_Indica le tue preferenze, esplora i tour o contatta un consulente._")
                 else:
                     msg = (
                         "¡Claro! 😊 ¿Qué te interesa más: *paisajes, sitios históricos o caminatas*? "
@@ -951,7 +981,7 @@ def install(ns, support, original):
                     # Solo usar respaldo canónico si NO fue borrado administrativamente
                     from catalog_service import CANONICAL_TOUR_DURATIONS
                     dur = CANONICAL_TOUR_DURATIONS.get(c_eid, '')
-                dur_disp = english_duration(dur) if en else (portuguese_duration(dur) if pt else dur)
+                dur_disp = localized_duration(dur, lang)
 
                 sched = str(c_data.get('schedule') or '').strip()
                 c_overrides = c_data.get('overridden_fields') or []
@@ -959,7 +989,7 @@ def install(ns, support, original):
                     sched = ""
 
                 desc = c_prof.get('desc_en' if en else 'desc_es', '')
-                if pt:
+                if pt or fr or it:
                     # Keep the live documented duration/schedule. Do not present
                     # an untranslated Spanish profile as a Portuguese response.
                     desc = ''
@@ -998,6 +1028,16 @@ def install(ns, support, original):
                     else:
                         msg = ("Não posso confirmar opções ativas que correspondam a essas preferências com os dados disponíveis no catálogo. "
                                "Quer ajustar suas preferências ou confirmar os dados que faltam com um assessor?")
+                elif fr:
+                    msg = ("Il ne reste aucune autre option vérifiée correspondant à vos préférences après les circuits refusés. "
+                           "Voulez-vous modifier vos préférences ou revoir une option précédente?" if rejected_ids else
+                           "Je ne peux pas confirmer d'option active correspondant à vos préférences avec les données du catalogue. "
+                           "Voulez-vous ajuster vos préférences ou vérifier les détails manquants avec un conseiller?")
+                elif it:
+                    msg = ("Non restano altre opzioni verificate corrispondenti alle tue preferenze dopo i tour rifiutati. "
+                           "Vuoi cambiare le preferenze o rivedere un'opzione precedente?" if rejected_ids else
+                           "Non posso confermare opzioni attive corrispondenti alle tue preferenze con i dati del catalogo. "
+                           "Vuoi modificare le preferenze o verificare i dettagli mancanti con un consulente?")
                 return finish(msg, 'evidence_recommendation', pending=True, needs_agency=False, sources=['CATALOGO_OFICIAL'], recommendation_state=recommendation_state)
 
             body = "\n".join(rec_lines)
@@ -1007,6 +1047,12 @@ def install(ns, support, original):
             elif pt:
                 header = "🌟 Com suas preferências, estas são nossas recomendações verificadas:\n"
                 footer = "\n\n_Escreva o nome de um passeio para consultar detalhes, fotos ou preços, ou escreva 👉 assessor para falar com nossa equipe 😊_"
+            elif fr:
+                header = "🌟 Voici nos recommandations vérifiées selon vos préférences:\n"
+                footer = "\n\n_Écrivez le nom d'un circuit pour consulter ses détails, photos ou tarifs, ou contactez un conseiller 😊_"
+            elif it:
+                header = "🌟 Ecco i nostri suggerimenti verificati secondo le tue preferenze:\n"
+                footer = "\n\n_Scrivi il nome di un tour per dettagli, foto o prezzi, oppure contatta un consulente 😊_"
             else:
                 header = "🌟 Según lo que buscas, estas son nuestras recomendaciones verificadas:\n"
                 footer = "\n\n_Escribe el nombre de cualquiera de ellos para ver detalles, fotos o tarifas, o escribe 👉 asesor para coordinar con nuestro equipo 😊_"
@@ -1033,11 +1079,15 @@ def install(ns, support, original):
             'cusco': '🌄 *Montanhas e clássicos (Cusco)*',
             'reg': '🚌 *Rotas regionais*',
         }
+        translated_cat_titles = {
+            'fr': {'treks': '🏔️ *Machu Picchu et treks*', 'cusco': '🌄 *Montagnes et classiques (Cusco)*', 'reg': '🚌 *Circuits régionaux*'},
+            'it': {'treks': '🏔️ *Machu Picchu e trekking*', 'cusco': '🌄 *Montagne e classici (Cusco)*', 'reg': '🚌 *Itinerari regionali*'},
+        }
 
         # 1. Petición de categoría específica (ej. "categoria treks", "category treks", "categoria cusco", etc.)
-        is_cat_treks = bool(re.search(r'\b(categor[iy]a?\s+treks?|categor[iy]a?\s+machu|categor[iy]a?\s+1|treks?\s+y\s+machu|treks?\s+and\s+machu)\b', q))
-        is_cat_cusco = bool(re.search(r'\b(categor[iy]a?\s+cusco|categor[iy]a?\s+monta[nñ]as|categor[iy]a?\s+mountains|categor[iy]a?\s+2|clasicos\s+cusco|cusco\s+classics)\b', q))
-        is_cat_reg = bool(re.search(r'\b(categor[iy]a?\s+reg\w*|categor[iy]a?\s+rutas|categor[iy]a?\s+routes|categor[iy]a?\s+3|rutas\s+regionales|regional\s+routes)\b', q))
+        is_cat_treks = bool(re.search(r'\b((?:categor[iy]a?|categorie)\s+treks?|categor[iy]a?\s+machu|categor[iy]a?\s+1|treks?\s+y\s+machu|treks?\s+and\s+machu)\b', q))
+        is_cat_cusco = bool(re.search(r'\b((?:categor[iy]a?|categorie)\s+cusco|categor[iy]a?\s+monta[nñ]as|categor[iy]a?\s+mountains|categor[iy]a?\s+2|clasicos\s+cusco|cusco\s+classics)\b', q))
+        is_cat_reg = bool(re.search(r'\b((?:categor[iy]a?|categorie)\s+reg\w*|categor[iy]a?\s+rutas|categor[iy]a?\s+routes|categor[iy]a?\s+3|rutas\s+regionales|regional\s+routes)\b', q))
         selected_cat_key = None
         if is_cat_treks: selected_cat_key = 'treks'
         elif is_cat_cusco: selected_cat_key = 'cusco'
@@ -1057,11 +1107,17 @@ def install(ns, support, original):
                        f"Currently there are no tours available in the category {cat_name}. 📋\n\nYou can explore other categories or contact an advisor 😊")
                 if pt:
                     msg = f"No momento não há passeios disponíveis em {pt_cat_titles[selected_cat_key]}. Você pode explorar outras categorias ou consultar um assessor."
+                elif fr or it:
+                    cat_name = translated_cat_titles[lang][selected_cat_key]
+                    msg = (f"Aucun circuit actif dans {cat_name}. Vous pouvez explorer d'autres catégories ou contacter un conseiller."
+                           if fr else f"Non ci sono tour attivi in {cat_name}. Puoi esplorare altre categorie o contattare un consulente.")
                 return finish(msg, 'evidence_category_empty', sources=['CATALOGO_OFICIAL'], entity_id=f"cat_{selected_cat_key}")
 
             cat_title = cat_data.get('title_es', '') if not en else cat_data.get('title_en', '')
             if pt:
                 cat_title = pt_cat_titles[selected_cat_key]
+            elif fr or it:
+                cat_title = translated_cat_titles[lang][selected_cat_key]
 
             m_page = re.search(r'\b(?:p[aá]gina|page)\s+(\d+)\b', q)
             requested_page = int(m_page.group(1)) if m_page else 0
@@ -1075,6 +1131,8 @@ def install(ns, support, original):
                 lines = [f"{cat_title} disponibles:\n" if not en else f"{cat_title} available:\n"]
                 if pt:
                     lines = [f"{cat_title} disponíveis:\n"]
+                elif fr or it:
+                    lines = [f"{cat_title} disponibles:\n" if fr else f"{cat_title} disponibili:\n"]
                 for eid, default_label, default_dur in page_slice:
                     t_obj = active_tours.get(eid, {})
                     if en:
@@ -1083,10 +1141,7 @@ def install(ns, support, original):
                     else:
                         tour_name = t_obj.get('name', default_label)
                     dur = (t_obj.get('duration') or default_dur or '').strip()
-                    if en and dur:
-                        dur = english_duration(dur)
-                    elif pt and dur:
-                        dur = portuguese_duration(dur)
+                    dur = localized_duration(dur, lang)
                     sched = str(t_obj.get('schedule') or '').strip()
                     if dur and sched:
                         detail_str = f"{dur} | {sched}"
@@ -1104,6 +1159,10 @@ def install(ns, support, original):
                 )
                 if pt:
                     footer = "\n_Escreva o nome de um passeio para consultar detalhes ou selecione uma opção abaixo:_\nEscreva 👉 *assessor* se precisar de ajuda personalizada 😊"
+                elif fr:
+                    footer = "\n_Écrivez le nom d'un circuit pour consulter ses détails ou choisissez une option ci-dessous. Contactez un conseiller pour plus d'aide._"
+                elif it:
+                    footer = "\n_Scrivi il nome di un tour per i dettagli o scegli un'opzione qui sotto. Contatta un consulente per assistenza._"
             else:
                 header = (
                     f"{cat_title} (Página {requested_page + 1} de {total_pages}):\n"
@@ -1112,6 +1171,9 @@ def install(ns, support, original):
                 )
                 if pt:
                     header = f"{cat_title} (Página {requested_page + 1} de {total_pages}):\n"
+                elif fr or it:
+                    header = (f"{cat_title} (Page {requested_page + 1} sur {total_pages}):\n" if fr else
+                              f"{cat_title} (Pagina {requested_page + 1} di {total_pages}):\n")
                 lines = [header]
                 for eid, default_label, default_dur in page_slice:
                     t_obj = active_tours.get(eid, {})
@@ -1121,10 +1183,7 @@ def install(ns, support, original):
                     else:
                         tour_name = t_obj.get('name', default_label)
                     dur = (t_obj.get('duration') or default_dur or '').strip()
-                    if en and dur:
-                        dur = english_duration(dur)
-                    elif pt and dur:
-                        dur = portuguese_duration(dur)
+                    dur = localized_duration(dur, lang)
                     sched = str(t_obj.get('schedule') or '').strip()
                     if dur and sched:
                         detail_str = f"{dur} | {sched}"
@@ -1158,11 +1217,20 @@ def install(ns, support, original):
                                 if requested_page + 1 < total_pages else
                                 "\n_Você chegou ao final desta categoria. Selecione um passeio ou volte a ⬅️ Categorias._")
                     footer = f"{nav_note}\nEscreva 👉 *assessor* se precisar de ajuda personalizada 😊"
+                elif fr:
+                    nav_note = ("\n_Choisissez un circuit, passez à Autres circuits ou revenez aux Catégories._" if requested_page + 1 < total_pages else
+                                "\n_Vous êtes à la fin de cette catégorie. Choisissez un circuit ou revenez aux Catégories._")
+                    footer = nav_note + "\nContactez un conseiller pour plus d'aide."
+                elif it:
+                    nav_note = ("\n_Scegli un tour, vai ad Altri tour o torna alle Categorie._" if requested_page + 1 < total_pages else
+                                "\n_Sei alla fine di questa categoria. Scegli un tour o torna alle Categorie._")
+                    footer = nav_note + "\nContatta un consulente per assistenza."
             lines.append(footer)
             return finish("\n".join(lines), 'evidence_category_tours', sources=['CATALOGO_OFICIAL'], entity_id=f"cat_{selected_cat_key}")
 
         # 2. Petición de catálogo general (Ver Tours / Categorías)
         is_listing_request = (
+            q in {'je cherche les categories de circuits', 'mostra le categorie di tour'} or
             q.strip(' ?¿!.') in listing_keywords or
             bool(re.search(r'\b(muestr\w*|meustr\w*|mostr\w*|ver|view|show|dime|tell\s+me|cuales|which|what|tienen?|do\s+you\s+have|hay)\b.*?\b(tours?|opciones?|options?|paquetes?|packages?|destinos?|destinations?|viajes?|trips?|rutas?|routes?|circuitos?|paseos?|categorias?|categories)\b', q) and
                   not re.search(r'\b(precio|precios|cuesta|cuanto|costo|costos|tarifa|tarifas|price|prices|cost|costs|rate|rates|soles|dolares|\busd\b|\bpen\b|horario|hora|duracion|duration|schedule|incluye|includes?|itinerario|itinerary|fotos?|photos?|imagen|image|imagenes|images|brochure|folleto|cancel|reembols|refund|yape|paypal|pagar|pay|pago|payment|adelant|deposit|descuento|discount|reserva|book|booking|cupos?|manana|tomorrow|7d|7\s*d[ií]as?|7.day)\b|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}', q) and
@@ -1212,6 +1280,17 @@ def install(ns, support, original):
                         cat_lines.append(f"{['1️⃣', '2️⃣', '3️⃣'][idx]} {pt_cat_titles[cat_key]} ({cnt} passeios)")
                 body = "\n".join(cat_lines)
                 footer = "\n\n_Selecione uma categoria ou escreva o nome do passeio que procura._\nEscreva 👉 *assessor* para falar com nossa equipe."
+            elif fr or it:
+                title = ("🗺️ *Circuits — Texeira Travel*\nSélectionnez une catégorie pour explorer nos circuits actifs:\n\n" if fr else
+                         "🗺️ *Tour — Texeira Travel*\nSeleziona una categoria per esplorare i tour attivi:\n\n")
+                cat_lines = []
+                for idx, (cat_key, cat_data) in enumerate(CAT_SPECS.items()):
+                    cnt = sum(1 for eid, _, _ in cat_data['tours'] if eid in active_tours and is_product_confirmed(eid))
+                    if cnt:
+                        cat_lines.append(f"{['1️⃣', '2️⃣', '3️⃣'][idx]} {translated_cat_titles[lang][cat_key]} ({cnt} {'circuits' if fr else 'tour'})")
+                body = "\n".join(cat_lines)
+                footer = ("\n\n_Choisissez une catégorie ou écrivez le nom du circuit. Contactez un conseiller pour plus d'aide._" if fr else
+                          "\n\n_Scegli una categoria o scrivi il nome del tour. Contatta un consulente per assistenza._")
             else:
                 if is_asking_unique:
                     title = "¡Para nada! No es el único. En *Texeira Travel* organizamos nuestros destinos en estas categorías: 🗺️\n\n"
@@ -1239,12 +1318,13 @@ def install(ns, support, original):
                 return 'promo'
             return None
 
-        rate_cat = detect_rate_category(q)
+        commercial_q = support.commercial_query_text(q)
+        rate_cat = detect_rate_category(commercial_q)
         if re.search(r'\b(segur\w*|safe\w*|wheelchair|silla de ruedas|embaraz\w*|pregnan\w*)\b', q):
             return unknown('condiciones de seguridad o accesibilidad', entity_id=entity(q))
         rate_question = (field(q) == 'price' or
-                         re.search(r'\b(tarifa\w*|descuent\w*|promo\w*|discount\w*|rate\w*)\b', q) or
-                         re.fullmatch(r'(y |and )?(para |for )?(los |las )?(estudiantes?|students?|ninos?|children|kids)\??', q))
+                         re.search(r'\b(tarifa\w*|descuent\w*|promo\w*|discount\w*|rate\w*)\b', commercial_q) or
+                         re.fullmatch(r'(y |and )?(para |for )?(los |las )?(estudiantes?|students?|ninos?|children|kids)\??', commercial_q))
         if rate_cat and rate_question:
             eid_rate = entity(q)
             if not eid_rate:
@@ -1341,7 +1421,7 @@ def install(ns, support, original):
                     return finish("\n".join(lines), 'evidence_no_special_rate', pending=True, sources=['CATALOGO_OFICIAL'], entity_id=eid_rate)
 
         # Operaciones comerciales y disponibilidad para fechas puntuales
-        if re.search(r'cancel|reembols|refund|yape|paypal|\bpagar\b|\bpago\b|adelant|deposit|\bpay\b|payment|descuento|discount|reserva|booking|\bbook\b|cupos?|spots?|availability|available|disponib|manana|tomorrow|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}',q):
+        if re.search(r'cancel|reembols|refund|yape|paypal|\bpagar\b|\bpago\b|adelant|deposit|\bpay\b|payment|descuento|discount|reserva|booking|\bbook\b|cupos?|spots?|availability|available|disponib|manana|tomorrow|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}',commercial_q):
             eid_comercial = entity(q)
             if not eid_comercial:
                 for h in reversed(prior):
@@ -1516,6 +1596,10 @@ def install(ns, support, original):
         wants_overview = bare_name or bool(re.search(
             r'\b(?:informaci[oó]n|information|info|detalles|ficha|overview|details|'
             r'saber\s+(?:de|del|sobre))\b', q, re.I))
+        if len(support.requested_catalog_fields(q)) > 1:
+            # A single-field answer would silently discard part of the query.
+            fld = None
+            wants_overview = False
         if eid and fld is None and wants_overview and lang in {'es', 'en'}:
             tour_obj = active_tours.get(eid, {})
             name = tour_obj.get('name', eid)
