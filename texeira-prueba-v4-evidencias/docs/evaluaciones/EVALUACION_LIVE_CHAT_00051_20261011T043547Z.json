@@ -1,0 +1,152 @@
+{
+  "timestamp_utc": "2026-10-11T04:35:47.043880+00:00",
+  "revision": "texeira-whatsapp-00051-9dn",
+  "endpoint": "https://texeira-whatsapp-1038134693816.us-central1.run.app/test-chat",
+  "synthetic_user_id": "synthetic_eval_00051_1791693199",
+  "total_cases": 14,
+  "passed": 8,
+  "failed": 11,
+  "pass_rate_pct": 57.14,
+  "cases": [
+    {
+      "id": "LIVE-01",
+      "categoria": "Navegación",
+      "input": "Hola",
+      "latency_sec": 35.346,
+      "error": "The read operation timed out",
+      "passed": false
+    },
+    {
+      "id": "LIVE-02",
+      "categoria": "Navegación",
+      "input": "qué tours tienen",
+      "latency_sec": 35.216,
+      "error": "The read operation timed out",
+      "passed": false
+    },
+    {
+      "id": "LIVE-03",
+      "categoria": "Ficha Técnica",
+      "input": "Información de Camino Inca",
+      "latency_sec": 12.182,
+      "error": "'charmap' codec can't encode character '\\U0001f97e' in position 22: character maps to <undefined>",
+      "passed": false
+    },
+    {
+      "id": "LIVE-04",
+      "categoria": "Catálogo / Ausencia",
+      "input": "Información de Choquequirao",
+      "latency_sec": 3.646,
+      "status_code": 200,
+      "response_preview": "*Choquequirao Trek* no figura actualmente en nuestro catálogo activo (no se encuentra disponible). Puedes expl...",
+      "full_response": "*Choquequirao Trek* no figura actualmente en nuestro catálogo activo (no se encuentra disponible). Puedes explorar otros tours o consultar este destino con un asesor.",
+      "route": "evidence_inactive_tour",
+      "language": null,
+      "passed": true
+    },
+    {
+      "id": "LIVE-05",
+      "categoria": "Recomendaciones",
+      "input": "¿Qué tours me recomiendas?",
+      "latency_sec": 2.008,
+      "error": "'charmap' codec can't encode character '\\U0001f60a' in position 27: character maps to <undefined>",
+      "passed": false
+    },
+    {
+      "id": "LIVE-06",
+      "categoria": "Recomendaciones",
+      "input": "Recomiéndame un tour de 4 días",
+      "latency_sec": 2.86,
+      "error": "'charmap' codec can't encode character '\\U0001f31f' in position 20: character maps to <undefined>",
+      "passed": false
+    },
+    {
+      "id": "LIVE-07",
+      "categoria": "Recomendaciones",
+      "input": "Recomiéndame un tour de medio día sin caminatas",
+      "latency_sec": 2.763,
+      "error": "'charmap' codec can't encode character '\\U0001f31f' in position 21: character maps to <undefined>",
+      "passed": false
+    },
+    {
+      "id": "LIVE-08",
+      "categoria": "Recomendaciones",
+      "input": "Recomiéndame un tour de 2 días",
+      "latency_sec": 2.881,
+      "status_code": 200,
+      "response_preview": "No puedo confirmar opciones activas que coincidan con esas preferencias con la información disponible en el ca...",
+      "full_response": "No puedo confirmar opciones activas que coincidan con esas preferencias con la información disponible en el catálogo. ¿Quieres ajustar tus preferencias o confirmar los datos que faltan con un asesor?",
+      "route": "evidence_recommendation",
+      "language": null,
+      "passed": true
+    },
+    {
+      "id": "LIVE-09",
+      "categoria": "Multilingüismo (EN)",
+      "input": "How much is the Inca Trail?",
+      "latency_sec": 3.931,
+      "error": "'charmap' codec can't encode character '\\U0001f4b0' in position 36: character maps to <undefined>",
+      "passed": false
+    },
+    {
+      "id": "LIVE-10",
+      "categoria": "Multilingüismo (PT)",
+      "input": "Quais passeios você recomenda?",
+      "latency_sec": 2.777,
+      "status_code": 200,
+      "response_preview": "Não posso confirmar opções ativas que correspondam a essas preferências com os dados disponíveis no catálogo. ...",
+      "full_response": "Não posso confirmar opções ativas que correspondam a essas preferências com os dados disponíveis no catálogo. Quer ajustar suas preferências ou confirmar os dados que faltam com um assessor?",
+      "route": "evidence_recommendation",
+      "language": null,
+      "passed": false
+    },
+    {
+      "id": "LIVE-11",
+      "categoria": "Multilingüismo (FR)",
+      "input": "Quels circuits recommandez-vous?",
+      "latency_sec": 11.053,
+      "status_code": 200,
+      "response_preview": "Je ne peux pas confirmer d'options actives correspondant à ces préférences avec les informations disponibles d...",
+      "full_response": "Je ne peux pas confirmer d'options actives correspondant à ces préférences avec les informations disponibles dans le catalogue. Voulez-vous ajuster vos préférences ou confirmer les données manquantes avec un conseiller ?",
+      "route": "rag",
+      "language": null,
+      "passed": false
+    },
+    {
+      "id": "LIVE-12",
+      "categoria": "Multilingüismo (IT)",
+      "input": "Quali tour consigliate?",
+      "latency_sec": 3.808,
+      "status_code": 200,
+      "response_preview": "Non posso confermare opzioni attive corrispondenti alle tue preferenze con i dati del catalogo. Vuoi modificar...",
+      "full_response": "Non posso confermare opzioni attive corrispondenti alle tue preferenze con i dati del catalogo. Vuoi modificare le preferenze o verificare i dettagli mancanti con un consulente?",
+      "route": "evidence_recommendation",
+      "language": null,
+      "passed": true
+    },
+    {
+      "id": "LIVE-13",
+      "categoria": "Robustez Lingüística",
+      "input": "ninguno necesito que em recomiendes",
+      "latency_sec": 2.831,
+      "status_code": 200,
+      "response_preview": "No puedo confirmar opciones activas que coincidan con esas preferencias con la información disponible en el ca...",
+      "full_response": "No puedo confirmar opciones activas que coincidan con esas preferencias con la información disponible en el catálogo. ¿Quieres ajustar tus preferencias o confirmar los datos que faltan con un asesor?",
+      "route": "evidence_recommendation",
+      "language": null,
+      "passed": false
+    },
+    {
+      "id": "LIVE-14",
+      "categoria": "Atención Humana",
+      "input": "quiero hablar con un asesor",
+      "latency_sec": 5.241,
+      "status_code": 200,
+      "response_preview": "Tu solicitud 3c5c38b95bff está registrada y pendiente de atención humana. Aún no ha sido atendida. Puedes segu...",
+      "full_response": "Tu solicitud 3c5c38b95bff está registrada y pendiente de atención humana. Aún no ha sido atendida. Puedes seguir haciendo consultas al bot.",
+      "route": "human_request",
+      "language": null,
+      "passed": true
+    }
+  ]
+}
