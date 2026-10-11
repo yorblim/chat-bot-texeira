@@ -648,6 +648,8 @@ def build_fallback_response(lang: str = "es") -> dict:
         "es": FALLBACK_MESSAGE,
         "en": "I don't have that exact documented information. Please consult an agency advisor to confirm the details.",
         "pt": "Não tenho essa informação exata documentada. Consulte um assessor da agência para confirmar os detalhes.",
+        "fr": "Je n'ai pas cette information précise documentée. Consultez un conseiller de l'agence pour confirmer les détails.",
+        "it": "Non ho questa informazione precisa documentata. Contatta un consulente dell'agenzia per confermare i dettagli.",
     }
     return {
         "response": messages.get(lang, FALLBACK_MESSAGE),
@@ -680,6 +682,8 @@ def build_rate_limit_response(lang: str = "es") -> dict:
         "es": RATE_LIMIT_MESSAGE,
         "en": "We are experiencing high demand temporarily. Please try again in a few seconds.",
         "pt": "Estamos recebendo muitas consultas neste momento. Tente novamente em alguns segundos.",
+        "fr": "Nous recevons beaucoup de demandes actuellement. Réessayez dans quelques secondes.",
+        "it": "Stiamo ricevendo molte richieste. Riprova tra qualche secondo.",
     }
     return {
         "response": messages.get(lang, RATE_LIMIT_MESSAGE),
@@ -1304,14 +1308,14 @@ def resolve_contextual_retriever_query(question: str, history: list) -> tuple:
             Marca is_ambiguous = True para solicitar aclaración en lugar de inventar.
     """
     import re
-    from trial_support import normalize
+    from trial_support import normalize, normalize_entity_query
     try:
         from catalog_service import get_active_entity_keywords, get_tour_by_id
         kw_map = get_active_entity_keywords()
     except Exception:
         kw_map = None
 
-    norm_q = normalize(question)
+    norm_q = normalize_entity_query(question)
     normalized_query_text = normalize_query(question)
 
     # 1. Detectar todas las entidades nombradas explícitamente en la pregunta actual
@@ -1356,7 +1360,7 @@ def resolve_contextual_retriever_query(question: str, history: list) -> tuple:
     for h in reversed(history[-6:]):
         if h.get("role") != "human":
             continue
-        h_text = normalize(h.get("content", ""))
+        h_text = normalize_entity_query(h.get("content", ""))
         turn_eids = []
         if kw_map:
             for eid, kws in kw_map.items():
@@ -1556,8 +1560,17 @@ def rag_chain(question: str, user_id: str = "default") -> dict:
 
         # Formatear contexto con metadata + imágenes incluidas
         context_parts = []
+        target_eids = set(explicit_eids or ([entity_detected] if entity_detected else []))
         for doc in docs:
             meta = doc.metadata
+            doc_eid = meta.get("tour_id")
+            if target_eids and doc_eid not in target_eids:
+                continue
+            if doc_eid and doc_eid != 'agency':
+                from catalog_service import get_tour_by_id
+                current_tour = get_tour_by_id(doc_eid)
+                if not current_tour or not current_tour.get('is_active'):
+                    continue
             # Encabezado de metadata estructurada
             header_lines = []
             if meta.get("tour_name"):
@@ -1575,7 +1588,12 @@ def rag_chain(question: str, user_id: str = "default") -> dict:
                 context_parts.extend(header_lines)
                 context_parts.append("")
             # Contenido del chunk
-            context_parts.append(doc.page_content)
+            if meta.get('source') == 'evidence-v4-2026-09-11' and doc_eid:
+                # The vector index is a retrieval aid. Reconstruct its evidence
+                # with current overrides so deleted fields cannot reappear.
+                context_parts.append(build_context_for_entity(doc_eid, include_dynamic=True))
+            else:
+                context_parts.append(doc.page_content)
             # Incluir URLs de imágenes del catálogo (lookup por source filename)
             source = meta.get("source", "")
             filename = os.path.basename(source) if source else ""
@@ -1629,6 +1647,9 @@ def rag_chain(question: str, user_id: str = "default") -> dict:
                             dyn_lines.append(f"Altitud: {dyn_tour.get('altitude')}")
                         if dyn_tour.get("route"):
                             dyn_lines.append(f"Ruta: {dyn_tour.get('route')}")
+                        for field_name in dyn_tour.get('overridden_fields', []):
+                            if field_name in {'includes', 'excludes', 'duration', 'schedule', 'official_price'} and not dyn_tour.get(field_name):
+                                dyn_lines.append(f"{field_name}: SIN DATO VIGENTE; el administrador borró este campo. Confirmar con el equipo; no recuperar valores anteriores.")
                         dyn_blocks.append("\n".join(dyn_lines))
                 if dyn_blocks:
                     context = "\n\n".join(dyn_blocks) + "\n\n" + context
@@ -1698,8 +1719,17 @@ def rag_chain(question: str, user_id: str = "default") -> dict:
 
 # Detectar consultas sobre condiciones comerciales no confirmadas
         # C07: métodos de pago y adelanto | C08: disponibilidad/reserva | C09: precio exacto en PEN
-        q_lower = question.lower()
+        from trial_support import commercial_query_text, requested_catalog_fields
+        q_lower = commercial_query_text(question)
         needs_agency_conf = False
+        requested_fields = requested_catalog_fields(question)
+        for cur_eid in eids_to_enrich:
+            from catalog_service import get_tour_by_id
+            current = get_tour_by_id(cur_eid) or {}
+            for requested in requested_fields:
+                key = 'official_price' if requested == 'price' else requested
+                if key in current.get('overridden_fields', []) and not current.get(key):
+                    needs_agency_conf = True
         if any(kw in q_lower for kw in ["yape", "adelanto", "pago", "pagar", "forma de pago", "depósito", "deposito", "payment", "deposit"]):
             needs_agency_conf = True
         if any(kw in q_lower for kw in ["cupo", "cupos", "disponibilidad", "reserva", "reservar", "confirmar reserva", "availability", "reservation", "book", "booking", "spots", "open spots"]):
@@ -1947,8 +1977,8 @@ def _get_active_catalog_tour_buttons(lang: str = "es") -> List[dict]:
 
 
 def _localize_button_titles(buttons: List[dict], lang: str) -> List[dict]:
-    """Keep action/entity IDs intact while localizing the Portuguese controls."""
-    if lang != "pt":
+    """Keep action/entity IDs intact while localizing the existing controls."""
+    if lang not in ("pt", "fr", "it"):
         return buttons
     labels = {
         "Ver otros tours": "Ver outros passeios",
@@ -1966,6 +1996,26 @@ def _localize_button_titles(buttons: List[dict], lang: str) -> List[dict]:
         "🚌 Rutas Regionales": "🚌 Rotas Regionais",
         "➡️ Más tours": "➡️ Mais passeios",
     }
+    if lang == "fr":
+        labels = {
+            "Ver otros tours": "Voir autres circuits", "Consultar asesor": "Contacter conseiller",
+            "Reintentar": "Réessayer", "⬅️ Categorías": "⬅️ Catégories",
+            "🗺️ Ver Tours": "🗺️ Voir circuits", "📄 Qué incluye": "📄 Services inclus",
+            "📸 Reintentar foto": "📸 Réessayer photo", "Solicitar reserva": "Demander réservation",
+            "💰 Tarifas": "💰 Tarifs", "📸 Ver Fotos": "📸 Voir photos",
+            "🙋‍♂️ Asesor": "🙋‍♂️ Conseiller", "🌄 Clásicos Cusco": "🌄 Classiques Cusco",
+            "🚌 Rutas Regionales": "🚌 Routes régionales", "➡️ Más tours": "➡️ Autres circuits",
+        }
+    elif lang == "it":
+        labels = {
+            "Ver otros tours": "Mostra altri tour", "Consultar asesor": "Contatta consulente",
+            "Reintentar": "Riprova", "⬅️ Categorías": "⬅️ Categorie",
+            "🗺️ Ver Tours": "🗺️ Mostra tour", "📄 Qué incluye": "📄 Servizi inclusi",
+            "📸 Reintentar foto": "📸 Riprova foto", "Solicitar reserva": "Richiedi prenotaz.",
+            "💰 Tarifas": "💰 Prezzi", "📸 Ver Fotos": "📸 Mostra foto",
+            "🙋‍♂️ Asesor": "🙋‍♂️ Consulente", "🌄 Clásicos Cusco": "🌄 Classici Cusco",
+            "🚌 Rutas Regionales": "🚌 Rotte regionali", "➡️ Más tours": "➡️ Altri tour",
+        }
     return [dict(button, title=labels.get(button["title"], button["title"])[:20])
             for button in buttons]
 
@@ -2560,7 +2610,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                             explicit_eid = btn_parts[1]
                             explicit_lang = btn_parts[2]
                         elif len(btn_parts) == 2:
-                            if btn_parts[1] in ("es", "en", "pt"):
+                            if btn_parts[1] in ("es", "en", "pt", "fr", "it"):
                                 explicit_lang = btn_parts[1]
                             else:
                                 explicit_eid = btn_parts[1]
@@ -2573,8 +2623,12 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                                 last_user_turn = h.get("content", "")
                                 break
 
-                        if explicit_lang in ("es", "en", "pt"):
+                        if explicit_lang in ("es", "en", "pt", "fr", "it"):
                             interaction_lang = explicit_lang
+                        elif any(w in btn_title.lower() for w in ["voir circuits", "conseiller", "services inclus", "tarifs", "réessayer", "catégories", "autres circuits", "voir photos"]):
+                            interaction_lang = "fr"
+                        elif any(w in btn_title.lower() for w in ["mostra tour", "consulente", "servizi inclusi", "prezzi", "riprova", "altri tour", "mostra foto"]) or btn_title.strip() == "⬅️ Categorie":
+                            interaction_lang = "it"
                         elif any(w in btn_title.lower() for w in ["passeios", "assessor", "o que inclui", "preços", "rotas regionais", "clássicos cusco"]):
                             interaction_lang = "pt"
                         elif any(w in btn_title.lower() for w in ["rates", "photo", "what's included", "what is included", "advisor", "view tours", "book now", "request reservation", "inca trail", "rainbow mtn", "categories"]):
@@ -2583,10 +2637,12 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                             interaction_lang = "es"
                         else:
                             history_lang = detect_language(last_user_turn) if last_user_turn else "es"
-                            interaction_lang = history_lang if history_lang in ("es", "en", "pt") else "es"
+                            interaction_lang = history_lang if history_lang in ("es", "en", "pt", "fr", "it") else "es"
 
                         is_en = interaction_lang == "en"
                         is_pt = interaction_lang == "pt"
+                        is_fr = interaction_lang == "fr"
+                        is_it = interaction_lang == "it"
 
                         def interaction_text(es_text, en_text, pt_text):
                             return pt_text if is_pt else en_text if is_en else es_text
@@ -2624,7 +2680,17 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                                 f"informações sobre {tour_name or target_eid}")
                         elif target_eid == "__AMBIGUOUS__" and action in ("btn_inc", "btn_rates", "btn_price", "btn_photo", "btn_book"):
                             is_interactive_ambiguous = True
-                            if is_pt:
+                            if is_fr or is_it:
+                                user_message = ("Quel circuit souhaitez-vous consulter ? Écrivez son nom ou choisissez une option."
+                                                if is_fr else "Quale tour vuoi consultare? Scrivi il nome o scegli un'opzione.")
+                                ambiguous_clarif_buttons = [
+                                    {"id": f"btn_tour:{t}:{interaction_lang}", "title": _get_tour_button_title(t)}
+                                    for t in tours_in_hist[:2]
+                                ]
+                                ambiguous_clarif_buttons += _localize_button_titles([
+                                    {"id": f"btn_advisor:{interaction_lang}", "title": "🙋‍♂️ Asesor"}
+                                ], interaction_lang)
+                            elif is_pt:
                                 user_message = "Qual passeio você deseja consultar? Escreva o nome do passeio ou escolha uma opção abaixo."
                                 ambiguous_clarif_buttons = [
                                     {"id": f"btn_tour:{t}:pt", "title": _get_tour_button_title(t)}
@@ -2686,6 +2752,51 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                             user_message = interaction_text("informacion de Machu Picchu en tren", "information about Machu Picchu", "informações sobre Machu Picchu en tren")
                         else:
                             user_message = btn_title or btn_id
+
+                        # The canonical queries must carry the callback language
+                        # into the text pipeline; IDs still bind the original tour.
+                        # btn_advisor/btn_book are deliberately NOT localized:
+                        # handoff_support only recognizes and answers ES/EN/PT,
+                        # so they keep the canonical query that registers the
+                        # request (its confirmation text is not yet FR/IT).
+                        if (is_fr or is_it) and not is_interactive_ambiguous and action not in ("btn_advisor", "btn_book"):
+                            cat_key = explicit_eid or ""
+                            if is_fr:
+                                info_query = f"quelles informations pour {tour_name or target_eid or 'le circuit'}"
+                                localized_queries = {
+                                    "btn_photo": f"je souhaite des photos pour {tour_name or 'le circuit'}",
+                                    "btn_rates": f"quel est le prix de {tour_name or 'ce circuit'}",
+                                    "btn_price": f"quel est le prix de {tour_name or 'ce circuit'}",
+                                    "btn_inc": f"quels services sont inclus pour {tour_name or 'ce circuit'}",
+                                    "btn_cat": f"je cherche la categorie {cat_key} pour les circuits",
+                                    "btn_cat_page": f"je cherche la categorie {cat_key} pour les circuits page {cat_page_num}",
+                                    "btn_tours": "je cherche les categories de circuits",
+                                    "btn_cats": "je cherche les categories de circuits",
+                                    "btn_categories": "je cherche les categories de circuits",
+                                    "btn_tour": info_query,
+                                    "btn_ci": "quelles informations pour Camino Inca",
+                                    "btn_mp": "quelles informations pour Machu Picchu en tren",
+                                }
+                            else:
+                                info_query = f"quale informazione per {tour_name or target_eid or 'il tour'}"
+                                localized_queries = {
+                                    "btn_photo": f"quali foto posso vedere per il tour {tour_name or ''}".strip(),
+                                    "btn_rates": f"quanto costa il tour {tour_name or ''}".strip(),
+                                    "btn_price": f"quanto costa il tour {tour_name or ''}".strip(),
+                                    "btn_inc": f"quali servizi sono inclusi per il tour {tour_name or ''}".strip(),
+                                    "btn_cat": f"quale categoria {cat_key} di tour per favore",
+                                    "btn_cat_page": f"quale categoria {cat_key} di tour per favore page {cat_page_num}",
+                                    "btn_tours": "mostra le categorie di tour",
+                                    "btn_cats": "mostra le categorie di tour",
+                                    "btn_categories": "mostra le categorie di tour",
+                                    "btn_tour": info_query,
+                                    "btn_ci": "quale informazione per Camino Inca",
+                                    "btn_mp": "quale informazione per Machu Picchu en tren",
+                                }
+                            if target_eid and target_eid != "__AMBIGUOUS__" and is_deactivated_tour(target_eid):
+                                user_message = info_query
+                            else:
+                                user_message = localized_queries.get(action, user_message)
 
                     if not user_message:
                         continue
@@ -2846,7 +2957,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                     # Botones de respuesta rápida interactivos (Meta WhatsApp Cloud API)
                     if not is_ambig:
                         eff_lang = i_lang or rag_result.get("language") or detect_language(u_msg)
-                        if eff_lang not in ("es", "en", "pt"):
+                        if eff_lang not in ("es", "en", "pt", "fr", "it"):
                             eff_lang = "es"
                         quick_buttons = get_quick_buttons(
                             route=route,
