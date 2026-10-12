@@ -198,14 +198,60 @@ def requested(text):
 
 
 
+def get_advisor_whatsapp_phone(ns=None):
+    """
+    Obtiene el número telefónico de WhatsApp del asesor humano.
+    Prioridad:
+    1. ns.get('ADVISOR_WHATSAPP_PHONE') o ns.get('ADVISOR_PHONE')
+    2. Variable de entorno ADVISOR_WHATSAPP_PHONE o ADVISOR_PHONE
+    3. Si está vacío, 'none', 'false', '0' o 'disabled', retorna None (enlace deshabilitado).
+    4. Por defecto, retorna '51953767860' (número oficial registrado en documentos de Texeira Travel).
+    """
+    val = None
+    if isinstance(ns, dict):
+        val = ns.get('ADVISOR_WHATSAPP_PHONE') or ns.get('ADVISOR_PHONE')
+    if not val:
+        val = os.getenv('ADVISOR_WHATSAPP_PHONE') or os.getenv('ADVISOR_PHONE')
+
+    if val is not None:
+        s = str(val).strip()
+        if s.lower() in {'none', 'false', '0', 'disabled', 'off', 'null', ''}:
+            return None
+        digits = re.sub(r'\D', '', s)
+        if not digits:
+            return None
+        if len(digits) == 9 and digits.startswith('9'):
+            return f"51{digits}"
+        return digits
+
+    return '51953767860'
+
+
+def get_advisor_whatsapp_link_text(language='es', ns=None):
+    """
+    Construye el texto con enlace directo a WhatsApp para el turista.
+    Si el número está deshabilitado o vacío, retorna cadena vacía.
+    """
+    phone = get_advisor_whatsapp_phone(ns)
+    if not phone:
+        return ""
+    link = f"https://wa.me/{phone}"
+    if language == 'en':
+        return f"\n\n👉 You can also contact our advisor directly on WhatsApp: {link}"
+    elif language == 'pt':
+        return f"\n\n👉 Você também pode falar diretamente com nosso assessor no WhatsApp: {link}"
+    else:
+        return f"\n\n👉 También puedes coordinar directamente con nuestro asesor en WhatsApp: {link}"
+
+
 def notify_advisor(row, send_fn=None, advisor_phone=None):
     """
     Envía una notificación push vía WhatsApp al número del asesor humano
     cuando se registra una nueva solicitud de derivación (handoff).
     """
-    phone = advisor_phone or os.getenv('ADVISOR_WHATSAPP_PHONE', '')
+    phone = advisor_phone or get_advisor_whatsapp_phone()
     if not phone:
-        print(f"[ADVISOR NOTIFY] Aviso no enviado para ticket {row.get('id')}: ADVISOR_WHATSAPP_PHONE ausente.")
+        print(f"[ADVISOR NOTIFY] Aviso no enviado para ticket {row.get('id')}: número de asesor ausente o deshabilitado.")
         return False
 
     ticket_id = row.get('id', 'N/A')
@@ -307,27 +353,31 @@ def apply_request(ns, result, user_id, channel, question):
         result.update(handoff_id=row['id'], handoff_status=row['status'], handoff_registered=True)
         if created and channel in {'whatsapp', 'messenger'} and ns.get('ADVISOR_NOTIFICATIONS_ENABLED', False):
             send_fn = ns.get('send_whatsapp_message')
-            advisor_phone = ns.get('ADVISOR_WHATSAPP_PHONE') or os.getenv('ADVISOR_WHATSAPP_PHONE', '')
+            advisor_phone = get_advisor_whatsapp_phone(ns)
             try:
                 notify_advisor(row, send_fn=send_fn, advisor_phone=advisor_phone)
             except Exception as e:
                 print(f"[ADVISOR NOTIFY] Error silencioso al notificar asesor: {e}")
+
+        link_txt_es = get_advisor_whatsapp_link_text('es', ns)
+        link_txt_en = get_advisor_whatsapp_link_text('en', ns)
+        link_txt_pt = get_advisor_whatsapp_link_text('pt', ns)
 
         if is_booking:
             if created:
                 if tour_name:
                     result['response'] = _request_message(
                         language,
-                        es=f"Registré tu solicitud sobre {tour_name}. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.\n\n👉 También puedes coordinar directamente con nuestro asesor en WhatsApp: https://wa.me/51953767860",
-                        en=f"I registered your request regarding {tour_name}. It is pending review by an advisor; your reservation is not yet confirmed.\n\n👉 You can also contact our advisor directly on WhatsApp: https://wa.me/51953767860",
-                        pt=f"Registrei sua solicitação sobre {tour_name}. Ela aguarda atendimento por um assessor; sua reserva ainda não está confirmada.\n\n👉 Você também pode falar diretamente com nosso assessor no WhatsApp: https://wa.me/51953767860",
+                        es=f"Registré tu solicitud sobre {tour_name}. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.{link_txt_es}",
+                        en=f"I registered your request regarding {tour_name}. It is pending review by an advisor; your reservation is not yet confirmed.{link_txt_en}",
+                        pt=f"Registrei sua solicitação sobre {tour_name}. Ela aguarda atendimento por um assessor; sua reserva ainda não está confirmada.{link_txt_pt}",
                     )
                 else:
                     result['response'] = _request_message(
                         language,
-                        es="Registré tu solicitud de reserva. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.\n\n👉 También puedes coordinar directamente con nuestro asesor en WhatsApp: https://wa.me/51953767860",
-                        en="I registered your reservation request. It is pending review by an advisor; your reservation is not yet confirmed.\n\n👉 You can also contact our advisor directly on WhatsApp: https://wa.me/51953767860",
-                        pt="Registrei sua solicitação de reserva. Ela aguarda atendimento por um assessor; sua reserva ainda não está confirmada.\n\n👉 Você também pode falar diretamente com nosso assessor no WhatsApp: https://wa.me/51953767860",
+                        es=f"Registré tu solicitud de reserva. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.{link_txt_es}",
+                        en=f"I registered your reservation request. It is pending review by an advisor; your reservation is not yet confirmed.{link_txt_en}",
+                        pt=f"Registrei sua solicitação de reserva. Ela aguarda atendimento por um assessor; sua reserva ainda não está confirmada.{link_txt_pt}",
                     )
             else:
                 if row['status'] == 'in_progress':
@@ -340,20 +390,20 @@ def apply_request(ns, result, user_id, channel, question):
                 else:
                     result['response'] = _request_message(
                         language,
-                        es=f"Ya tienes una solicitud registrada (Ticket {row['id']}) pendiente de atención por un asesor. Tu reserva aún no está confirmada; te atenderemos a la brevedad.\n\n👉 También puedes coordinar directamente con nuestro asesor en WhatsApp: https://wa.me/51953767860",
-                        en=f"You already have a registered request (Ticket {row['id']}) pending review by an advisor. Your reservation is not yet confirmed; we will assist you shortly.\n\n👉 You can also contact our advisor directly on WhatsApp: https://wa.me/51953767860",
-                        pt=f"Você já tem uma solicitação registrada (Ticket {row['id']}) aguardando atendimento por um assessor. Sua reserva ainda não está confirmada; você pode continuar consultando o bot.\n\n👉 Você também pode falar diretamente com nosso assessor no WhatsApp: https://wa.me/51953767860",
+                        es=f"Ya tienes una solicitud registrada (Ticket {row['id']}) pendiente de atención por un asesor. Tu reserva aún no está confirmada; te atenderemos a la brevedad.{link_txt_es}",
+                        en=f"You already have a registered request (Ticket {row['id']}) pending review by an advisor. Your reservation is not yet confirmed; we will assist you shortly.{link_txt_en}",
+                        pt=f"Você já tem uma solicitação registrada (Ticket {row['id']}) aguardando atendimento por um assessor. Sua reserva ainda não está confirmada; você pode continuar consultando o bot.{link_txt_pt}",
                     )
         else:
             if created:
                 result['response'] = _request_message(
                     language,
                     es=f"Tu solicitud {row['id']} está registrada y pendiente de atención humana. "
-                    "Aún no ha sido atendida. Puedes seguir haciendo consultas al bot.\n\n👉 También puedes coordinar directamente con nuestro asesor en WhatsApp: https://wa.me/51953767860",
+                    f"Aún no ha sido atendida. Puedes seguir haciendo consultas al bot.{link_txt_es}",
                     en=f"Your request {row['id']} is registered and pending human attention. "
-                    "It has not been handled yet. You can continue asking the bot questions.\n\n👉 You can also contact our advisor directly on WhatsApp: https://wa.me/51953767860",
+                    f"It has not been handled yet. You can continue asking the bot questions.{link_txt_en}",
                     pt=f"Sua solicitação {row['id']} está registrada e aguarda atendimento humano. "
-                    "Ela ainda não foi atendida. Você pode continuar consultando o bot.\n\n👉 Você também pode falar diretamente com nosso assessor no WhatsApp: https://wa.me/51953767860",
+                    f"Ela ainda não foi atendida. Você pode continuar consultando o bot.{link_txt_pt}",
                 )
             else:
                 if row['status'] == 'in_progress':
@@ -367,11 +417,11 @@ def apply_request(ns, result, user_id, channel, question):
                     result['response'] = _request_message(
                         language,
                         es=f"Ya tienes una solicitud registrada ({row['id']}) pendiente de atención humana. "
-                        "Aún no ha sido atendida. Puedes seguir haciendo consultas al bot.\n\n👉 También puedes coordinar directamente con nuestro asesor en WhatsApp: https://wa.me/51953767860",
+                        f"Aún no ha sido atendida. Puedes seguir haciendo consultas al bot.{link_txt_es}",
                         en=f"You already have a registered request ({row['id']}) pending human attention. "
-                        "It has not been handled yet. You can continue asking the bot questions.\n\n👉 You can also contact our advisor directly on WhatsApp: https://wa.me/51953767860",
+                        f"It has not been handled yet. You can continue asking the bot questions.{link_txt_en}",
                         pt=f"Você já tem uma solicitação registrada ({row['id']}) aguardando atendimento humano. "
-                        "Ela ainda não foi atendida. Você pode continuar consultando o bot.\n\n👉 Você também pode falar diretamente com nosso assessor no WhatsApp: https://wa.me/51953767860",
+                        f"Ela ainda não foi atendida. Você pode continuar consultando o bot.{link_txt_pt}",
                     )
     except (sqlite3.Error, Exception):
         result['response']=_request_message(
