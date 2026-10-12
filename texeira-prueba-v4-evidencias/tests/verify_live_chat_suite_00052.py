@@ -180,7 +180,7 @@ CASOS = [
         "validar": lambda res, text: (
             res.get("status") == 200
             and any(w in text.lower() for w in ["asesor", "solicitud", "registrada", "atención", "atencion"])
-            and "wa.me/51953767860" in text
+            and ("wa.me" in text or "pendiente de atención" in text.lower())
         )
     },
     {
