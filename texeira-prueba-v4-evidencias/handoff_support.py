@@ -318,16 +318,16 @@ def apply_request(ns, result, user_id, channel, question):
                 if tour_name:
                     result['response'] = _request_message(
                         language,
-                        es=f"Registré tu solicitud sobre {tour_name}. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.",
-                        en=f"I registered your request regarding {tour_name}. It is pending review by an advisor; your reservation is not yet confirmed.",
-                        pt=f"Registrei sua solicitação sobre {tour_name}. Ela aguarda atendimento por um assessor; sua reserva ainda não está confirmada.",
+                        es=f"Registré tu solicitud sobre {tour_name}. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.\n\n👉 También puedes coordinar directamente con nuestro asesor en WhatsApp: https://wa.me/51953767860",
+                        en=f"I registered your request regarding {tour_name}. It is pending review by an advisor; your reservation is not yet confirmed.\n\n👉 You can also contact our advisor directly on WhatsApp: https://wa.me/51953767860",
+                        pt=f"Registrei sua solicitação sobre {tour_name}. Ela aguarda atendimento por um assessor; sua reserva ainda não está confirmada.\n\n👉 Você também pode falar diretamente com nosso assessor no WhatsApp: https://wa.me/51953767860",
                     )
                 else:
                     result['response'] = _request_message(
                         language,
-                        es="Registré tu solicitud de reserva. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.",
-                        en="I registered your reservation request. It is pending review by an advisor; your reservation is not yet confirmed.",
-                        pt="Registrei sua solicitação de reserva. Ela aguarda atendimento por um assessor; sua reserva ainda não está confirmada.",
+                        es="Registré tu solicitud de reserva. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.\n\n👉 También puedes coordinar directamente con nuestro asesor en WhatsApp: https://wa.me/51953767860",
+                        en="I registered your reservation request. It is pending review by an advisor; your reservation is not yet confirmed.\n\n👉 You can also contact our advisor directly on WhatsApp: https://wa.me/51953767860",
+                        pt="Registrei sua solicitação de reserva. Ela aguarda atendimento por um assessor; sua reserva ainda não está confirmada.\n\n👉 Você também pode falar diretamente com nosso assessor no WhatsApp: https://wa.me/51953767860",
                     )
             else:
                 if row['status'] == 'in_progress':
@@ -340,20 +340,20 @@ def apply_request(ns, result, user_id, channel, question):
                 else:
                     result['response'] = _request_message(
                         language,
-                        es=f"Ya tienes una solicitud registrada (Ticket {row['id']}) pendiente de atención por un asesor. Tu reserva aún no está confirmada; te atenderemos a la brevedad.",
-                        en=f"You already have a registered request (Ticket {row['id']}) pending review by an advisor. Your reservation is not yet confirmed; we will assist you shortly.",
-                        pt=f"Você já tem uma solicitação registrada (Ticket {row['id']}) aguardando atendimento por um assessor. Sua reserva ainda não está confirmada; você pode continuar consultando o bot.",
+                        es=f"Ya tienes una solicitud registrada (Ticket {row['id']}) pendiente de atención por un asesor. Tu reserva aún no está confirmada; te atenderemos a la brevedad.\n\n👉 También puedes coordinar directamente con nuestro asesor en WhatsApp: https://wa.me/51953767860",
+                        en=f"You already have a registered request (Ticket {row['id']}) pending review by an advisor. Your reservation is not yet confirmed; we will assist you shortly.\n\n👉 You can also contact our advisor directly on WhatsApp: https://wa.me/51953767860",
+                        pt=f"Você já tem uma solicitação registrada (Ticket {row['id']}) aguardando atendimento por um assessor. Sua reserva ainda não está confirmada; você pode continuar consultando o bot.\n\n👉 Você também pode falar diretamente com nosso assessor no WhatsApp: https://wa.me/51953767860",
                     )
         else:
             if created:
                 result['response'] = _request_message(
                     language,
                     es=f"Tu solicitud {row['id']} está registrada y pendiente de atención humana. "
-                    "Aún no ha sido atendida. Puedes seguir haciendo consultas al bot.",
+                    "Aún no ha sido atendida. Puedes seguir haciendo consultas al bot.\n\n👉 También puedes coordinar directamente con nuestro asesor en WhatsApp: https://wa.me/51953767860",
                     en=f"Your request {row['id']} is registered and pending human attention. "
-                    "It has not been handled yet. You can continue asking the bot questions.",
+                    "It has not been handled yet. You can continue asking the bot questions.\n\n👉 You can also contact our advisor directly on WhatsApp: https://wa.me/51953767860",
                     pt=f"Sua solicitação {row['id']} está registrada e aguarda atendimento humano. "
-                    "Ela ainda não foi atendida. Você pode continuar consultando o bot.",
+                    "Ela ainda não foi atendida. Você pode continuar consultando o bot.\n\n👉 Você também pode falar diretamente com nosso assessor no WhatsApp: https://wa.me/51953767860",
                 )
             else:
                 if row['status'] == 'in_progress':
@@ -367,11 +367,11 @@ def apply_request(ns, result, user_id, channel, question):
                     result['response'] = _request_message(
                         language,
                         es=f"Ya tienes una solicitud registrada ({row['id']}) pendiente de atención humana. "
-                        "Aún no ha sido atendida. Puedes seguir haciendo consultas al bot.",
+                        "Aún no ha sido atendida. Puedes seguir haciendo consultas al bot.\n\n👉 También puedes coordinar directamente con nuestro asesor en WhatsApp: https://wa.me/51953767860",
                         en=f"You already have a registered request ({row['id']}) pending human attention. "
-                        "It has not been handled yet. You can continue asking the bot questions.",
+                        "It has not been handled yet. You can continue asking the bot questions.\n\n👉 You can also contact our advisor directly on WhatsApp: https://wa.me/51953767860",
                         pt=f"Você já tem uma solicitação registrada ({row['id']}) aguardando atendimento humano. "
-                        "Ela ainda não foi atendida. Você pode continuar consultando o bot.",
+                        "Ela ainda não foi atendida. Você pode continuar consultando o bot.\n\n👉 Você também pode falar diretamente com nosso assessor no WhatsApp: https://wa.me/51953767860",
                     )
     except (sqlite3.Error, Exception):
         result['response']=_request_message(

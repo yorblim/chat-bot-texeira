@@ -136,6 +136,8 @@ def is_recommendation_query(q_norm: str) -> bool:
         return True
     if re.search(r'\b(?:que|cual|cuales)\s+(?:me\s+)?(?:conviene|elijo|escojo|hago|tomar|hacer|tours?\s+(?:me\s+)?(?:das|ofreces))\b', q_norm):
         return True
+    if re.search(r'\b(?:aclimat\w*|soroche|mal\s+de\s+altura|altitude\s+sickness|primer\s+d[ií]a|first\s+day|primeiro\s+dia)\b', q_norm):
+        return True
     return False
 
 
@@ -848,6 +850,44 @@ def install(ns, support, original):
             has_nature = bool(re.search(r'\b(paisaje\w*|paisage\w*|naturalez\w*|natureza|laguna\w*|monta[nñ]a\w*|scener\w*|landscape\w*|nature|lake\w*)\b', pref_text))
             has_history= bool(re.search(r'\b(hist[oó]ri\w*|arqueolog\w*|cultur\w*|ruina\w*|templo\w*|history|historical|archeolog\w*|ruins|culture)\b', pref_text))
 
+            # Recomendación especializada de aclimatación / primer día en Cusco
+            is_altitude_advice = bool(re.search(
+                r'\b(?:primer\s*d[ií]a|first\s*day|primeiro\s*dia|aclimat\w*|soroche|mal\s*de\s*altura|altitude\s*sickness)\b',
+                pref_text
+            ))
+            if is_altitude_advice:
+                if en:
+                    msg = (
+                        "🏔️ *Recommendation for your First Day & Acclimatization in Cusco (3,400 m):*\n\n"
+                        "To adapt to the altitude and prevent soroche (altitude sickness), we recommend resting and taking easy half-day activities:\n\n"
+                        "• 🏛️ *City Tour Cusco* (Half day, 13:30 to 18:30) — Inca temples and historic center at a gentle pace.\n"
+                        "• 🏺 *Maras & Moray* (Half day, 08:40 to 14:00) — Salt mines and agricultural terraces with light walking.\n\n"
+                        "⚠️ *Important:* We advise against high-altitude hikes on your arrival day (such as *Humantay Lake* or *Rainbow Mountain*). It is best to schedule them from Day 2 or 3 onwards.\n\n"
+                        "_💡 Tip: Drink coca tea, stay hydrated, and walk at a calm pace. To coordinate, write 👉 advisor._"
+                    )
+                elif pt:
+                    msg = (
+                        "🏔️ *Recomendação para seu Primeiro Dia e Aclimatação em Cusco (3.400 m):*\n\n"
+                        "Para se adaptar à altitude e evitar o soroche (mal da altitude), recomendamos descanso e passeios suaves de meio dia:\n\n"
+                        "• 🏛️ *City Tour Cusco* (Meio dia, 13:30 às 18:30) — Templos incas e centro histórico em ritmo tranquilo.\n"
+                        "• 🏺 *Maras e Moray* (Meio dia, 08:40 às 14:00) — Salineras e terraços agrícolas sem esforço físico pesado.\n\n"
+                        "⚠️ *Importante:* Não recomendamos trilhas de alta montanha no primeiro dia (como *Laguna Humantay* ou *Montanha 7 Cores*). É melhor realizá-las a partir do 2º ou 3º dia.\n\n"
+                        "_💡 Dica: Tome chá de coca, mantenha-se hidratado e caminhe com calma. Para agendar, escreva 👉 assessor._"
+                    )
+                else:
+                    msg = (
+                        "🏔️ *Recomendación para tu Primer Día y Aclimatación en Cusco (3,400 msnm):*\n\n"
+                        "Para adaptarte a la altura y prevenir el soroche (mal de altura), recomendamos descanso y actividades suaves de medio día:\n\n"
+                        "• 🏛️ *City Tour Cusco* (Medio día, 13:30 a 18:30) — Templos incas y centro histórico a ritmo tranquilo.\n"
+                        "• 🏺 *Maras y Moray* (Medio día, 08:40 a 14:00) — Salineras y terrazas agrícolas sin caminatas pesadas.\n\n"
+                        "⚠️ *Importante:* No recomendamos excursiones de gran altitud o caminatas exigentes el día de llegada (como *Laguna Humantay* o *Montaña de 7 Colores*). Es ideal dejarlas para el 2do o 3er día.\n\n"
+                        "_💡 Consejo: Toma mate de coca, mantente hidratado y camina con calma. Para coordinar fechas, escribe 👉 *asesor*._"
+                    )
+                rec_state = dict(criteria=dict(time=['half'], hiking=False, nature=True, history=True),
+                                 offered_ids=['city-tour-cusco', 'maras-moray'], rejected_ids=[])
+                return finish(msg, 'evidence_recommendation', pending=False, needs_agency=False,
+                              sources=['CATALOGO_OFICIAL'], recommendation_state=rec_state)
+
             # Sin preferencias: preguntar brevemente por intereses y tiempo disponible
             if not (has_nature or has_history or has_hiking or has_time_short or has_time_1day or has_time_multi or no_hiking):
                 if en:
@@ -1421,7 +1461,7 @@ def install(ns, support, original):
                     return finish("\n".join(lines), 'evidence_no_special_rate', pending=True, sources=['CATALOGO_OFICIAL'], entity_id=eid_rate)
 
         # Operaciones comerciales y disponibilidad para fechas puntuales
-        if re.search(r'cancel|reembols|refund|yape|paypal|\bpagar\b|\bpago\b|adelant|deposit|\bpay\b|payment|descuento|discount|reserva|booking|\bbook\b|cupos?|spots?|availability|available|disponib|manana|tomorrow|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}',commercial_q):
+        if re.search(r'cancel|reembols|refund|yape|paypal|\bpagar\b|\bpago\b|pagamento|adelant|deposit|\bpay\b|payment|descuento|discount|reserva|booking|\bbook\b|cupos?|spots?|availability|available|disponib|manana|tomorrow|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}',commercial_q):
             eid_comercial = entity(q)
             if not eid_comercial:
                 for h in reversed(prior):
@@ -1459,6 +1499,40 @@ def install(ns, support, original):
                     else:
                         msg = (f'⏰ *{name_com}*\n• Horario publicado: {schedule_com}\n\nEl precio y las fechas disponibles te las confirmamos al instante en la agencia.\n\nEscribe 👉 *asesor* y te atendemos ahora 😊')
                     return finish(msg, 'evidence_schedule', pending=True, sources=['F1','F2'], entity_id=eid_comercial)
+            is_payment_methods = bool(re.search(
+                r'\b(?:m[eé]todos?\s+de\s+pago|formas?\s+de\s+pago|como\s+puedo\s+pagar|como\s+pagar|payment\s+methods?|how\s+(?:can\s+i|to)\s+pay|formas?\s+de\s+pagamento)\b',
+                q
+            ))
+            if is_payment_methods:
+                if en:
+                    msg = (
+                        "💳 *Payment Methods — Texeira Travel:*\n\n"
+                        "We coordinate bookings and payments through:\n"
+                        "• 🏦 *Bank Transfer:* BCP and Interbank (in USD and PEN).\n"
+                        "• 💳 *Credit / Debit Cards:* Visa and Mastercard (upon prior coordination).\n"
+                        "• 💵 *Cash:* Directly at our office in Cusco (Calle Carmen Quicllu N.° 250).\n\n"
+                        "👉 To receive bank account details or confirm your spot, write: *advisor*."
+                    )
+                elif pt:
+                    msg = (
+                        "💳 *Formas de Pagamento — Texeira Travel:*\n\n"
+                        "Coordenamos reservas e pagamentos através de:\n"
+                        "• 🏦 *Transferência Bancária:* BCP e Interbank (em Dólares USD e Soles).\n"
+                        "• 💳 *Cartões de Crédito / Débito:* Visa e Mastercard (com coordenação prévia).\n"
+                        "• 💵 *Dinheiro (Espécie):* Diretamente em nossa agência em Cusco (Calle Carmen Quicllu N.° 250).\n\n"
+                        "👉 Para receber dados bancários ou confirmar sua vaga, escreva: *assessor*."
+                    )
+                else:
+                    msg = (
+                        "💳 *Métodos de Pago — Texeira Travel:*\n\n"
+                        "Coordinamos tus pagos y confirmación de reservas mediante:\n"
+                        "• 🏦 *Transferencia Bancaria / Interbancaria:* Cuentas BCP e Interbank (Soles y Dólares USD).\n"
+                        "• 💳 *Tarjetas de Crédito / Débito:* Visa y Mastercard (previa coordinación).\n"
+                        "• 💵 *Efectivo:* Directamente en nuestra oficina oficial en Cusco (Calle Carmen Quicllu N.° 250).\n\n"
+                        "👉 Para proporcionarte los números de cuenta o coordinar tu reserva, escribe: *asesor*."
+                    )
+                return finish(msg, 'evidence_unknown', True, entity_id=None)
+
             if en:
                 msg = 'Payments, bookings and availability are confirmed directly with our team at the agency.\n\nWrite 👉 *advisor* and we\'ll assist you right away 😊'
             else:
