@@ -148,9 +148,9 @@ def install(ns):
             return 'en'
         words = set(re.findall(r'\b\w+\b', normalize(text)))
         markers = {
-            'es': set('que cual cuanto cuesta incluye incluidas incluido excluido entradas puedo cancelar manana gracias hola precio precios tarifa tarifas porfa favor como donde cuando salir salida horario hora boleto boletos llegar quiero necesito visita ruinas arqueologico arqueologica caminata caminatas caminar senderismo trekking medio dia dias recomiendame recomiendas recomienda recomiendes ninguno ninguna sugieres aconsejas montana colores sagrao waqrapukara waqra pukara queswachaca puente mistico ver categorias categoria catalogo reserva reservar solicitar informacion info detalles cusco fotos foto'.split()),
-            'en': set('what which how does the include includes included inclusions exclusions exclude tickets can cancel tomorrow thanks price prices rate rates cost costs where when want need is are do offer available hello hi categories category reservation reserve book view recommend recommendations suggest advice advise something hiking hike walking half full day days duration schedule timetable departure like please pls without information details overview preparation gear should bring wear'.split()),
-            'pt': set('quais qual quanto custa preco precos passeio passeios voce quero ola obrigado meio nao sem caminhar caminhadas caminhos trilhas fazer devo levar equipamento roupa calcado preparacao informacoes incluido em assessor tenho agora nenhum outras opcoes quatro dois duas uma paisagens natureza gosta interessa diferenca locais ver categoria categorias reserva solicitar cusco fotos foto dia dias que como favor cultura aventura'.split()),
+            'es': set('tours tour mas que cual cuanto cuesta incluye incluidas incluido excluido entradas puedo cancelar manana gracias hola precio precios tarifa tarifas porfa favor como donde cuando salir salida horario hora boleto boletos llegar quiero necesito visita visitado visitados popular populares imperdible imperdibles ruinas arqueologico arqueologica caminata caminatas caminar senderismo trekking medio dia dias recomiendame recomiendas recomienda recomiendes ninguno ninguna sugieres aconsejas montana colores sagrao waqrapukara waqra pukara queswachaca puente mistico ver categorias categoria catalogo reserva reservar solicitar informacion info detalles cusco fotos foto'.split()),
+            'en': set('what which how does the include includes included inclusions exclusions exclude tickets can cancel tomorrow thanks price prices rate rates cost costs where when want need is are do offer available hello hi categories category reservation reserve book view recommend recommendations suggest advice advise something hiking hike walking half full day days duration schedule timetable departure like please pls without information details overview preparation gear should bring wear tours tour most popular visited your best'.split()),
+            'pt': set('mais quais qual quanto custa preco precos passeio passeios voce quero ola obrigado meio nao sem caminhar caminhadas caminhos trilhas fazer devo levar equipamento roupa calcado preparacao informacoes incluido em assessor tenho agora nenhum outras opcoes quatro dois duas uma paisagens natureza gosta interessa diferenca locais ver categoria categorias reserva solicitar cusco fotos foto dia dias que como favor cultura aventura visitado visitados populares imperdiveis'.split()),
             # "dois" and "devo/quanto" also occur in Portuguese. Count the
             # surrounding native cues instead of letting those isolated words
             # determine French equipment or Italian price/preparation requests.
@@ -159,7 +159,12 @@ def install(ns):
         }
         scores = {lang: len(words & values) for lang, values in markers.items()}
         best = max(scores, key=scores.get)
-        # Shared words (dia, que, quero) must not outvote explicit PT markers.
+        # Shared words (dia, que, quero, tours) must not outvote explicit distinctive markers.
+        if scores['en'] and scores['en'] == scores[best]:
+            en_distinctive = markers['en'] - markers['es'] - markers['pt']
+            es_distinctive = markers['es'] - markers['en'] - markers['pt']
+            if (words & en_distinctive) and not (words & es_distinctive):
+                best = 'en'
         if scores['pt'] and scores['pt'] == scores[best]:
             pt_distinctive = markers['pt'] - markers['es'] - markers['en']
             es_distinctive = markers['es'] - markers['pt'] - markers['en']

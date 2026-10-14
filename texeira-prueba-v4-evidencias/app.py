@@ -1173,6 +1173,8 @@ def _evaluate_evidence_layer(question: str, user_id: str) -> dict | None:
 
 def _is_listing_question(q_lower: str) -> bool:
     """Detecta preguntas sobre listado de tours. Solo matches claros."""
+    if re.search(r'\b(popular\w*|visitad\w*|imperdibl\w*|must\s*see|top\s+tours?|top\s+destin\w*|pedid\w*|vendid\w*)\b', q_lower):
+        return False
     listing_phrases = [
         'qué tours', 'que tours', 'qué paquetes', 'que paquetes',
         'qué servicios', 'que servicios', 'qué ofrecen', 'que ofrecen',

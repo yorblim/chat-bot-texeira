@@ -158,15 +158,17 @@ class TestTourAvailabilityAndSoldOut(unittest.TestCase):
     # 4. Reserva de Tour Agotado en Handoff
     # ----------------------------------------------------
     def test_booking_sold_out_tour_handoff(self):
+        import time
+        uid = f"test_bso_{int(time.time() * 1000)}"
         catalog_service.upsert_tour({
             'entity_id': 'city-tour-cusco',
             'name': 'City Tour Cusco',
             'availability': 'sold_out'
         })
         from handoff_support import apply_request
-        rag_res = rag_chain("Quiero reservar City Tour Cusco", user_id="test_booking_so_user")
+        rag_res = rag_chain("Quiero reservar City Tour Cusco", user_id=uid)
         self.assertTrue(rag_res.get('handoff_requested'))
-        res = apply_request(app.__dict__, rag_res, "test_booking_so_user", "whatsapp", "Quiero reservar City Tour Cusco")
+        res = apply_request(app.__dict__, rag_res, uid, "whatsapp", "Quiero reservar City Tour Cusco")
         self.assertTrue(res.get('handoff_registered'))
         self.assertIn("sin cupos", res['response'].lower())
         self.assertIn("lista de espera", res['response'].lower())
