@@ -130,6 +130,27 @@ _SOCIAL_RESPONSES = {
 _HELP_RESPONSE = '¡Claro! 😊 Puedo ayudarte con *tours, horarios y servicios* de Texeira Travel.\n¿Qué destino te interesa? O escribe 👉 *asesor*'
 
 
+def is_most_visited_query(q_norm: str) -> bool:
+    """Detecta consultas sobre los tours más visitados, populares o imperdibles."""
+    if re.search(
+        r'\b(?:m[aá]s\s+(?:visitad\w*|popular\w*|pedid\w*|vendid\w*|solicitad\w*|conocid\w*)|'
+        r'mais\s+(?:visitad\w*|popular\w*|pedid\w*|vendid\w*|procurad\w*)|'
+        r'most\s+(?:visited|popular|requested|booked)|'
+        r'plus\s+(?:visit[eé]\w*|populaire\w*)|'
+        r'pi[uù]\s+(?:visitat\w*|popolar\w*)|'
+        r'imperdibl\w*|imperd[ií]veis|must\s*see|top\s+tours?|top\s+destin\w*|'
+        r'principales?\s+tours?|mejores\s+tours?|best\s+tours?|melhores\s+passeios)\b',
+        q_norm
+    ):
+        return True
+    if re.search(
+        r'\b(?:que|cu[aá]les|quais|what)\s+(?:tours?|passeios?|lugares?|destinos?)\s+(?:son\s+los\s+|s[aã]o\s+os\s+|are\s+the\s+)?(?:m[aá]s|mais|most)\b',
+        q_norm
+    ):
+        return True
+    return False
+
+
 def is_recommendation_query(q_norm: str) -> bool:
     """Detecta peticiones de recomendación, sugerencia o consejo, tolerando erratas."""
     if re.search(r'\b(?:recomie\w*|recomen\w*|recomnd\w*|sugier\w*|suger\w*|aconsej\w*|recommend\w*|suggest\w*|advice|advise|conseill\w*|consigli\w*)\b', q_norm):
@@ -137,6 +158,8 @@ def is_recommendation_query(q_norm: str) -> bool:
     if re.search(r'\b(?:que|cual|cuales)\s+(?:me\s+)?(?:conviene|elijo|escojo|hago|tomar|hacer|tours?\s+(?:me\s+)?(?:das|ofreces))\b', q_norm):
         return True
     if re.search(r'\b(?:aclimat\w*|soroche|mal\s+de\s+altura|altitude\s+sickness|primer\s+d[ií]a|first\s+day|primeiro\s+dia)\b', q_norm):
+        return True
+    if is_most_visited_query(q_norm):
         return True
     return False
 
@@ -851,6 +874,89 @@ def install(ns, support, original):
             has_nature = bool(re.search(r'\b(paisaje\w*|paisage\w*|naturalez\w*|natureza|laguna\w*|monta[nñ]a\w*|scener\w*|landscape\w*|nature|lake\w*)\b', pref_text))
             has_history= bool(re.search(r'\b(hist[oó]ri\w*|arqueolog\w*|cultur\w*|ruina\w*|templo\w*|history|historical|archeolog\w*|ruins|culture)\b', pref_text))
 
+            # Recomendación especializada de tours más visitados / populares / imperdibles
+            is_most_visited = is_most_visited_query(pref_text) or is_most_visited_query(q_norm) or is_most_visited_query(q)
+            if is_most_visited:
+                if en:
+                    msg = (
+                        "🏆 *Most Visited & Must-See Tours — Texeira Travel*\n\n"
+                        "The top-rated and most chosen experiences by travelers in Cusco are:\n\n"
+                        "1️⃣ 🏔️ *Machu Picchu (by Train or Classic Inca Trail 4D/3N):*\n"
+                        "Wonder of the World. The ultimate highlight of any trip to Peru.\n\n"
+                        "2️⃣ 🎨 *Rainbow Mountain (Vinicunca):*\n"
+                        "The most famous and photographed Andean landscape (5,036 m / 16,520 ft).\n\n"
+                        "3️⃣ 💧 *Humantay Lake:*\n"
+                        "Stunning turquoise glacier lake at the base of Mount Salkantay (4,200 m / 13,780 ft).\n\n"
+                        "4️⃣ 🏛️ *Cusco City Tour / Sacred Valley:*\n"
+                        "Essential Inca archaeological centers (perfect for your first days and acclimatization).\n\n"
+                        "💡 *Travel tip:* We recommend starting with the City Tour or Sacred Valley to acclimatize to the altitude, then hiking Humantay or Rainbow Mountain, and finishing with Machu Picchu.\n\n"
+                        "_Type any tour name for official details or type 👉 *advisor* to plan your trip with our team._"
+                    )
+                elif pt:
+                    msg = (
+                        "🏆 *Passeios Mais Visitados e Imperdíveis — Texeira Travel*\n\n"
+                        "Os destinos favoritos e mais escolhidos pelos viajantes em Cusco são:\n\n"
+                        "1️⃣ 🏔️ *Machu Picchu (de Trem ou Trilha Inca Clássica 4D/3N):*\n"
+                        "Maravilha do Mundo. O ápice e imperdível de qualquer viagem ao Peru.\n\n"
+                        "2️⃣ 🎨 *Montanha de 7 Cores (Vinicunca):*\n"
+                        "A paisagem andina mais famosa e fotografada (5.036 m).\n\n"
+                        "3️⃣ 💧 *Lagoa Humantay:*\n"
+                        "Linda lagoa turquesa aos pés do imponente nevado Salkantay (4.200 m).\n\n"
+                        "4️⃣ 🏛️ *City Tour Cusco / Vale Sagrado:*\n"
+                        "Os sítios arqueológicos incas essenciais (ideal para seus primeiros dias e aclimatação).\n\n"
+                        "💡 *Dica de viagem:* Recomendamos iniciar pelo City Tour ou Vale Sagrado para se aclimatar à altitude, depois Humantay ou Vinicunca, e fechar com chave de ouro em Machu Picchu.\n\n"
+                        "_Digite o nome de um passeio para ver os detalhes oficiais ou digite 👉 *assessor* para falar com nossa equipe._"
+                    )
+                elif fr:
+                    msg = (
+                        "🏆 *Circuits les Plus Visités et Incontournables — Texeira Travel*\n\n"
+                        "Les expériences incontournables et les plus choisies par les voyageurs à Cusco sont :\n\n"
+                        "1️⃣ 🏔️ *Machu Picchu (en Train ou Chemin Inca Classique 4D/3N) :*\n"
+                        "Merveille du Monde. Le point culminant incontournable de tout voyage au Pérou.\n\n"
+                        "2️⃣ 🎨 *Montagne aux 7 Couleurs (Vinicunca) :*\n"
+                        "Le paysage andin le plus célèbre et photographié (5 036 m).\n\n"
+                        "3️⃣ 💧 *Lagune Humantay :*\n"
+                        "Superbe lagune turquoise au pied du glacier Salkantay (4 200 m).\n\n"
+                        "4️⃣ 🏛️ *City Tour Cusco / Vallée Sacrée :*\n"
+                        "Les sites archéologiques incas majeurs (idéal pour vos premiers jours et l'acclimatation).\n\n"
+                        "💡 *Conseil voyageur :* Nous recommandons de commencer par le City Tour ou la Vallée Sacrée pour vous acclimater à l'altitude, puis Humantay ou Vinicunca, et enfin Machu Picchu.\n\n"
+                        "_Écrivez le nom d'un circuit pour les détails ou écrivez 👉 *conseiller*._"
+                    )
+                elif it:
+                    msg = (
+                        "🏆 *Tour Più Visitati e Imperdibili — Texeira Travel*\n\n"
+                        "Le esperienze più richieste e scelte dai viaggiatori a Cusco sono:\n\n"
+                        "1️⃣ 🏔️ *Machu Picchu (in Treno o Cammino Inca Classico 4D/3N):*\n"
+                        "Meraviglia del Mondo. L'esperienza clou e immancabile di ogni viaggio in Perù.\n\n"
+                        "2️⃣ 🎨 *Montagna dei 7 Colori (Vinicunca):*\n"
+                        "Il paesaggio andino più famoso e fotografato (5.036 m).\n\n"
+                        "3️⃣ 💧 *Laguna Humantay:*\n"
+                        "Splendida laguna turchese ai piedi del ghiacciaio Salkantay (4.200 m).\n\n"
+                        "4️⃣ 🏛️ *City Tour Cusco / Valle Sacra:*\n"
+                        "I siti archeologici inca essenziali (ideale per i primi giorni e l'acclimatamento).\n\n"
+                        "💡 *Consiglio di viaggio:* Consigliamo di iniziare con il City Tour o la Valle Sacra per acclimatarsi all'altitudine, proseguire con Humantay o Vinicunca e concludere con Machu Picchu.\n\n"
+                        "_Scrivi il nome di un tour per i dettagli o scrivi 👉 *consulente*._"
+                    )
+                else:
+                    msg = (
+                        "🏆 *Tours Más Visitados e Imperdibles — Texeira Travel*\n\n"
+                        "Los destinos preferidos y más elegidos por los viajeros en Cusco son:\n\n"
+                        "1️⃣ 🏔️ *Machu Picchu (en Tren o Camino Inca 4D/3N):*\n"
+                        "La Maravilla del Mundo Moderno. La experiencia cumbre e imprescindible de todo viaje al Perú.\n\n"
+                        "2️⃣ 🎨 *Montaña de 7 Colores (Vinicunca):*\n"
+                        "El paisaje andino más famoso y fotografiado (5,036 msnm).\n\n"
+                        "3️⃣ 💧 *Laguna Humantay:*\n\n"
+                        "Hermosa laguna turquesa a los pies del imponente nevado Salkantay (4,200 msnm).\n\n"
+                        "4️⃣ 🏛️ *City Tour Cusco / Valle Sagrado:*\n"
+                        "Los centros arqueológicos incas fundamentales (ideal para tu aclimatación y primeros días).\n\n"
+                        "💡 *Tip viajero Texeira:* Te sugerimos iniciar con City Tour o Valle Sagrado para aclimatarte a la altura, seguir con Humantay o Vinicunca, y culminar con broche de oro en Machu Picchu.\n\n"
+                        "_Escribe el nombre de un tour para ver su ficha técnica oficial o escribe 👉 *asesor* para coordinar tu viaje._"
+                    )
+                rec_state = dict(criteria=dict(time=['any'], hiking=None, nature=True, history=True),
+                                 offered_ids=['machu-picchu-tren', 'camino-inka', 'montana-7-colores', 'laguna-humantay', 'city-tour-cusco'], rejected_ids=[])
+                return finish(msg, 'evidence_recommendation', pending=False, needs_agency=False,
+                              sources=['CATALOGO_OFICIAL'], recommendation_state=rec_state)
+
             # Recomendación especializada de aclimatación / primer día en Cusco
             is_altitude_advice = bool(re.search(
                 r'\b(?:primer\s*d[ií]a|first\s*day|primeiro\s*dia|aclimat\w*|soroche|mal\s*de\s*altura|altitude\s*sickness)\b',
@@ -1286,7 +1392,7 @@ def install(ns, support, original):
             q in {'je cherche les categories de circuits', 'mostra le categorie di tour'} or
             q.strip(' ?¿!.') in listing_keywords or
             bool(re.search(r'\b(muestr\w*|meustr\w*|mostr\w*|ver|view|show|dime|tell\s+me|cuales|which|what|tienen?|do\s+you\s+have|hay)\b.*?\b(tours?|opciones?|options?|paquetes?|packages?|destinos?|destinations?|viajes?|trips?|rutas?|routes?|circuitos?|paseos?|categorias?|categories)\b', q) and
-                  not re.search(r'\b(precio|precios|cuesta|cuanto|costo|costos|tarifa|tarifas|price|prices|cost|costs|rate|rates|soles|dolares|\busd\b|\bpen\b|horario|hora|duracion|duration|schedule|incluye|includes?|itinerario|itinerary|fotos?|photos?|imagen|image|imagenes|images|brochure|folleto|cancel|reembols|refund|yape|paypal|pagar|pay|pago|payment|adelant|deposit|descuento|discount|reserva|book|booking|cupos?|disponib\w*|agotad\w*|sold\s*out|manana|tomorrow|7d|7\s*d[ií]as?|7.day)\b|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}', q) and
+                  not re.search(r'\b(precio|precios|cuesta|cuanto|costo|costos|tarifa|tarifas|price|prices|cost|costs|rate|rates|soles|dolares|\busd\b|\bpen\b|horario|hora|duracion|duration|schedule|incluye|includes?|itinerario|itinerary|fotos?|photos?|imagen|image|imagenes|images|brochure|folleto|cancel|reembols|refund|yape|paypal|pagar|pay|pago|payment|adelant|deposit|descuento|discount|reserva|book|booking|cupos?|disponib\w*|agotad\w*|sold\s*out|visitad\w*|popular\w*|imperdibl\w*|must\s*see|top\s+tours?|top\s+destin\w*|pedid\w*|vendid\w*|manana|tomorrow|7d|7\s*d[ií]as?|7.day)\b|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}', q) and
                   support.detect_entity_from_question(q) is None) or
             bool(re.search(r'\b(es el unic\w|es la unic\w|es lo unic\w|hay mas|tienen mas|otros? tours?|otras? opciones?|otros? lugares?|otros? destinos?|otros? paquetes?|que m[aá]s tienen|que mas tienen|mas opciones|m[aá]s opciones|other tours?|other options?|more tours?|more options?|anything else)\b', q) and
                   not re.search(r'\b(cancel|reembols|yape|paypal|pagar|pago|manana|tomorrow)\b', q) and
