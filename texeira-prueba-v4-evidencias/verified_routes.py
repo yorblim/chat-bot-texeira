@@ -550,6 +550,7 @@ def install(ns, support, original):
                     'excludes': dt.get('excludes', ''),
                     'photo_filename': dt.get('photo_filename', ''),
                     'brochure_filename': dt.get('brochure_filename', ''),
+                    'availability': dt.get('availability', 'available'),
                     'overridden_fields': dt.get('overridden_fields', []),
                     'aliases': dt.get('aliases', []),
                 }
@@ -1191,7 +1192,13 @@ def install(ns, support, original):
                         detail_str = sched
                     else:
                         detail_str = "A confirmar" if pt else ("Por confirmar" if not en else "To be confirmed")
-                    lines.append(f"• *{tour_name}* ({detail_str})")
+                    avail_badge = ""
+                    t_avail = t_obj.get('availability', 'available')
+                    if t_avail == 'sold_out':
+                        avail_badge = " [🔴 Agotado]" if not en else (" [🔴 Esgotado]" if pt else " [🔴 Sold out]")
+                    elif t_avail == 'limited':
+                        avail_badge = " [🟡 Cupos limitados]" if not en else (" [🟡 Vagas limitadas]" if pt else " [🟡 Limited spots]")
+                    lines.append(f"• *{tour_name}*{avail_badge} ({detail_str})")
                 footer = (
                     "\n_Escribe directamente el nombre de cualquier tour para ver detalles completos, o selecciona una opción abajo:_\nEscribe 👉 *asesor* si necesitas ayuda personalizada 😊"
                     if not en else
@@ -1233,7 +1240,13 @@ def install(ns, support, original):
                         detail_str = sched
                     else:
                         detail_str = "A confirmar" if pt else ("Por confirmar" if not en else "To be confirmed")
-                    lines.append(f"• *{tour_name}* ({detail_str})")
+                    avail_badge = ""
+                    t_avail = t_obj.get('availability', 'available')
+                    if t_avail == 'sold_out':
+                        avail_badge = " [🔴 Agotado]" if not en else (" [🔴 Esgotado]" if pt else " [🔴 Sold out]")
+                    elif t_avail == 'limited':
+                        avail_badge = " [🟡 Cupos limitados]" if not en else (" [🟡 Vagas limitadas]" if pt else " [🟡 Limited spots]")
+                    lines.append(f"• *{tour_name}*{avail_badge} ({detail_str})")
 
                 if requested_page + 1 < total_pages:
                     nav_note = (
@@ -1273,7 +1286,7 @@ def install(ns, support, original):
             q in {'je cherche les categories de circuits', 'mostra le categorie di tour'} or
             q.strip(' ?¿!.') in listing_keywords or
             bool(re.search(r'\b(muestr\w*|meustr\w*|mostr\w*|ver|view|show|dime|tell\s+me|cuales|which|what|tienen?|do\s+you\s+have|hay)\b.*?\b(tours?|opciones?|options?|paquetes?|packages?|destinos?|destinations?|viajes?|trips?|rutas?|routes?|circuitos?|paseos?|categorias?|categories)\b', q) and
-                  not re.search(r'\b(precio|precios|cuesta|cuanto|costo|costos|tarifa|tarifas|price|prices|cost|costs|rate|rates|soles|dolares|\busd\b|\bpen\b|horario|hora|duracion|duration|schedule|incluye|includes?|itinerario|itinerary|fotos?|photos?|imagen|image|imagenes|images|brochure|folleto|cancel|reembols|refund|yape|paypal|pagar|pay|pago|payment|adelant|deposit|descuento|discount|reserva|book|booking|cupos?|manana|tomorrow|7d|7\s*d[ií]as?|7.day)\b|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}', q) and
+                  not re.search(r'\b(precio|precios|cuesta|cuanto|costo|costos|tarifa|tarifas|price|prices|cost|costs|rate|rates|soles|dolares|\busd\b|\bpen\b|horario|hora|duracion|duration|schedule|incluye|includes?|itinerario|itinerary|fotos?|photos?|imagen|image|imagenes|images|brochure|folleto|cancel|reembols|refund|yape|paypal|pagar|pay|pago|payment|adelant|deposit|descuento|discount|reserva|book|booking|cupos?|disponib\w*|agotad\w*|sold\s*out|manana|tomorrow|7d|7\s*d[ií]as?|7.day)\b|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}', q) and
                   support.detect_entity_from_question(q) is None) or
             bool(re.search(r'\b(es el unic\w|es la unic\w|es lo unic\w|hay mas|tienen mas|otros? tours?|otras? opciones?|otros? lugares?|otros? destinos?|otros? paquetes?|que m[aá]s tienen|que mas tienen|mas opciones|m[aá]s opciones|other tours?|other options?|more tours?|more options?|anything else)\b', q) and
                   not re.search(r'\b(cancel|reembols|yape|paypal|pagar|pago|manana|tomorrow)\b', q) and
@@ -1460,45 +1473,9 @@ def install(ns, support, original):
 
                     return finish("\n".join(lines), 'evidence_no_special_rate', pending=True, sources=['CATALOGO_OFICIAL'], entity_id=eid_rate)
 
-        # Operaciones comerciales y disponibilidad para fechas puntuales
-        if re.search(r'cancel|reembols|refund|yape|paypal|\bpagar\b|\bpago\b|pagamento|adelant|deposit|\bpay\b|payment|descuento|discount|reserva|booking|\bbook\b|cupos?|spots?|availability|available|disponib|manana|tomorrow|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}',commercial_q):
-            eid_comercial = entity(q)
-            if not eid_comercial:
-                for h in reversed(prior):
-                    if h.get('role') == 'human':
-                        eid_comercial = entity(support.normalize(h['content']))
-                        if eid_comercial: break
-            if eid_comercial:
-                if is_deactivated_tour(eid_comercial) or eid_comercial not in active_tours:
-                    tour_info = None
-                    try:
-                        import catalog_service
-                        tour_info = catalog_service.get_tour_by_id(eid_comercial)
-                    except Exception:
-                        pass
-                    name_deact = tour_info.get('name', eid_comercial) if tour_info else eid_comercial
-                    if en:
-                        msg = f"*{name_deact}* is not currently in our active catalog. You can explore other tours or consult this destination with an advisor."
-                    else:
-                        msg = f"*{name_deact}* no figura actualmente en nuestro catálogo activo. Puedes explorar otros tours o consultar este destino con un asesor."
-                    return finish(msg, 'evidence_inactive_tour', pending=True, entity_id=eid_comercial)
-
-                tour_obj_com = active_tours.get(eid_comercial, {})
-                name_com = tour_obj_com.get('name', eid_comercial)
-                schedule_com = str(tour_obj_com.get('schedule') or '').strip()
-                overrides_com = tour_obj_com.get('overridden_fields', [])
-                if not schedule_com and 'schedule' not in overrides_com:
-                    facts_com = get_facts(eid_comercial)
-                    for f in facts_com:
-                        if f.field == 'schedule' and f.value:
-                            schedule_com = str(f.value).strip()
-                            break
-                if schedule_com:
-                    if en:
-                        msg = (f'⏰ *{name_com}*\n• Published schedule: {schedule_com}\n\nFor price and available dates, our team confirms them directly with you.\n\nWrite 👉 *advisor* and we\'ll assist you right away 😊')
-                    else:
-                        msg = (f'⏰ *{name_com}*\n• Horario publicado: {schedule_com}\n\nEl precio y las fechas disponibles te las confirmamos al instante en la agencia.\n\nEscribe 👉 *asesor* y te atendemos ahora 😊')
-                    return finish(msg, 'evidence_schedule', pending=True, sources=['F1','F2'], entity_id=eid_comercial)
+        # Operaciones comerciales, pagos y disponibilidad de cupos/fechas
+        if re.search(r'cancel|reembols|refund|yape|paypal|\bpagar\b|\bpago\b|pagamento|adelant|deposit|\bpay\b|payment|descuento|discount|reserva|booking|\bbook\b|cupos?|espacios?|vagas?|spots?|availability|available|disponib|agotad|ocupad|sold\s*out|manana|tomorrow|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}|febrero|february|fevereiro', commercial_q):
+            # 1. Métodos de pago
             is_payment_methods = bool(re.search(
                 r'\b(?:m[eé]todos?\s+de\s+pago|formas?\s+de\s+pago|como\s+puedo\s+pagar|como\s+pagar|payment\s+methods?|how\s+(?:can\s+i|to)\s+pay|formas?\s+de\s+pagamento)\b',
                 q
@@ -1533,8 +1510,245 @@ def install(ns, support, original):
                     )
                 return finish(msg, 'evidence_unknown', True, entity_id=None)
 
+            eid_comercial = entity(q)
+            if not eid_comercial:
+                for h in reversed(prior):
+                    if h.get('role') == 'human':
+                        eid_comercial = entity(support.normalize(h['content']))
+                        if eid_comercial: break
+
+            if eid_comercial:
+                if is_deactivated_tour(eid_comercial) or eid_comercial not in active_tours:
+                    tour_info = None
+                    try:
+                        import catalog_service
+                        tour_info = catalog_service.get_tour_by_id(eid_comercial)
+                    except Exception:
+                        pass
+                    name_deact = tour_info.get('name', eid_comercial) if tour_info else eid_comercial
+                    if en:
+                        msg = f"*{name_deact}* is not currently in our active catalog. You can explore other tours or consult this destination with an advisor."
+                    else:
+                        msg = f"*{name_deact}* no figura actualmente en nuestro catálogo activo. Puedes explorar otros tours o consultar este destino con un asesor."
+                    return finish(msg, 'evidence_inactive_tour', pending=True, entity_id=eid_comercial)
+
+            # 2. Consultas de disponibilidad, cupos, agotados o fechas
+            is_availability_query = bool(re.search(
+                r'\b(?:disponib\w*|cupos?|espacios?|vagas?|spots?|availability|available|agotad\w*|ocupad\w*|sold\s*out|full|fechas?\s+disponibles?|hay\s+lugar|queda\s+lugar|hay\s+salidas?|hay\s+fechas?)\b',
+                q
+            )) or bool(re.search(r'\b(?:febrero|february|fevereiro)\b', q))
+
+            if is_availability_query:
+                # 2.1 Camino Inca en Febrero (Cierre por mantenimiento oficial de ruta)
+                is_inca_trail = (eid_comercial == 'camino-inka') or bool(re.search(r'camino\s+in[ck]a|in[ck]a\s+trail|trilha\s+inca', q))
+                is_february = bool(re.search(r'\b(?:febrero|february|fevereiro)\b', q))
+                if is_inca_trail and is_february:
+                    if en:
+                        msg = (
+                            "⛔ *Important Notice — Inca Trail in February:*\n\n"
+                            "The **Inca Trail (4D/3N)** is closed throughout the entire month of **February** by official regulations of the Ministry of Culture and SERNANP for environmental maintenance and trail conservation.\n\n"
+                            "💡 *Recommended alternatives during this time:*\n"
+                            "• 🌄 **Inka Jungle (4D/3N):** Adventure trekking route to Machu Picchu (open in February).\n"
+                            "• 🚂 **Machu Picchu by Train:** Regular daily departures all year round.\n\n"
+                            "👉 Write: *advisor* to check available dates or plan your itinerary."
+                        )
+                    elif pt:
+                        msg = (
+                            "⛔ *Aviso Importante — Trilha Inca em Fevereiro:*\n\n"
+                            "A **Trilha Inca (4D/3N)** permanece fechada durante todo o mês de **fevereiro** por determinação oficial do Ministério de Cultura e SERNANP para manutenção ambiental e conservação da rota.\n\n"
+                            "💡 *Alternativas recomendadas para essa época:*\n"
+                            "• 🌄 **Inka Jungle (4D/3N):** Trilha de aventura e trekking aberta até Machu Picchu.\n"
+                            "• 🚂 **Machu Picchu de trem:** Saídas diárias regulares o ano todo.\n\n"
+                            "👉 Escreva: *assessor* para verificar datas alternativas ou planejar seu roteiro."
+                        )
+                    else:
+                        msg = (
+                            "⛔ *Aviso Importante — Camino Inca en Febrero:*\n\n"
+                            "El **Camino Inca (4D/3N)** permanece cerrado durante todo el mes de **febrero** por disposición oficial del Ministerio de Cultura y SERNANP para trabajos de mantenimiento ambiental y conservación de la ruta.\n\n"
+                            "💡 *Alternativas recomendadas para esa temporada:*\n"
+                            "• 🌄 **Inka Jungle (4D/3N):** Ruta de aventura y senderismo abierta hacia Machu Picchu.\n"
+                            "• 🚂 **Machu Picchu en tren:** Salidas diarias regulares durante todo el año.\n\n"
+                            "👉 Escribe: *asesor* para evaluar fechas alternativas o coordinar tu itinerario."
+                        )
+                    return finish(msg, 'evidence_availability', pending=True, sources=['CATALOGO_OFICIAL'], entity_id='camino-inka')
+
+                # 2.2 Disponibilidad de un tour específico según catálogo
+                if eid_comercial and eid_comercial in active_tours:
+                    tour_obj = active_tours[eid_comercial]
+                    t_name = tour_obj.get('name', eid_comercial)
+                    import catalog_service
+                    t_avail = catalog_service.get_tour_availability(eid_comercial)
+
+                    # Si está marcado como agotado en catálogo
+                    if t_avail == 'sold_out':
+                        if en:
+                            msg = (
+                                f"🔴 *Availability — {t_name}:*\n\n"
+                                f"Spots for *{t_name}* are **temporarily sold out** for upcoming dates or the current season.\n\n"
+                                f"Our agency team can check for last-minute openings or recommend similar alternatives.\n\n"
+                                f"👉 Write: *advisor* to check upcoming dates or options."
+                            )
+                        elif pt:
+                            msg = (
+                                f"🔴 *Disponibilidade — {t_name}:*\n\n"
+                                f"As vagas para *{t_name}* estão **temporariamente esgotadas** para as próximas datas ou temporada atual.\n\n"
+                                f"Nossa equipe na agência pode verificar vagas de última hora ou recomendar alternativas semelhantes.\n\n"
+                                f"👉 Escreva: *assessor* para consultar próximas datas ou opções."
+                            )
+                        else:
+                            msg = (
+                                f"🔴 *Disponibilidad — {t_name}:*\n\n"
+                                f"Los cupos para *{t_name}* se encuentran **temporalmente agotados** (sin cupos disponibles) para las fechas próximas o temporada actual.\n\n"
+                                f"Nuestro equipo en la agencia puede verificar si se liberan espacios de última hora o recomendarte la mejor alternativa disponible.\n\n"
+                                f"👉 Escribe: *asesor* para consultar próximas fechas o tours similares."
+                            )
+                        return finish(msg, 'evidence_availability', pending=True, sources=['CATALOGO_OFICIAL'], entity_id=eid_comercial)
+
+                    # Si está marcado con cupos limitados en catálogo
+                    if t_avail == 'limited':
+                        if en:
+                            msg = (
+                                f"🟡 *Availability — {t_name}:*\n\n"
+                                f"This tour has **limited spots** and high demand for upcoming departures.\n\n"
+                                f"Seat availability is confirmed in real time based on daily operational capacity.\n\n"
+                                f"👉 Write: *advisor* with your tentative date and group size to secure your spot."
+                            )
+                        elif pt:
+                            msg = (
+                                f"🟡 *Disponibilidade — {t_name}:*\n\n"
+                                f"Este passeio conta com **vagas limitadas** e alta procura para as próximas saídas.\n\n"
+                                f"A disponibilidade é confirmada em tempo real conforme as vagas operacionais do dia.\n\n"
+                                f"👉 Escreva: *assessor* informando sua data prevista e número de pessoas para garantir sua vaga."
+                            )
+                        else:
+                            msg = (
+                                f"🟡 *Disponibilidad — {t_name}:*\n\n"
+                                f"El tour *{t_name}* cuenta con **cupos limitados** y alta demanda para las próximas salidas.\n\n"
+                                f"La disponibilidad de espacios se confirma en tiempo real según los cupos de operación del día.\n\n"
+                                f"👉 Escribe: *asesor* indicando tu fecha tentativa y número de personas para reservar tu lugar a tiempo."
+                            )
+                        return finish(msg, 'evidence_availability', pending=True, sources=['CATALOGO_OFICIAL'], entity_id=eid_comercial)
+
+                    # Tours de cupos estrictos por el Estado (Camino Inca / Machu Picchu)
+                    if eid_comercial == 'camino-inka':
+                        if en:
+                            msg = (
+                                "📅 *Availability — Inca Trail (4D/3N):*\n\n"
+                                "Inca Trail permits are strictly regulated by the Peruvian Government (SERNANP / Ministry of Culture), limited to **500 spots per day** (including guides and porters).\n\n"
+                                "Spots sell out months in advance. We recommend checking availability for your tentative travel date right away.\n\n"
+                                "👉 Write: *advisor* with your planned month and date to check official availability in real time."
+                            )
+                        elif pt:
+                            msg = (
+                                "📅 *Disponibilidade — Trilha Inca (4D/3N):*\n\n"
+                                "As autorizações da Trilha Inca são rigorosamente controladas pelo Governo do Peru (SERNANP / Ministério da Cultura), limitadas a **500 vagas por dia** (incluindo guias e carregadores).\n\n"
+                                "As vagas costumam esgotar com meses de antecedência. Recomendamos consultar com antecedência para sua data prevista.\n\n"
+                                "👉 Escreva: *assessor* com seu mês e data pretendidos para verificar a disponibilidade oficial em tempo real."
+                            )
+                        else:
+                            msg = (
+                                "📅 *Disponibilidad — Camino Inca (4D/3N):*\n\n"
+                                "Los permisos de Camino Inca son regulados estrictamente por el Estado peruano (SERNANP / Ministerio de Cultura), con un límite de **500 cupos diarios** (incluyendo guías y porteadores).\n\n"
+                                "Los espacios suelen agotarse con semanas o meses de anticipación. Te recomendamos verificar disponibilidad con tu fecha tentativa a la brevedad.\n\n"
+                                "👉 Escribe: *asesor* indicando tu mes o fecha estimada para consultar la disponibilidad oficial en tiempo real."
+                            )
+                        return finish(msg, 'evidence_availability', pending=True, sources=['CATALOGO_OFICIAL'], entity_id='camino-inka')
+
+                    if eid_comercial == 'machu-picchu-tren':
+                        if en:
+                            msg = (
+                                "📅 *Availability — Machu Picchu by Train:*\n\n"
+                                "Machu Picchu visits have daily shift capacity for citadel entrance circuits (Ministry of Culture) and train tickets (PeruRail / Inca Rail).\n\n"
+                                "Departures run daily, but entrances sell out quickly during high season. Early booking is strongly advised.\n\n"
+                                "👉 Write: *advisor* with your tentative date to secure tickets and train schedules."
+                            )
+                        elif pt:
+                            msg = (
+                                "📅 *Disponibilidade — Machu Picchu de Trem:*\n\n"
+                                "As visitas a Machu Picchu possuem limites diários por turno para ingressos da cidadela (Ministério da Cultura) e bilhetes de trem (PeruRail / Inca Rail).\n\n"
+                                "Há saídas diárias, mas as entradas esgotam rapidamente na alta temporada. Recomendamos reservar com antecedência.\n\n"
+                                "👉 Escreva: *assessor* com sua data prevista para garantir ingressos e horários de trem."
+                            )
+                        else:
+                            msg = (
+                                "📅 *Disponibilidad — Machu Picchu en Tren:*\n\n"
+                                "Las visitas a Machu Picchu cuentan con cupos por turno para el ingreso a la ciudadela (Ministerio de Cultura) y boletos de tren (PeruRail / Inca Rail).\n\n"
+                                "Operamos salidas diarias durante todo el año, pero los boletos de ingreso se agotan con anticipación en temporada alta.\n\n"
+                                "👉 Escribe: *asesor* con tu fecha tentativa para asegurar los turnos de ingreso y horarios de tren ideales."
+                            )
+                        return finish(msg, 'evidence_availability', pending=True, sources=['CATALOGO_OFICIAL'], entity_id='machu-picchu-tren')
+
+                    # Tours de operación diaria regular
+                    if en:
+                        msg = (
+                            f"📅 *Availability — {t_name}:*\n\n"
+                            f"We have **daily departures** all year round for this tour. Group spots are confirmed with 24 to 48 hours in advance to guarantee vehicle seats and professional guide.\n\n"
+                            f"👉 Write: *advisor* with your travel date and group size to confirm your spots right away 😊"
+                        )
+                    elif pt:
+                        msg = (
+                            f"📅 *Disponibilidade — {t_name}:*\n\n"
+                            f"Temos **saídas diárias** durante todo o ano para este passeio. As vagas de grupo são confirmadas com 24 a 48 horas de antecedência para garantir transporte e guia credenciado.\n\n"
+                            f"👉 Escreva: *assessor* com sua data e número de pessoas para confirmar suas vagas na hora 😊"
+                        )
+                    else:
+                        msg = (
+                            f"📅 *Disponibilidad — {t_name}:*\n\n"
+                            f"Contamos con **salidas diarias garantizadas** durante todo el año para este tour. Los cupos de grupo se coordinan con 24 a 48 horas de anticipación para asegurar transporte y guía oficial.\n\n"
+                            f"👉 Escribe: *asesor* indicando tu fecha de viaje y número de personas para asegurar tus lugares al instante 😊"
+                        )
+                    return finish(msg, 'evidence_availability', pending=True, sources=['CATALOGO_OFICIAL'], entity_id=eid_comercial)
+
+                # 2.3 Consulta general de disponibilidad (sin tour específico identificado)
+                if en:
+                    msg = (
+                        "📅 *Availability and Spots — Texeira Travel:*\n\n"
+                        "Our tour departures operate as follows:\n"
+                        "• 🚐 *Daily Tours (City Tour, Sacred Valley, Maras Moray, Rainbow Mountain, Humantay Lake):* Daily departures; bookings recommended 24 to 48 hours in advance.\n"
+                        "• 🎟️ *Machu Picchu & Inca Trail:* High demand with strict Peruvian Government ticket quotas (Inca Trail closed in February for maintenance). Early booking required.\n\n"
+                        "👉 Write: *advisor* with your planned date and destination to check immediate availability."
+                    )
+                elif pt:
+                    msg = (
+                        "📅 *Disponibilidade e Vagas — Texeira Travel:*\n\n"
+                        "Nossos passeios operam da seguinte forma:\n"
+                        "• 🚐 *Passeios Diários (City Tour, Vale Sagrado, Maras Moray, Montanha 7 Cores, Laguna Humantay):* Saídas diárias; recomendamos reservar com 24 a 48 horas de antecedência.\n"
+                        "• 🎟️ *Machu Picchu e Trilha Inca:* Alta procura com limites diários do Governo do Peru (Trilha Inca fechada em fevereiro para manutenção). Reserva antecipada obrigatória.\n\n"
+                        "👉 Escreva: *assessor* com sua data prevista e passeio de interesse para verificar a disponibilidade imediata."
+                    )
+                else:
+                    msg = (
+                        "📅 *Disponibilidad y Cupos — Texeira Travel:*\n\n"
+                        "Nuestras salidas operan de la siguiente manera:\n"
+                        "• 🚐 *Tours Diarios (City Tour, Valle Sagrado, Maras Moray, Montaña 7 Colores, Laguna Humantay):* Salidas diarias durante todo el año; recomendamos reservar con 24 a 48 horas de anticipación.\n"
+                        "• 🎟️ *Machu Picchu y Camino Inca:* Cupos limitados por el Estado peruano (Camino Inca cerrado en febrero por mantenimiento). Requieren reserva con anticipación.\n\n"
+                        "👉 Escribe: *asesor* indicando tu fecha tentativa y el tour que deseas para confirmarte disponibilidad inmediata."
+                    )
+                return finish(msg, 'evidence_availability', pending=True, sources=['CATALOGO_OFICIAL'], entity_id=None)
+
+            # 3. Horario publicado comercial residual si no era consulta de disponibilidad
+            if eid_comercial and eid_comercial in active_tours:
+                tour_obj_com = active_tours.get(eid_comercial, {})
+                name_com = tour_obj_com.get('name', eid_comercial)
+                schedule_com = str(tour_obj_com.get('schedule') or '').strip()
+                overrides_com = tour_obj_com.get('overridden_fields', [])
+                if not schedule_com and 'schedule' not in overrides_com:
+                    facts_com = get_facts(eid_comercial)
+                    for f in facts_com:
+                        if f.field == 'schedule' and f.value:
+                            schedule_com = str(f.value).strip()
+                            break
+                if schedule_com:
+                    if en:
+                        msg = (f'⏰ *{name_com}*\n• Published schedule: {schedule_com}\n\nFor price and available dates, our team confirms them directly with you.\n\nWrite 👉 *advisor* and we\'ll assist you right away 😊')
+                    else:
+                        msg = (f'⏰ *{name_com}*\n• Horario publicado: {schedule_com}\n\nEl precio y las fechas disponibles te las confirmamos al instante en la agencia.\n\nEscribe 👉 *asesor* y te atendemos ahora 😊')
+                    return finish(msg, 'evidence_schedule', pending=True, sources=['F1','F2'], entity_id=eid_comercial)
+
             if en:
                 msg = 'Payments, bookings and availability are confirmed directly with our team at the agency.\n\nWrite 👉 *advisor* and we\'ll assist you right away 😊'
+            elif pt:
+                msg = 'Pagamentos, reservas e disponibilidade são coordenados diretamente com nossa equipe na agência. 📅\n\nEscreva 👉 *assessor* e te atendemos agora 😊'
             else:
                 msg = 'Pagos, reservas y disponibilidad los coordinamos directamente en la agencia. 📅\n\nEscribe 👉 *asesor* y te atendemos ahora 😊'
             return finish(msg,'evidence_unknown',True,entity_id=None)
@@ -1741,6 +1955,14 @@ def install(ns, support, original):
                 except Exception:
                     pass
 
+                avail_status = tour_obj.get('availability', 'available')
+                if avail_status == 'sold_out':
+                    lines.append("• Estado: 🔴 Agotado / Sin cupos disponibles (consulta con asesor por posibles liberaciones)" if not en else "• Status: 🔴 Sold out / No spots available (contact advisor for possible releases)")
+                elif avail_status == 'limited':
+                    lines.append("• Disponibilidad: 🟡 Cupos limitados (se recomienda reservar con anticipación)" if not en else "• Availability: 🟡 Limited spots (advance booking recommended)")
+                if 'camino-in' in eid:
+                    lines.append("• Cupos: Regulados por el SERNANP (500 personas/día). Cierre anual en febrero." if not en else "• Quota: Regulated by SERNANP (500 people/day). Annual closure in February.")
+
                 actions_hint = (
                     "\n_Puedes consultar qué incluye, ver fotos o solicitar reserva con las opciones de abajo o escribiendo tu consulta._"
                     if not en else
@@ -1899,6 +2121,12 @@ def install(ns, support, original):
                 line=f'{label}: {val}'
                 if line not in lines:lines.append(line)
             tour_title = ('Machu Picchu by Train' if eid=='machu-picchu-tren' else name) if en else name
+            t_obj_sub = active_tours.get(eid, {})
+            avail_sub = t_obj_sub.get('availability', 'available')
+            if avail_sub == 'sold_out':
+                lines.append('Estado: 🔴 Agotado / Sin cupos disponibles' if not en else 'Status: 🔴 Sold out / No spots available')
+            elif avail_sub == 'limited':
+                lines.append('Disponibilidad: 🟡 Cupos limitados' if not en else 'Availability: 🟡 Limited spots')
             emojis = {'includes': '✅', 'excludes': '🚫', 'stops': '📍', 'schedule': '🕐', 'duration': '⏱️'}
             emoji = emojis.get(fld, 'ℹ️')
             header = f"{emoji} *{tour_title}*"

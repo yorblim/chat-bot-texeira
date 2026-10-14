@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS catalog_tours (
     brochure_data BLOB,
     is_canonical INTEGER NOT NULL DEFAULT 0,
     is_active INTEGER NOT NULL DEFAULT 1,
+    availability TEXT NOT NULL DEFAULT 'available',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -72,6 +73,7 @@ CREATE TABLE IF NOT EXISTS catalog_tours (
     brochure_data BYTEA,
     is_canonical INTEGER NOT NULL DEFAULT 0,
     is_active INTEGER NOT NULL DEFAULT 1,
+    availability TEXT NOT NULL DEFAULT 'available',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -170,6 +172,19 @@ def init_catalog_db() -> None:
             PRIMARY KEY (entity_id, field)
         )""")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_tour_rates_entity ON catalog_tour_rates(entity_id)")
+
+        # Migración segura de columna availability si la tabla ya existía
+        try:
+            if is_postgres():
+                conn.execute("ALTER TABLE catalog_tours ADD COLUMN IF NOT EXISTS availability TEXT NOT NULL DEFAULT 'available'")
+            else:
+                cur_info = conn.execute("PRAGMA table_info(catalog_tours)").fetchall()
+                col_names = [c[1] for c in cur_info]
+                if "availability" not in col_names:
+                    conn.execute("ALTER TABLE catalog_tours ADD COLUMN availability TEXT NOT NULL DEFAULT 'available'")
+        except Exception as e:
+            print(f"[CATALOG SERVICE] Nota en migración de availability: {e}")
+
         # Verificar si ya existen tours
         cur = conn.execute("SELECT COUNT(*) FROM catalog_tours")
         row = cur.fetchone()
@@ -229,8 +244,8 @@ def _seed_from_json(conn) -> None:
                 INSERT INTO catalog_tours (
                     entity_id, name, aliases, official_price, currency,
                     schedule, duration, includes, excludes, photo_filename,
-                    is_canonical, is_active, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+                    is_canonical, is_active, availability, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 'available', ?, ?)
                 ON CONFLICT (entity_id) DO NOTHING
                 """
                 if is_postgres() else
@@ -238,8 +253,8 @@ def _seed_from_json(conn) -> None:
                 INSERT OR IGNORE INTO catalog_tours (
                     entity_id, name, aliases, official_price, currency,
                     schedule, duration, includes, excludes, photo_filename,
-                    is_canonical, is_active, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+                    is_canonical, is_active, availability, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 'available', ?, ?)
                 """
             )
             conn.execute(
@@ -312,7 +327,7 @@ def get_all_tours(active_only: bool = True, strict: bool = False) -> List[Dict[s
                 """
                 SELECT entity_id, name, aliases, official_price, currency,
                        schedule, duration, includes, excludes, photo_filename,
-                       brochure_filename, is_canonical, is_active, created_at, updated_at
+                       brochure_filename, is_canonical, is_active, availability, created_at, updated_at
                 FROM catalog_tours
                 ORDER BY is_canonical DESC, name ASC
                 """
@@ -331,6 +346,14 @@ def get_all_tours(active_only: bool = True, strict: bool = False) -> List[Dict[s
             except Exception:
                 aliases_list = []
 
+            try:
+                avail_raw = r["availability"]
+            except Exception:
+                avail_raw = "available"
+            avail_str = str(avail_raw or "available").strip().lower()
+            if avail_str not in {"available", "limited", "sold_out"}:
+                avail_str = "available"
+
             item = {
                 "entity_id": r["entity_id"],
                 "name": r["name"],
@@ -345,6 +368,7 @@ def get_all_tours(active_only: bool = True, strict: bool = False) -> List[Dict[s
                 "brochure_filename": r["brochure_filename"] or "",
                 "is_canonical": bool(r["is_canonical"]),
                 "is_active": bool(r["is_active"]),
+                "availability": avail_str,
                 "created_at": r["created_at"],
                 "updated_at": r["updated_at"],
                 "overridden_fields": overrides.get(r["entity_id"], []),
@@ -393,6 +417,47 @@ def is_deactivated_tour(entity_id: str) -> bool:
     return False
 
 
+def is_sold_out_tour(entity_id: str) -> bool:
+    """Verifica si un tour está marcado como agotado temporalmente en el catálogo."""
+    if not entity_id:
+        return False
+    try:
+        t = get_tour_by_id(entity_id)
+        if t is not None:
+            return str(t.get("availability", "available")).lower() == "sold_out"
+    except Exception:
+        pass
+    return False
+
+
+def is_limited_tour(entity_id: str) -> bool:
+    """Verifica si un tour cuenta con cupos limitados en el catálogo."""
+    if not entity_id:
+        return False
+    try:
+        t = get_tour_by_id(entity_id)
+        if t is not None:
+            return str(t.get("availability", "available")).lower() == "limited"
+    except Exception:
+        pass
+    return False
+
+
+def get_tour_availability(entity_id: str) -> str:
+    """Retorna el estado de disponibilidad del tour ('available', 'limited', 'sold_out')."""
+    if not entity_id:
+        return "available"
+    try:
+        t = get_tour_by_id(entity_id)
+        if t is not None:
+            av = str(t.get("availability", "available")).lower()
+            if av in {"available", "limited", "sold_out"}:
+                return av
+    except Exception:
+        pass
+    return "available"
+
+
 def upsert_tour(data: Dict[str, Any]) -> Tuple[bool, str]:
     """
     Crea o actualiza un tour en la base de datos.
@@ -431,6 +496,12 @@ def upsert_tour(data: Dict[str, Any]) -> Tuple[bool, str]:
     excludes = str(data.get("excludes", "") or "").strip()
     is_active = 1 if data.get("is_active", True) else 0
 
+    availability = str(data.get("availability", "") or "").strip().lower()
+    if availability not in {"available", "limited", "sold_out"}:
+        availability = str(previous.get("availability", "available") if previous else "available").lower()
+    if availability not in {"available", "limited", "sold_out"}:
+        availability = "available"
+
     now = datetime.utcnow().isoformat()
 
     try:
@@ -447,13 +518,13 @@ def upsert_tour(data: Dict[str, Any]) -> Tuple[bool, str]:
                     UPDATE catalog_tours
                     SET name = ?, aliases = ?, official_price = ?, currency = ?,
                         schedule = ?, duration = ?, includes = ?, excludes = ?,
-                        is_active = ?, updated_at = ?
+                        is_active = ?, availability = ?, updated_at = ?
                     WHERE entity_id = ?
                     """,
                     (
                         name, json.dumps(aliases), price, currency,
                         schedule, duration, includes, excludes,
-                        is_active, now, clean_id
+                        is_active, availability, now, clean_id
                     )
                 )
             else:
@@ -462,19 +533,19 @@ def upsert_tour(data: Dict[str, Any]) -> Tuple[bool, str]:
                     INSERT INTO catalog_tours (
                         entity_id, name, aliases, official_price, currency,
                         schedule, duration, includes, excludes,
-                        is_canonical, is_active, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+                        is_canonical, is_active, availability, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
                     """,
                     (
                         clean_id, name, json.dumps(aliases), price, currency,
                         schedule, duration, includes, excludes,
-                        is_active, now, now
+                        is_active, availability, now, now
                     )
                 )
 
             # Registrar una edición explícita, incluso cuando la agencia borra
             # el valor. Un vacío administrativo no debe resucitar el folleto.
-            for field in ('official_price', 'schedule', 'duration', 'includes', 'excludes'):
+            for field in ('official_price', 'schedule', 'duration', 'includes', 'excludes', 'availability'):
                 if field in supplied_fields:
                     conn.execute("""INSERT INTO catalog_field_overrides (entity_id, field)
                                     VALUES (?, ?) ON CONFLICT (entity_id, field) DO NOTHING""",

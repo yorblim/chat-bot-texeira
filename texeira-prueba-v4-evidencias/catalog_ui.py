@@ -231,6 +231,18 @@ def get_catalog_html(csrf_token: str) -> str:
       background: #fee2e2;
       color: #991b1b;
     }}
+    .badge-available {{
+      background: #dcfce7;
+      color: #166534;
+    }}
+    .badge-limited {{
+      background: #fef3c7;
+      color: #92400e;
+    }}
+    .badge-sold-out {{
+      background: #fee2e2;
+      color: #991b1b;
+    }}
     .tour-details {{
       font-size: 13px;
       color: #334155;
@@ -607,6 +619,16 @@ def get_catalog_html(csrf_token: str) -> str:
               </div>
             </div>
 
+            <div class="form-group" style="margin-top: 12px;">
+              <label for="formAvailability" style="font-weight: 600;">Disponibilidad de cupos</label>
+              <select id="formAvailability" class="select-input" style="width: 100%;">
+                <option value="available">🟢 Disponible (Salidas regulares garantizadas)</option>
+                <option value="limited">🟡 Cupos limitados (Alta demanda / Confirmar con asesor)</option>
+                <option value="sold_out">🔴 Agotado temporalmente (Cupos completos para la temporada/fecha)</option>
+              </select>
+              <div class="form-help">Informa al bot y a los turistas si el tour tiene salidas normales, cupos por confirmar o si está temporalmente agotado.</div>
+            </div>
+
             <div class="form-section-title">Tarifa Base y Tiempos</div>
             <div class="form-row">
               <div class="form-group">
@@ -844,6 +866,7 @@ def get_catalog_html(csrf_token: str) -> str:
         setVal('formExcludes', snap.excludes);
         const activeEl = document.getElementById('formIsActive');
         if (activeEl) activeEl.checked = !!snap.is_active;
+        setVal('formAvailability', snap.availability || 'available');
       }} catch (e) {{}}
     }}
 
@@ -925,7 +948,8 @@ def get_catalog_html(csrf_token: str) -> str:
         aliases: (document.getElementById('formAliases').value || '').trim(),
         includes: (document.getElementById('formIncludes').value || '').trim(),
         excludes: (document.getElementById('formExcludes').value || '').trim(),
-        is_active: document.getElementById('formIsActive').checked
+        is_active: document.getElementById('formIsActive').checked,
+        availability: (document.getElementById('formAvailability').value || 'available')
       }});
     }}
 
@@ -1086,6 +1110,16 @@ def get_catalog_html(csrf_token: str) -> str:
           ? ''
           : `<span class="badge badge-inactive">⏸️ Inactivo</span>`;
 
+        const avail = t.availability || 'available';
+        let availBadge = '';
+        if (avail === 'limited') {{
+          availBadge = '<span class="badge badge-limited">🟡 Cupos limitados</span>';
+        }} else if (avail === 'sold_out') {{
+          availBadge = '<span class="badge badge-sold-out">🔴 Agotado</span>';
+        }} else if (isActive) {{
+          availBadge = '<span class="badge badge-available">🟢 Disponible</span>';
+        }}
+
         const photoHtml = t.photo_filename
           ? `<img src="/images/${{escapeRateText(t.photo_filename)}}" class="thumb" alt="${{escapeRateText(t.name)}}"> <span style="color:var(--success)">📷 Foto lista</span>`
           : `<span style="color:var(--muted)">📷 Sin foto</span>`;
@@ -1103,6 +1137,7 @@ def get_catalog_html(csrf_token: str) -> str:
               </div>
               <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
                 <span class="badge ${{badgeCls}}">${{badgeTxt}}</span>
+                ${{availBadge}}
                 ${{statusBadge}}
               </div>
             </div>
@@ -1144,6 +1179,7 @@ def get_catalog_html(csrf_token: str) -> str:
       document.getElementById('formEntityId').value = '';
       document.getElementById('formEntityId').disabled = false;
       document.getElementById('formIsActive').checked = true;
+      document.getElementById('formAvailability').value = 'available';
       document.getElementById('modalTourTitle').textContent = 'Registrar Nuevo Tour';
 
       const adv = document.getElementById('advancedTourOptions');
@@ -1193,6 +1229,7 @@ def get_catalog_html(csrf_token: str) -> str:
       document.getElementById('formIncludes').value = t.includes || '';
       document.getElementById('formExcludes').value = t.excludes || '';
       document.getElementById('formIsActive').checked = (t.is_active !== false && t.is_active !== 0);
+      document.getElementById('formAvailability').value = t.availability || 'available';
       document.getElementById('modalTourTitle').textContent = 'Editar Tour: ' + t.name;
 
       const adv = document.getElementById('advancedTourOptions');
@@ -1513,6 +1550,7 @@ def get_catalog_html(csrf_token: str) -> str:
       const includes = document.getElementById('formIncludes').value.trim();
       const excludes = document.getElementById('formExcludes').value.trim();
       const is_active = document.getElementById('formIsActive').checked;
+      const availability = document.getElementById('formAvailability').value || 'available';
 
       if (!entity_id) {{
         showToast('El identificador del tour es obligatorio', 'error');
@@ -1529,7 +1567,7 @@ def get_catalog_html(csrf_token: str) -> str:
 
       const payload = {{
         entity_id, name, official_price, currency, schedule,
-        duration, aliases, includes, excludes, is_active
+        duration, aliases, includes, excludes, is_active, availability
       }};
 
       // Instantánea exacta de lo enviado al servidor
@@ -1543,7 +1581,8 @@ def get_catalog_html(csrf_token: str) -> str:
         aliases: (aliases || '').trim(),
         includes,
         excludes,
-        is_active: !!is_active
+        is_active: !!is_active,
+        availability
       }};
 
       const sessionAtStart = currentEditorSessionId;

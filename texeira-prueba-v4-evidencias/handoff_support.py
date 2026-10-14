@@ -292,7 +292,7 @@ def _request_message(language, *, es, en, pt):
 
 
 def _update_request_history(ns, user_id, response):
-    history = ns['conversation_history'].get(user_id, [])
+    history = ns.get('conversation_history', {}).get(user_id, [])
     if history and history[-1].get('role') == 'ai':
         if 'update_last_history_response' in ns:
             ns['update_last_history_response'](user_id, response)
@@ -305,7 +305,8 @@ def apply_request(ns, result, user_id, channel, question):
     result=dict(result)
     language=result.get('handoff_language', 'es')
     try:
-        history=ns['get_history'](user_id)
+        get_hist = ns.get('get_history', lambda uid: []) if isinstance(ns, dict) else getattr(ns, 'get_history', lambda uid: [])
+        history = get_hist(user_id)
         # Identificar si es una solicitud de reserva y tour seleccionado
         is_booking = bool(re.search(r'\b(reserva\w*|reserv|book\w*)\b', question, re.IGNORECASE))
         tour_name = ""
@@ -329,7 +330,7 @@ def apply_request(ns, result, user_id, channel, question):
         except Exception:
             pass
 
-        from catalog_service import is_deactivated_tour
+        from catalog_service import is_deactivated_tour, is_sold_out_tour
         if is_booking and eid and is_deactivated_tour(eid):
             disp_name = tour_name or eid
             result['response'] = _request_message(
@@ -342,12 +343,20 @@ def apply_request(ns, result, user_id, channel, question):
             _update_request_history(ns, user_id, result['response'])
             return result
 
+        is_sold_out = False
+        if is_booking and eid:
+            try:
+                is_sold_out = bool(is_sold_out_tour(eid))
+            except Exception:
+                is_sold_out = False
+
         ticket_question = question
         if is_booking:
+            prefix = "[Reserva - AGOTADO" if is_sold_out else "[Reserva"
             if tour_name and tour_name.lower() not in question.lower():
-                ticket_question = f"[Reserva - {tour_name}] {question}"
+                ticket_question = f"{prefix} - {tour_name}] {question}"
             elif not question.lower().startswith("[reserva"):
-                ticket_question = f"[Reserva] {question}"
+                ticket_question = f"{prefix}] {question}"
 
         row, created = create_request(user_id, channel, ticket_question, history[:-2])
         result.update(handoff_id=row['id'], handoff_status=row['status'], handoff_registered=True)
@@ -365,7 +374,15 @@ def apply_request(ns, result, user_id, channel, question):
 
         if is_booking:
             if created:
-                if tour_name:
+                if is_sold_out:
+                    t_disp = tour_name or 'este tour'
+                    result['response'] = _request_message(
+                        language,
+                        es=f"Registré tu solicitud sobre {t_disp}. Actualmente figura sin cupos disponibles en el catálogo oficial, pero nuestro asesor verificará si existen liberaciones de última hora o cupos en lista de espera. Tu reserva aún no está confirmada.{link_txt_es}",
+                        en=f"I registered your request regarding {t_disp}. It is currently marked with no spots available in the catalog, but our advisor will check for last-minute releases or waitlist spots. Your reservation is not yet confirmed.{link_txt_en}",
+                        pt=f"Registrei sua solicitação sobre {t_disp}. Atualmente consta sem vagas disponíveis no catálogo, mas nosso assessor verificará si há liberações de última hora ou lista de espera. Sua reserva ainda não está confirmada.{link_txt_pt}",
+                    )
+                elif tour_name:
                     result['response'] = _request_message(
                         language,
                         es=f"Registré tu solicitud sobre {tour_name}. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.{link_txt_es}",
