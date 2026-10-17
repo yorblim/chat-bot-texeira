@@ -419,6 +419,79 @@ TOUR_PROFILES = {
     },
 }
 
+# --- Disponibilidad administrada desde /catalogo (available / limited / sold_out) ---
+_AVAIL_BADGES = {
+    'sold_out': {'es': ' [🔴 Agotado]', 'en': ' [🔴 Sold out]', 'pt': ' [🔴 Esgotado]',
+                 'fr': ' [🔴 Complet]', 'it': ' [🔴 Esaurito]'},
+    'limited': {'es': ' [🟡 Cupos limitados]', 'en': ' [🟡 Limited spots]', 'pt': ' [🟡 Vagas limitadas]',
+                'fr': ' [🟡 Places limitées]', 'it': ' [🟡 Posti limitati]'},
+}
+
+_AVAIL_NOTICE = {
+    'es': ('⚠️ *Disponibilidad actual:*', '🔴 agotado temporalmente', '🟡 cupos limitados',
+           'Escribe 👉 *asesor* para revisar fechas o alternativas.'),
+    'en': ('⚠️ *Current availability:*', '🔴 temporarily sold out', '🟡 limited spots',
+           'Write 👉 *advisor* to check dates or alternatives.'),
+    'pt': ('⚠️ *Disponibilidade atual:*', '🔴 temporariamente esgotado', '🟡 vagas limitadas',
+           'Escreva 👉 *assessor* para verificar datas ou alternativas.'),
+    'fr': ('⚠️ *Disponibilité actuelle :*', '🔴 temporairement complet', '🟡 places limitées',
+           'Écrivez 👉 *conseiller* pour vérifier les dates ou alternatives.'),
+    'it': ('⚠️ *Disponibilità attuale:*', '🔴 temporaneamente esaurito', '🟡 posti limitati',
+           'Scrivi 👉 *consulente* per verificare date o alternative.'),
+}
+
+_SOLD_OUT_EXCLUDED = {
+    'es': 'ℹ️ Agotado temporalmente (no incluido): {names}.',
+    'en': 'ℹ️ Temporarily sold out (not included): {names}.',
+    'pt': 'ℹ️ Temporariamente esgotado (não incluído): {names}.',
+    'fr': 'ℹ️ Temporairement complet (non inclus) : {names}.',
+    'it': 'ℹ️ Temporaneamente esaurito (non incluso): {names}.',
+}
+
+_ALL_MATCHES_SOLD_OUT = {
+    'es': ('Los tours que coinciden con tus preferencias ({names}) están agotados temporalmente. '
+           'Escribe 👉 *asesor* para revisar próximas fechas, o ajusta tus preferencias para ver otras opciones.'),
+    'en': ('The tours matching your preferences ({names}) are temporarily sold out. '
+           'Write 👉 *advisor* to check upcoming dates, or adjust your preferences to see other options.'),
+    'pt': ('Os passeios que correspondem às suas preferências ({names}) estão temporariamente esgotados. '
+           'Escreva 👉 *assessor* para verificar próximas datas ou ajuste suas preferências para ver outras opções.'),
+    'fr': ('Les circuits correspondant à vos préférences ({names}) sont temporairement complets. '
+           'Écrivez 👉 *conseiller* pour vérifier les prochaines dates, ou modifiez vos préférences.'),
+    'it': ('I tour corrispondenti alle tue preferenze ({names}) sono temporaneamente esauriti. '
+           'Scrivi 👉 *consulente* per verificare le prossime date, oppure modifica le tue preferenze.'),
+}
+
+
+def availability_badge(status, lang):
+    """Etiqueta localizada para listados; cadena vacía si el tour está disponible."""
+    by_lang = _AVAIL_BADGES.get(str(status or '').lower())
+    if not by_lang:
+        return ''
+    return by_lang.get(lang, by_lang['es'])
+
+
+def build_availability_notice(tour_ids, active_tours, lang, name_fn):
+    """Aviso para respuestas curadas (más visitados, aclimatación).
+
+    Retorna (texto_aviso, ids_agotados). El texto queda vacío si todos los
+    tours referenciados están disponibles.
+    """
+    head, sold_lbl, lim_lbl, cta = _AVAIL_NOTICE.get(lang, _AVAIL_NOTICE['es'])
+    lines, sold_ids = [], []
+    for eid in tour_ids:
+        t = active_tours.get(eid)
+        if not t:
+            continue
+        status = str(t.get('availability', 'available')).lower()
+        if status == 'sold_out':
+            sold_ids.append(eid)
+            lines.append(f"• *{name_fn(eid)}*: {sold_lbl}")
+        elif status == 'limited':
+            lines.append(f"• *{name_fn(eid)}*: {lim_lbl}")
+    if not lines:
+        return '', sold_ids
+    return "\n\n" + head + "\n" + "\n".join(lines) + "\n" + cta, sold_ids
+
 
 def classify_tour_category(entity_id: str, name: str = "") -> str:
     """Clasifica dinámicamente un tour en una de las 3 categorías oficiales:
@@ -699,6 +772,17 @@ def install(ns, support, original):
         en=lang=='en'; pt=lang=='pt'; fr=lang=='fr'; it=lang=='it'
         phone=' / '.join(catalog['agency']['phones'])
         active_tours, is_read_error, is_empty = get_current_tours_status()
+        lang_key = lang if lang in ('en', 'pt', 'fr', 'it') else 'es'
+
+        def _avail_name(eid_n):
+            name_n = active_tours.get(eid_n, {}).get('name', eid_n)
+            if en:
+                try:
+                    from app import _get_tour_display_name
+                    name_n = _get_tour_display_name(eid_n, is_en=True) or name_n
+                except Exception:
+                    pass
+            return name_n
 
         # --- SOCIAL / CONVERSACIONAL: respuesta corta, sin NOTICES, sin LLM ---
         social_key = _SOCIAL_INTENTS.get(q.strip(' ?¿!.'))
@@ -952,8 +1036,11 @@ def install(ns, support, original):
                         "💡 *Tip viajero Texeira:* Te sugerimos iniciar con City Tour o Valle Sagrado para aclimatarte a la altura, seguir con Humantay o Vinicunca, y culminar con broche de oro en Machu Picchu.\n\n"
                         "_Escribe el nombre de un tour para ver su ficha técnica oficial o escribe 👉 *asesor* para coordinar tu viaje._"
                     )
+                mv_ids = ['machu-picchu-tren', 'camino-inka', 'montana-7-colores', 'laguna-humantay', 'city-tour-cusco', 'valle-sagrado']
+                notice, sold_mv = build_availability_notice(mv_ids, active_tours, lang_key, _avail_name)
+                msg += notice
                 rec_state = dict(criteria=dict(time=['any'], hiking=None, nature=True, history=True),
-                                 offered_ids=['machu-picchu-tren', 'camino-inka', 'montana-7-colores', 'laguna-humantay', 'city-tour-cusco'], rejected_ids=[])
+                                 offered_ids=[e for e in mv_ids[:5] if e not in sold_mv], rejected_ids=[])
                 return finish(msg, 'evidence_recommendation', pending=False, needs_agency=False,
                               sources=['CATALOGO_OFICIAL'], recommendation_state=rec_state)
 
@@ -990,8 +1077,11 @@ def install(ns, support, original):
                         "⚠️ *Importante:* No recomendamos excursiones de gran altitud o caminatas exigentes el día de llegada (como *Laguna Humantay* o *Montaña de 7 Colores*). Es ideal dejarlas para el 2do o 3er día.\n\n"
                         "_💡 Consejo: Toma mate de coca, mantente hidratado y camina con calma. Para coordinar fechas, escribe 👉 *asesor*._"
                     )
+                alt_ids = ['city-tour-cusco', 'maras-moray']
+                notice, sold_alt = build_availability_notice(alt_ids, active_tours, lang_key, _avail_name)
+                msg += notice
                 rec_state = dict(criteria=dict(time=['half'], hiking=False, nature=True, history=True),
-                                 offered_ids=['city-tour-cusco', 'maras-moray'], rejected_ids=[])
+                                 offered_ids=[e for e in alt_ids if e not in sold_alt], rejected_ids=[])
                 return finish(msg, 'evidence_recommendation', pending=False, needs_agency=False,
                               sources=['CATALOGO_OFICIAL'], recommendation_state=rec_state)
 
@@ -1072,6 +1162,7 @@ def install(ns, support, original):
 
             # Con preferencias: filtrar dinámicamente sobre active_tours vigentes
             candidates = []
+            sold_out_matches = []  # tours que cumplen el perfil pero están agotados
             for eid, t_data in active_tours.items():
                 if not t_data.get('is_active', True) or is_deactivated_tour(eid):
                     continue
@@ -1107,6 +1198,10 @@ def install(ns, support, original):
                     score += 1
 
                 if score > 0:
+                    # Un tour agotado nunca se recomienda; se informa aparte.
+                    if str(t_data.get('availability', 'available')).lower() == 'sold_out':
+                        sold_out_matches.append((score, eid))
+                        continue
                     candidates.append((score, eid, t_data, prof))
 
             candidates.sort(key=lambda c: c[0], reverse=True)
@@ -1149,7 +1244,16 @@ def install(ns, support, original):
 
                 details_str = ", ".join(d for d in details if d)
                 summary = ' — '.join(part for part in (details_str, desc) if part)
-                rec_lines.append(f"• *{disp_name}*" + (f" ({summary})." if summary else "."))
+                badge = availability_badge(c_data.get('availability'), lang_key)
+                rec_lines.append(f"• *{disp_name}*{badge}" + (f" ({summary})." if summary else "."))
+
+            sold_out_matches.sort(key=lambda s: s[0], reverse=True)
+            sold_out_names = ', '.join(f"*{_avail_name(s_eid)}*" for _, s_eid in sold_out_matches[:4])
+
+            if not rec_lines and sold_out_matches and not rejected_ids:
+                msg = _ALL_MATCHES_SOLD_OUT[lang_key].format(names=sold_out_names)
+                return finish(msg, 'evidence_recommendation', pending=True, needs_agency=False,
+                              sources=['CATALOGO_OFICIAL'], recommendation_state=recommendation_state)
 
             if not rec_lines:
                 if rejected_ids:
@@ -1188,6 +1292,8 @@ def install(ns, support, original):
                 return finish(msg, 'evidence_recommendation', pending=True, needs_agency=False, sources=['CATALOGO_OFICIAL'], recommendation_state=recommendation_state)
 
             body = "\n".join(rec_lines)
+            if sold_out_matches:
+                body += "\n\n" + _SOLD_OUT_EXCLUDED[lang_key].format(names=sold_out_names)
             if en:
                 header = "🌟 Based on what you like, here are our top verified recommendations:\n"
                 footer = "\n\n_Type the name of any tour for full details, photos or rates, or write 👉 advisor to coordinate with our team 😊_"
@@ -1298,12 +1404,7 @@ def install(ns, support, original):
                         detail_str = sched
                     else:
                         detail_str = "A confirmar" if pt else ("Por confirmar" if not en else "To be confirmed")
-                    avail_badge = ""
-                    t_avail = t_obj.get('availability', 'available')
-                    if t_avail == 'sold_out':
-                        avail_badge = " [🔴 Agotado]" if not en else (" [🔴 Esgotado]" if pt else " [🔴 Sold out]")
-                    elif t_avail == 'limited':
-                        avail_badge = " [🟡 Cupos limitados]" if not en else (" [🟡 Vagas limitadas]" if pt else " [🟡 Limited spots]")
+                    avail_badge = availability_badge(t_obj.get('availability', 'available'), lang_key)
                     lines.append(f"• *{tour_name}*{avail_badge} ({detail_str})")
                 footer = (
                     "\n_Escribe directamente el nombre de cualquier tour para ver detalles completos, o selecciona una opción abajo:_\nEscribe 👉 *asesor* si necesitas ayuda personalizada 😊"
@@ -1346,12 +1447,7 @@ def install(ns, support, original):
                         detail_str = sched
                     else:
                         detail_str = "A confirmar" if pt else ("Por confirmar" if not en else "To be confirmed")
-                    avail_badge = ""
-                    t_avail = t_obj.get('availability', 'available')
-                    if t_avail == 'sold_out':
-                        avail_badge = " [🔴 Agotado]" if not en else (" [🔴 Esgotado]" if pt else " [🔴 Sold out]")
-                    elif t_avail == 'limited':
-                        avail_badge = " [🟡 Cupos limitados]" if not en else (" [🟡 Vagas limitadas]" if pt else " [🟡 Limited spots]")
+                    avail_badge = availability_badge(t_obj.get('availability', 'available'), lang_key)
                     lines.append(f"• *{tour_name}*{avail_badge} ({detail_str})")
 
                 if requested_page + 1 < total_pages:
