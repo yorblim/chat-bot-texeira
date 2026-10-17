@@ -46,6 +46,7 @@ call gcloud run deploy texeira-whatsapp ^
     --max-instances 2 ^
     --platform managed ^
     --allow-unauthenticated ^
+    --startup-probe=timeoutSeconds=10,periodSeconds=10,failureThreshold=30,tcpSocket.port=8080 ^
     --quiet
 
 if %ERRORLEVEL% EQU 0 (
