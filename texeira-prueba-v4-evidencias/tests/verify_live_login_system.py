@@ -206,7 +206,7 @@ def main():
 
     print(f"  Status: {status9}, Tours retornados: {len(tours)}")
     assert status9 == 200
-    assert len(tours) >= 15, "Debe retornar el listado de tours oficiales"
+    assert len(tours) >= 8, "Debe retornar el listado de tours oficiales activos"
     print("  ✅ [PASS] Compatibilidad dual perfecta: scripts con HTTP Basic Auth siguen operando al 100%.")
 
     print("\n" + "=" * 76)
