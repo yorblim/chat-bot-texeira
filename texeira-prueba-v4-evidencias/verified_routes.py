@@ -1794,8 +1794,9 @@ def install(ns, support, original):
                         date_info = catalog_service.get_tour_availability_on_date(eid_comercial, parsed_date)
                         date_status = date_info.get('status', 'available')
                         date_disp = catalog_service.format_date_localized(parsed_date, lang)
-                        date_notes = date_info.get('notes', '').strip()
-                        note_suffix = f" ({date_notes})" if date_notes else ""
+                        # La nota del bloqueo es interna (panel: "Motivo o nota interna"):
+                        # se reserva para el ticket del asesor y nunca se muestra al turista.
+                        note_suffix = ""
 
                         if date_status == 'sold_out':
                             if en:

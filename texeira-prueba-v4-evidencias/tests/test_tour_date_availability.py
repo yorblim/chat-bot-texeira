@@ -164,7 +164,8 @@ class TestTourDateAvailability(unittest.TestCase):
         self.assertIn("City Tour Cusco", res_es.get("response", ""))
         self.assertIn("agotados", res_es.get("response", "").lower())
         self.assertIn("20 de noviembre de 2026", res_es.get("response", ""))
-        self.assertIn("Cupos de tren agotados", res_es.get("response", ""))
+        # La nota es interna: no debe mostrarse al turista
+        self.assertNotIn("Cupos de tren agotados", res_es.get("response", ""))
 
         # Consulta en inglés
         res_en = rag_chain("Do you have spots for City Tour on November 20, 2026?", user_id="test_user_date_2")
@@ -188,6 +189,24 @@ class TestTourDateAvailability(unittest.TestCase):
         self.assertEqual(res.get("route"), "evidence_availability")
         self.assertIn("cupos limitados", res.get("response", "").lower())
         self.assertIn("25 de noviembre de 2026", res.get("response", ""))
+        self.assertNotIn("Quedan 4 cupos", res.get("response", ""))
+
+    def test_verified_routes_date_portuguese_responses(self):
+        from app import rag_chain
+        catalog_service.upsert_tour_blocked_date({
+            "entity_id": "city-tour-cusco", "tour_date": "2026-11-20",
+            "status": "sold_out", "notes": "Nota interna PT"
+        })
+        res_so = rag_chain("Tem vagas para o City Tour no dia 20 de novembro de 2026?", user_id="test_user_date_pt_1")
+        self.assertEqual(res_so.get("route"), "evidence_availability")
+        self.assertIn("esgotadas", res_so.get("response", "").lower())
+        self.assertIn("20 de novembro de 2026", res_so.get("response", ""))
+        self.assertNotIn("Nota interna PT", res_so.get("response", ""))
+
+        res_ok = rag_chain("Tem vagas para o Vale Sagrado no dia 15 de dezembro de 2026?", user_id="test_user_date_pt_2")
+        self.assertEqual(res_ok.get("route"), "evidence_availability")
+        self.assertIn("vagas disponíveis", res_ok.get("response", "").lower())
+        self.assertIn("15 de dezembro de 2026", res_ok.get("response", ""))
 
     def test_verified_routes_date_available_response(self):
         from app import rag_chain
@@ -235,6 +254,42 @@ class TestTourDateAvailability(unittest.TestCase):
             question_stored = row["question"] if hasattr(row, "__getitem__") else row[3]
             self.assertIn("[Reserva - FECHA AGOTADA: 2026-11-20", question_stored)
             self.assertIn("City Tour Cusco", question_stored)
+            # La nota interna llega al asesor por el ticket
+            self.assertIn("Nota: Capacidad máxima de buses", question_stored)
+        # ...pero no al turista
+        self.assertNotIn("Capacidad máxima de buses", res.get("response", ""))
+        with handoff_support.connection() as conn:
+            conn.execute("DELETE FROM requests WHERE user_id = ?", (uid,))
+
+    def test_handoff_booking_tagged_with_limited_date(self):
+        from app import rag_chain
+        import app
+        import handoff_support
+        from handoff_support import apply_request
+        catalog_service.upsert_tour_blocked_date({
+            "entity_id": "montana-7-colores", "tour_date": "2026-11-25",
+            "status": "limited", "notes": "Quedan 4 cupos"
+        })
+        uid = "test_user_booking_limited"
+        with handoff_support.connection() as conn:
+            conn.execute("DELETE FROM requests WHERE user_id = ?", (uid,))
+
+        question = "Quiero reservar Montaña de 7 Colores para el 2026-11-25"
+        rag_res = rag_chain(question, user_id=uid)
+        res = apply_request(app.__dict__, rag_res, uid, "whatsapp", question)
+        self.assertTrue(res.get("handoff_registered"))
+        resp = res.get("response", "").lower()
+        self.assertIn("cupos limitados", resp)
+        self.assertIn("no está confirmada", resp)
+        self.assertNotIn("quedan 4 cupos", resp)
+
+        with handoff_support.connection() as conn:
+            row = conn.execute("SELECT * FROM requests WHERE user_id = ?", (uid,)).fetchone()
+            self.assertIsNotNone(row)
+            question_stored = row["question"] if hasattr(row, "__getitem__") else row[3]
+            self.assertIn("[Reserva - FECHA LIMITADA: 2026-11-25", question_stored)
+            self.assertIn("Nota: Quedan 4 cupos", question_stored)
+            conn.execute("DELETE FROM requests WHERE user_id = ?", (uid,))
 
 
 if __name__ == '__main__':
