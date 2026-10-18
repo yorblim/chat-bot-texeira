@@ -1735,10 +1735,12 @@ def install(ns, support, original):
                     return finish(msg, 'evidence_inactive_tour', pending=True, entity_id=eid_comercial)
 
             # 2. Consultas de disponibilidad, cupos, agotados o fechas
+            import catalog_service
+            parsed_query_date = catalog_service.parse_date_from_query(question)
             is_availability_query = bool(re.search(
                 r'\b(?:disponib\w*|cupos?|espacios?|vagas?|spots?|availability|available|agotad\w*|ocupad\w*|sold\s*out|full|fechas?\s+disponibles?|hay\s+lugar|queda\s+lugar|hay\s+salidas?|hay\s+fechas?)\b',
                 q
-            )) or bool(re.search(r'\b(?:febrero|february|fevereiro)\b', q))
+            )) or bool(re.search(r'\b(?:febrero|february|fevereiro)\b', q)) or (parsed_query_date is not None)
 
             if is_availability_query:
                 # 2.1 Camino Inca en Febrero (Cierre por mantenimiento oficial de ruta)
@@ -1778,7 +1780,92 @@ def install(ns, support, original):
                 if eid_comercial and eid_comercial in active_tours:
                     tour_obj = active_tours[eid_comercial]
                     t_name = tour_obj.get('name', eid_comercial)
-                    import catalog_service
+
+                    # Evaluar si la consulta menciona una fecha específica (o hereda fecha reciente)
+                    parsed_date = parsed_query_date
+                    if not parsed_date and prior:
+                        for h in reversed(prior):
+                            if h.get('role') == 'human':
+                                parsed_date = catalog_service.parse_date_from_query(h.get('content', ''))
+                                if parsed_date:
+                                    break
+
+                    if parsed_date:
+                        date_info = catalog_service.get_tour_availability_on_date(eid_comercial, parsed_date)
+                        date_status = date_info.get('status', 'available')
+                        date_disp = catalog_service.format_date_localized(parsed_date, lang)
+                        date_notes = date_info.get('notes', '').strip()
+                        note_suffix = f" ({date_notes})" if date_notes else ""
+
+                        if date_status == 'sold_out':
+                            if en:
+                                msg = (
+                                    f"🔴 *Availability — {t_name}:*\n\n"
+                                    f"For the requested date (*{date_disp}*), spots for *{t_name}* are **currently sold out**{note_suffix}.\n\n"
+                                    f"Our agency team can check if any spots open up or recommend the nearest available departure date.\n\n"
+                                    f"👉 Write: *advisor* to check alternative dates or join the waitlist."
+                                )
+                            elif pt:
+                                msg = (
+                                    f"🔴 *Disponibilidade — {t_name}:*\n\n"
+                                    f"Para a data consultada (*{date_disp}*), as vagas para *{t_name}* estão **atualmente esgotadas**{note_suffix}.\n\n"
+                                    f"Nossa equipe na agência pode verificar se surgem vagas de última hora ou sugerir a data disponível mais próxima.\n\n"
+                                    f"👉 Escreva: *assessor* para consultar datas alternativas ou lista de espera."
+                                )
+                            else:
+                                msg = (
+                                    f"🔴 *Disponibilidad — {t_name}:*\n\n"
+                                    f"Para la fecha consultada (*{date_disp}*), los cupos para *{t_name}* se encuentran **actualmente agotados**{note_suffix}.\n\n"
+                                    f"Nuestro equipo en la agencia puede verificar si se liberan espacios de última hora o recomendarte la fecha más cercana disponible.\n\n"
+                                    f"👉 Escribe: *asesor* para consultar fechas alternativas o lista de espera."
+                                )
+                            return finish(msg, 'evidence_availability', pending=True, sources=['CATALOGO_OFICIAL'], entity_id=eid_comercial)
+
+                        if date_status == 'limited':
+                            if en:
+                                msg = (
+                                    f"🟡 *Availability — {t_name}:*\n\n"
+                                    f"For *{date_disp}*, *{t_name}* has **limited spots remaining** due to high demand{note_suffix}.\n\n"
+                                    f"We strongly recommend securing your seats promptly before availability closes.\n\n"
+                                    f"👉 Write: *advisor* with your group size to book your spots right away."
+                                )
+                            elif pt:
+                                msg = (
+                                    f"🟡 *Disponibilidade — {t_name}:*\n\n"
+                                    f"Para *{date_disp}*, o passeio *{t_name}* conta com **últimas vagas disponíveis** e alta procura{note_suffix}.\n\n"
+                                    f"Recomendamos garantir seus lugares o quanto antes para não ficar sem vaga.\n\n"
+                                    f"👉 Escreva: *assessor* com o número de pessoas para reservar de imediato."
+                                )
+                            else:
+                                msg = (
+                                    f"🟡 *Disponibilidad — {t_name}:*\n\n"
+                                    f"Para el *{date_disp}*, el tour *{t_name}* cuenta con **cupos limitados** (alta demanda){note_suffix}.\n\n"
+                                    f"Te recomendamos asegurar tus espacios con anticipación antes de que se agote la fecha.\n\n"
+                                    f"👉 Escribe: *asesor* indicando el número de personas para reservar de inmediato."
+                                )
+                            return finish(msg, 'evidence_availability', pending=True, sources=['CATALOGO_OFICIAL'], entity_id=eid_comercial)
+
+                        # Tour disponible para la fecha consultada
+                        if en:
+                            msg = (
+                                f"🟢 *Availability — {t_name}:*\n\n"
+                                f"We have **departures and spots available** for *{date_disp}*.\n\n"
+                                f"👉 Write: *advisor* with your group size to coordinate your booking and departure details 😊"
+                            )
+                        elif pt:
+                            msg = (
+                                f"🟢 *Disponibilidade — {t_name}:*\n\n"
+                                f"Temos **saídas e vagas disponíveis** para *{date_disp}*.\n\n"
+                                f"👉 Escreva: *assessor* com o número de pessoas para coordenar sua reserva e detalhes de saída 😊"
+                            )
+                        else:
+                            msg = (
+                                f"🟢 *Disponibilidad — {t_name}:*\n\n"
+                                f"Contamos con **salidas y cupos disponibles** para el *{date_disp}*.\n\n"
+                                f"👉 Escribe: *asesor* indicando tu número de personas para coordinar tu reserva y enviarte los detalles de salida 😊"
+                            )
+                        return finish(msg, 'evidence_availability', pending=True, sources=['CATALOGO_OFICIAL'], entity_id=eid_comercial)
+
                     t_avail = catalog_service.get_tour_availability(eid_comercial)
 
                     # Si está marcado como agotado en catálogo

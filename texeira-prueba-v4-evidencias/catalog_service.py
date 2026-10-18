@@ -8,10 +8,12 @@ en PostgreSQL (Neon) o SQLite local, e integración directa al motor RAG.
 """
 
 import os
+import re
 import json
 import time
 import base64
 import hashlib
+import unicodedata
 from datetime import datetime, date, timezone, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -113,6 +115,32 @@ CREATE TABLE IF NOT EXISTS catalog_tour_rates (
 );
 """
 
+SCHEMA_DATES_SQLITE = """
+CREATE TABLE IF NOT EXISTS catalog_tour_dates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_id TEXT NOT NULL,
+    tour_date TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'sold_out',
+    notes TEXT DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE(entity_id, tour_date)
+);
+"""
+
+SCHEMA_DATES_POSTGRES = """
+CREATE TABLE IF NOT EXISTS catalog_tour_dates (
+    id SERIAL PRIMARY KEY,
+    entity_id TEXT NOT NULL,
+    tour_date TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'sold_out',
+    notes TEXT DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE(entity_id, tour_date)
+);
+"""
+
 # Alias iniciales de tours canónicos de Texeira Travel
 INITIAL_CANONICAL_ALIASES = {
     'city-tour-cusco': ['city tour', 'citytour', 'city-tour', 'tour cusco', 'tour de cusco'],
@@ -161,17 +189,20 @@ CANONICAL_TOUR_DURATIONS = {
 
 
 def init_catalog_db() -> None:
-    """Crea las tablas catalog_tours y catalog_tour_rates y migra los tours canónicos si está vacía."""
+    """Crea las tablas catalog_tours, catalog_tour_rates y catalog_tour_dates y migra los tours canónicos si está vacía."""
     schema = SCHEMA_POSTGRES if is_postgres() else SCHEMA_SQLITE
     schema_rates = SCHEMA_RATES_POSTGRES if is_postgres() else SCHEMA_RATES_SQLITE
+    schema_dates = SCHEMA_DATES_POSTGRES if is_postgres() else SCHEMA_DATES_SQLITE
     with get_db_session() as conn:
         conn.execute(schema)
         conn.execute(schema_rates)
+        conn.execute(schema_dates)
         conn.execute("""CREATE TABLE IF NOT EXISTS catalog_field_overrides (
             entity_id TEXT NOT NULL, field TEXT NOT NULL,
             PRIMARY KEY (entity_id, field)
         )""")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_tour_rates_entity ON catalog_tour_rates(entity_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_tour_dates_lookup ON catalog_tour_dates(entity_id, tour_date)")
 
         # Migración segura de columna availability si la tabla ya existía
         try:
@@ -982,3 +1013,388 @@ def delete_tour_rate(rate_id: int, entity_id: Optional[str] = None) -> Tuple[boo
         return True, "Tarifa eliminada exitosamente."
     except Exception as e:
         return False, str(e)
+
+
+# ==============================================================================
+# GESTIÓN DE DISPONIBILIDAD Y CUPOS POR FECHA ESPECÍFICA (catalog_tour_dates)
+# ==============================================================================
+
+_MONTHS_MAP = {
+    # Spanish
+    'enero': 1, 'ene': 1,
+    'febrero': 2, 'feb': 2,
+    'marzo': 3, 'mar': 3,
+    'abril': 4, 'abr': 4,
+    'mayo': 5, 'may': 5,
+    'junio': 6, 'jun': 6,
+    'julio': 7, 'jul': 7,
+    'agosto': 8, 'ago': 8,
+    'septiembre': 9, 'setiembre': 9, 'sep': 9, 'set': 9,
+    'octubre': 10, 'oct': 10,
+    'noviembre': 11, 'nov': 11,
+    'diciembre': 12, 'dic': 12,
+    # English
+    'january': 1, 'jan': 1,
+    'february': 2,
+    'march': 3,
+    'april': 4, 'apr': 4,
+    'june': 6,
+    'july': 7,
+    'august': 8, 'aug': 8,
+    'september': 9, 'sept': 9,
+    'october': 10,
+    'november': 11,
+    'december': 12, 'dec': 12,
+    # Portuguese
+    'janeiro': 1,
+    'fevereiro': 2,
+    'marco': 3, 'março': 3,
+    'maio': 5,
+    'junho': 6,
+    'julho': 7,
+    'setembro': 9,
+    'outubro': 10,
+    'novembro': 11,
+    'dezembro': 12,
+}
+
+_MONTHS_ES = {
+    1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril', 5: 'mayo', 6: 'junio',
+    7: 'julio', 8: 'agosto', 9: 'septiembre', 10: 'octubre', 11: 'noviembre', 12: 'diciembre'
+}
+_MONTHS_EN = {
+    1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June',
+    7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'
+}
+_MONTHS_PT = {
+    1: 'janeiro', 2: 'fevereiro', 3: 'março', 4: 'abril', 5: 'maio', 6: 'junho',
+    7: 'julho', 8: 'agosto', 9: 'setembro', 10: 'outubro', 11: 'novembro', 12: 'dezembro'
+}
+
+
+def format_date_localized(d: date, lang: str = "es") -> str:
+    """Formatea atractivamente una fecha según el idioma del cliente."""
+    lang = (lang or "es").lower()
+    if lang == "en":
+        return f"{_MONTHS_EN.get(d.month, '')} {d.day}, {d.year}"
+    elif lang == "pt":
+        return f"{d.day} de {_MONTHS_PT.get(d.month, '')} de {d.year}"
+    else:
+        return f"{d.day} de {_MONTHS_ES.get(d.month, '')} de {d.year}"
+
+
+def parse_date_from_query(text: str, reference_date: Optional[date] = None) -> Optional[date]:
+    """
+    Extrae una fecha válida (YYYY-MM-DD) desde consultas conversacionales en ES, EN o PT.
+    Soporta:
+      - Relativos: "hoy", "today", "hoje", "mañana", "manana", "tomorrow", "amanhã", "pasado mañana", etc.
+      - ISO: YYYY-MM-DD
+      - Fechas con mes en palabras: "15 de noviembre", "15 nov", "noviembre 15", "nov 15th", "15 de novembro"
+      - Formatos numéricos: "15/11/2026", "15-11-2026", o "para el 15/11"
+    """
+    if not text or not isinstance(text, str):
+        return None
+
+    if reference_date is None:
+        reference_date = datetime.now(timezone(timedelta(hours=-5))).date()
+
+    raw = text.lower().strip()
+    norm = unicodedata.normalize('NFKD', raw)
+    unaccented = ''.join(c for c in norm if not unicodedata.combining(c))
+
+    # 1. Relativos
+    if re.search(r'\b(?:pasado\s+manana|the\s+day\s+after\s+tomorrow|depois\s+de\s+amanha)\b', unaccented):
+        return reference_date + timedelta(days=2)
+    if re.search(r'\b(?:manana|tomorrow|amanha)\b', unaccented):
+        return reference_date + timedelta(days=1)
+    if re.search(r'\b(?:hoy|today|hoje)\b', unaccented):
+        return reference_date
+
+    # 2. ISO YYYY-MM-DD
+    iso_match = re.search(r'\b(202[4-9])-(\d{1,2})-(\d{1,2})\b', raw)
+    if iso_match:
+        try:
+            y, m, d = int(iso_match.group(1)), int(iso_match.group(2)), int(iso_match.group(3))
+            return date(y, m, d)
+        except ValueError:
+            pass
+
+    # 3. Formato numérico DD/MM/YYYY o DD-MM-YYYY
+    slash_y_match = re.search(r'\b(\d{1,2})[\/\-](\d{1,2})[\/\-](202[4-9])\b', raw)
+    if slash_y_match:
+        try:
+            d, m, y = int(slash_y_match.group(1)), int(slash_y_match.group(2)), int(slash_y_match.group(3))
+            return date(y, m, d)
+        except ValueError:
+            pass
+
+    # 4. Formato natural: [Día] de/of [Mes] [Año opcional]
+    month_keys = sorted(_MONTHS_MAP.keys(), key=lambda x: -len(x))
+    month_pattern = '|'.join(re.escape(k) for k in month_keys)
+
+    day_month_match = re.search(
+        rf'\b(\d{{1,2}})(?:st|nd|rd|th)?\s*(?:de|of|\/|-|\s)\s*({month_pattern})(?:\s*(?:de|of|\/|-|,|\s)\s*(202[4-9]))?\b',
+        unaccented
+    )
+    if day_month_match:
+        try:
+            d = int(day_month_match.group(1))
+            m_str = day_month_match.group(2)
+            y_str = day_month_match.group(3)
+            m = _MONTHS_MAP.get(m_str)
+            if m and 1 <= d <= 31:
+                y = int(y_str) if y_str else reference_date.year
+                cand = date(y, m, d)
+                if not y_str and cand < reference_date - timedelta(days=30):
+                    cand = date(y + 1, m, d)
+                return cand
+        except ValueError:
+            pass
+
+    # 5. Formato natural inverso: [Mes] [Día] [Año opcional]
+    month_day_match = re.search(
+        rf'\b({month_pattern})\s*(?:the\s+)?(\d{{1,2}})(?:st|nd|rd|th)?(?:\s*(?:de|of|\/|-|,|\s)\s*(202[4-9]))?\b',
+        unaccented
+    )
+    if month_day_match:
+        try:
+            m_str = month_day_match.group(1)
+            d = int(month_day_match.group(2))
+            y_str = month_day_match.group(3)
+            m = _MONTHS_MAP.get(m_str)
+            if m and 1 <= d <= 31:
+                y = int(y_str) if y_str else reference_date.year
+                cand = date(y, m, d)
+                if not y_str and cand < reference_date - timedelta(days=30):
+                    cand = date(y + 1, m, d)
+                return cand
+        except ValueError:
+            pass
+
+    # 6. Formato numérico explícito sin año precedido de preposición de fecha
+    slash_no_y_match = re.search(
+        r'\b(?:el|para\s+el|dia|fecha|para|on|for|date)\s+(\d{1,2})[\/\-](\d{1,2})\b',
+        unaccented
+    )
+    if slash_no_y_match:
+        try:
+            d = int(slash_no_y_match.group(1))
+            m = int(slash_no_y_match.group(2))
+            if 1 <= d <= 31 and 1 <= m <= 12:
+                y = reference_date.year
+                cand = date(y, m, d)
+                if cand < reference_date - timedelta(days=30):
+                    cand = date(y + 1, m, d)
+                return cand
+        except ValueError:
+            pass
+
+    return None
+
+
+def get_tour_blocked_dates(entity_id: str, future_only: bool = True) -> List[Dict[str, Any]]:
+    """Retorna las fechas bloqueadas o con cupos limitados para un tour."""
+    entity_id = str(entity_id or "").strip().lower()
+    if not entity_id:
+        return []
+    try:
+        init_catalog_db()
+        today_iso = datetime.now(timezone(timedelta(hours=-5))).date().isoformat()
+        with get_db_session() as conn:
+            cur = conn.execute(
+                """
+                SELECT id, entity_id, tour_date, status, notes, created_at, updated_at
+                FROM catalog_tour_dates
+                WHERE entity_id = ?
+                ORDER BY tour_date ASC
+                """,
+                (entity_id,)
+            )
+            rows = cur.fetchall()
+
+        dates = []
+        for r in rows:
+            t_date = str(r["tour_date"] if hasattr(r, "__getitem__") else r[2])
+            if future_only and t_date < today_iso:
+                continue
+            item = {
+                "id": r["id"] if hasattr(r, "__getitem__") else r[0],
+                "entity_id": r["entity_id"] if hasattr(r, "__getitem__") else r[1],
+                "tour_date": t_date,
+                "status": str(r["status"] if hasattr(r, "__getitem__") else r[3]),
+                "notes": str((r["notes"] if hasattr(r, "__getitem__") else r[4]) or ""),
+                "created_at": str(r["created_at"] if hasattr(r, "__getitem__") else r[5]),
+                "updated_at": str(r["updated_at"] if hasattr(r, "__getitem__") else r[6]),
+            }
+            dates.append(item)
+        return dates
+    except Exception as e:
+        print(f"[CATALOG SERVICE ERROR] Error consultando fechas bloqueadas de {entity_id}: {e}")
+        return []
+
+
+def upsert_tour_blocked_date(data: Dict[str, Any]) -> Tuple[bool, Union[int, str]]:
+    """Registra o actualiza el bloqueo/cupo limitado de una fecha específica para un tour."""
+    if not isinstance(data, dict):
+        return False, "Los datos de la fecha deben ser un objeto."
+    entity_id = str(data.get("entity_id") or "").strip().lower()
+    tour_date = str(data.get("tour_date") or data.get("date") or "").strip()
+    status = str(data.get("status") or "sold_out").strip().lower()
+    notes = str(data.get("notes") or "").strip()
+
+    if not entity_id or not tour_date:
+        return False, "El entity_id y la fecha (tour_date) son obligatorios."
+
+    try:
+        parsed_iso = date.fromisoformat(tour_date).isoformat()
+        if parsed_iso != tour_date:
+            return False, "Formato de fecha inválido; use YYYY-MM-DD."
+    except ValueError:
+        return False, "Fecha inválida; use formato YYYY-MM-DD."
+
+    if status not in {"sold_out", "limited"}:
+        return False, "Estado inválido; use 'sold_out' o 'limited'."
+
+    now = datetime.utcnow().isoformat()
+    try:
+        init_catalog_db()
+        with get_db_session() as conn:
+            if not conn.execute("SELECT entity_id FROM catalog_tours WHERE entity_id = ?", (entity_id,)).fetchone():
+                return False, "Tour no encontrado."
+
+            existing = conn.execute(
+                "SELECT id FROM catalog_tour_dates WHERE entity_id = ? AND tour_date = ?",
+                (entity_id, tour_date)
+            ).fetchone()
+
+            if existing:
+                date_id = existing[0] if not hasattr(existing, "__getitem__") else existing["id"]
+                conn.execute(
+                    """
+                    UPDATE catalog_tour_dates
+                    SET status = ?, notes = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (status, notes, now, date_id)
+                )
+                final_id = date_id
+            else:
+                cur = conn.execute(
+                    """
+                    INSERT INTO catalog_tour_dates (
+                        entity_id, tour_date, status, notes, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (entity_id, tour_date, status, notes, now, now)
+                )
+                final_id = cur.lastrowid
+                if final_id is None:
+                    row_id = conn.execute(
+                        "SELECT id FROM catalog_tour_dates WHERE entity_id = ? AND tour_date = ?",
+                        (entity_id, tour_date)
+                    ).fetchone()
+                    final_id = row_id[0] if row_id else None
+
+            conn.execute("UPDATE catalog_tours SET updated_at = ? WHERE entity_id = ?", (now, entity_id))
+
+        invalidate_catalog_cache()
+        return True, final_id
+    except Exception as e:
+        print(f"[CATALOG SERVICE ERROR] Error guardando fecha bloqueada para {entity_id}: {e}")
+        return False, str(e)
+
+
+def delete_tour_blocked_date(date_id_or_date: Union[int, str], entity_id: Optional[str] = None) -> Tuple[bool, str]:
+    """Elimina el bloqueo de una fecha por ID o por fecha ISO."""
+    try:
+        init_catalog_db()
+        now = datetime.utcnow().isoformat()
+        with get_db_session() as conn:
+            eid = entity_id
+            if isinstance(date_id_or_date, int) or (isinstance(date_id_or_date, str) and date_id_or_date.isdigit()):
+                d_id = int(date_id_or_date)
+                row = conn.execute("SELECT entity_id FROM catalog_tour_dates WHERE id = ?", (d_id,)).fetchone()
+                if not row:
+                    return False, "Registro de fecha no encontrado."
+                eid = row[0] if not hasattr(row, "__getitem__") else row["entity_id"]
+                conn.execute("DELETE FROM catalog_tour_dates WHERE id = ?", (d_id,))
+            else:
+                tour_date = str(date_id_or_date).strip()
+                if not eid:
+                    return False, "Se requiere entity_id para eliminar por fecha."
+                conn.execute(
+                    "DELETE FROM catalog_tour_dates WHERE entity_id = ? AND tour_date = ?",
+                    (eid, tour_date)
+                )
+
+            if eid:
+                conn.execute("UPDATE catalog_tours SET updated_at = ? WHERE entity_id = ?", (now, eid))
+
+        invalidate_catalog_cache()
+        return True, "Bloqueo de fecha eliminado exitosamente."
+    except Exception as e:
+        return False, str(e)
+
+
+def get_tour_date_status(entity_id: str, tour_date: Union[str, date]) -> Optional[Dict[str, Any]]:
+    """Consulta si una fecha específica tiene un bloqueo o condición en catalog_tour_dates."""
+    entity_id = str(entity_id or "").strip().lower()
+    if not entity_id or not tour_date:
+        return None
+    date_str = tour_date.isoformat() if isinstance(tour_date, date) else str(tour_date).strip()
+    try:
+        init_catalog_db()
+        with get_db_session() as conn:
+            cur = conn.execute(
+                "SELECT id, entity_id, tour_date, status, notes FROM catalog_tour_dates WHERE entity_id = ? AND tour_date = ?",
+                (entity_id, date_str)
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {
+                "id": row["id"] if hasattr(row, "__getitem__") else row[0],
+                "entity_id": row["entity_id"] if hasattr(row, "__getitem__") else row[1],
+                "tour_date": str(row["tour_date"] if hasattr(row, "__getitem__") else row[2]),
+                "status": str(row["status"] if hasattr(row, "__getitem__") else row[3]),
+                "notes": str((row["notes"] if hasattr(row, "__getitem__") else row[4]) or ""),
+            }
+    except Exception as e:
+        print(f"[CATALOG SERVICE ERROR] Error consultando estado de fecha de {entity_id}: {e}")
+        return None
+
+
+def get_tour_availability_on_date(entity_id: str, tour_date: Union[str, date]) -> Dict[str, Any]:
+    """
+    Retorna la disponibilidad efectiva de un tour para una fecha dada:
+    Si la fecha tiene un registro específico, retorna ese estado.
+    Si no, recurre a la disponibilidad general del tour en catálogo.
+    """
+    entity_id = str(entity_id or "").strip().lower()
+    date_str = tour_date.isoformat() if isinstance(tour_date, date) else str(tour_date).strip()
+
+    specific = get_tour_date_status(entity_id, date_str)
+    if specific:
+        return {
+            "entity_id": entity_id,
+            "tour_date": date_str,
+            "status": specific.get("status", "sold_out"),
+            "is_date_specific": True,
+            "notes": specific.get("notes", ""),
+        }
+
+    global_status = get_tour_availability(entity_id)
+    return {
+        "entity_id": entity_id,
+        "tour_date": date_str,
+        "status": global_status,
+        "is_date_specific": False,
+        "notes": "",
+    }
+
+
+def is_sold_out_on_date(entity_id: str, tour_date: Union[str, date]) -> bool:
+    """Verifica si un tour está agotado en una fecha específica."""
+    status_info = get_tour_availability_on_date(entity_id, tour_date)
+    return status_info.get("status") == "sold_out"
+
