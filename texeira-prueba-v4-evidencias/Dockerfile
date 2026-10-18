@@ -55,6 +55,7 @@ COPY whatsapp_entry.py .
 COPY catalog_service.py .
 COPY catalog_support.py .
 COPY catalog_ui.py .
+COPY login_ui.py .
 
 # Directorio para bases de datos de estado (montar volumen externo aquí)
 RUN mkdir -p /app/state /app/logs
