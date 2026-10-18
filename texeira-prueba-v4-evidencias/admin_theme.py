@@ -34,17 +34,20 @@ body {
 /* Global Navigation Bar */
 .admin-nav {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
   flex-wrap: wrap;
-  padding: 12px 0 20px;
-  border-bottom: 1px solid #dbe4ee;
+  padding: 10px 16px;
+  background: #ffffff;
+  border: 1px solid #dbe4ee;
+  border-radius: 12px;
   margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   width: 100%;
 }
 .admin-nav strong {
-  margin-right: auto;
-  font-size: 18px;
+  margin-right: 8px;
+  font-size: 16px;
   font-weight: 700;
   color: #174363;
   letter-spacing: -0.3px;
