@@ -730,6 +730,24 @@ def ensure_postgres_schema():
             CREATE INDEX IF NOT EXISTS idx_tour_rates_entity
             ON catalog_tour_rates(entity_id);
         """))
+
+        # 7. Bloqueo de cupos y fechas agotadas por tour
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS catalog_tour_dates (
+                id SERIAL PRIMARY KEY,
+                entity_id TEXT NOT NULL,
+                tour_date TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'sold_out',
+                notes TEXT DEFAULT '',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(entity_id, tour_date)
+            );
+        """))
+        conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS idx_tour_dates_lookup
+            ON catalog_tour_dates(entity_id, tour_date);
+        """))
     _PG_INITIALIZED = True
     logger.info("[DB_ADAPTER] Esquema PostgreSQL verificado e inicializado.")
 

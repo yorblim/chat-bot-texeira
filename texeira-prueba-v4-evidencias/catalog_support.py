@@ -162,6 +162,49 @@ def install(app):
             return JSONResponse({"ok": False, "error": msg}, status_code=400)
         return JSONResponse({"ok": True, "message": msg})
 
+    # --- ENDPOINTS DE BLOQUEO DE FECHAS Y CUPOS (Tour hasMany Blocked Dates) ---
+
+    @app.get("/api/catalog/tours/{entity_id}/dates")
+    async def list_tour_dates(entity_id: str, request: Request):
+        future_only = request.query_params.get("future_only", "1").lower() in ("1", "true", "yes")
+        dates = catalog_service.get_tour_blocked_dates(entity_id, future_only=future_only)
+        return JSONResponse(dates)
+
+    @app.post("/api/catalog/tours/{entity_id}/dates")
+    async def save_tour_date(entity_id: str, request: Request):
+        ok_auth, status, err = _authorized_mutation(request)
+        if not ok_auth:
+            return JSONResponse({"ok": False, "error": err}, status_code=status)
+        try:
+            data = await request.json()
+            data["entity_id"] = entity_id
+            ok, res = catalog_service.upsert_tour_blocked_date(data)
+            if not ok:
+                return JSONResponse({"ok": False, "error": res}, status_code=400)
+            return JSONResponse({"ok": True, "date_id": res})
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    @app.delete("/api/catalog/tours/{entity_id}/dates/{tour_date}")
+    async def remove_tour_date(entity_id: str, tour_date: str, request: Request):
+        ok_auth, status, err = _authorized_mutation(request)
+        if not ok_auth:
+            return JSONResponse({"ok": False, "error": err}, status_code=status)
+        ok, msg = catalog_service.delete_tour_blocked_date(tour_date, entity_id=entity_id)
+        if not ok:
+            return JSONResponse({"ok": False, "error": msg}, status_code=400)
+        return JSONResponse({"ok": True, "message": msg})
+
+    @app.delete("/api/catalog/dates/{date_id}")
+    async def remove_tour_date_by_id(date_id: int, request: Request):
+        ok_auth, status, err = _authorized_mutation(request)
+        if not ok_auth:
+            return JSONResponse({"ok": False, "error": err}, status_code=status)
+        ok, msg = catalog_service.delete_tour_blocked_date(date_id)
+        if not ok:
+            return JSONResponse({"ok": False, "error": msg}, status_code=400)
+        return JSONResponse({"ok": True, "message": msg})
+
     @app.get("/brochures/{filename}")
     async def serve_brochure(filename: str):
         import re as _re

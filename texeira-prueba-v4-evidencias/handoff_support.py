@@ -344,15 +344,45 @@ def apply_request(ns, result, user_id, channel, question):
             return result
 
         is_sold_out = False
+        is_date_sold_out = False
+        is_date_limited = False
+        parsed_booking_date = None
+        date_formatted = ""
         if is_booking and eid:
             try:
-                is_sold_out = bool(is_sold_out_tour(eid))
+                from catalog_service import is_sold_out_tour, parse_date_from_query, get_tour_availability_on_date, format_date_localized
+                parsed_booking_date = parse_date_from_query(question)
+                if not parsed_booking_date and history:
+                    for h in reversed(history[:-1]):
+                        if h.get('role') == 'human':
+                            cand_d = parse_date_from_query(h.get('content', ''))
+                            if cand_d:
+                                parsed_booking_date = cand_d
+                                break
+
+                if parsed_booking_date:
+                    date_info = get_tour_availability_on_date(eid, parsed_booking_date)
+                    date_formatted = format_date_localized(parsed_booking_date, language)
+                    if date_info.get("status") == "sold_out":
+                        is_date_sold_out = True
+                    elif date_info.get("status") == "limited":
+                        is_date_limited = True
+
+                is_sold_out = bool(is_sold_out_tour(eid)) or is_date_sold_out
             except Exception:
                 is_sold_out = False
 
         ticket_question = question
         if is_booking:
-            prefix = "[Reserva - AGOTADO" if is_sold_out else "[Reserva"
+            if is_date_sold_out and parsed_booking_date:
+                prefix = f"[Reserva - FECHA AGOTADA: {parsed_booking_date.isoformat()}"
+            elif is_date_limited and parsed_booking_date:
+                prefix = f"[Reserva - FECHA LIMITADA: {parsed_booking_date.isoformat()}"
+            elif is_sold_out:
+                prefix = "[Reserva - AGOTADO"
+            else:
+                prefix = "[Reserva"
+
             if tour_name and tour_name.lower() not in question.lower():
                 ticket_question = f"{prefix} - {tour_name}] {question}"
             elif not question.lower().startswith("[reserva"):
@@ -374,7 +404,23 @@ def apply_request(ns, result, user_id, channel, question):
 
         if is_booking:
             if created:
-                if is_sold_out:
+                if is_date_sold_out and parsed_booking_date:
+                    t_disp = tour_name or 'este tour'
+                    result['response'] = _request_message(
+                        language,
+                        es=f"Registré tu solicitud sobre {t_disp} para el {date_formatted}. Actualmente esa fecha figura con cupos agotados en el catálogo oficial, pero nuestro asesor verificará si existen liberaciones de última hora o cupos en lista de espera. Tu reserva aún no está confirmada.{link_txt_es}",
+                        en=f"I registered your request regarding {t_disp} for {date_formatted}. That date is currently marked sold out in the official catalog, but our advisor will check for last-minute releases or waitlist spots. Your reservation is not yet confirmed.{link_txt_en}",
+                        pt=f"Registrei sua solicitação sobre {t_disp} para {date_formatted}. Essa data consta com vagas esgotadas no catálogo oficial, mas nosso assessor verificará se há liberações de última hora ou lista de espera. Sua reserva ainda não está confirmada.{link_txt_pt}",
+                    )
+                elif is_date_limited and parsed_booking_date:
+                    t_disp = tour_name or 'este tour'
+                    result['response'] = _request_message(
+                        language,
+                        es=f"Registré tu solicitud sobre {t_disp} para el {date_formatted}. Esa fecha cuenta con cupos limitados y alta demanda; nuestro asesor te atenderá a la brevedad para verificar disponibilidad y coordinar tu reserva. Tu reserva aún no está confirmada.{link_txt_es}",
+                        en=f"I registered your request regarding {t_disp} for {date_formatted}. That date has limited spots and high demand; our advisor will assist you shortly to verify availability and secure your reservation. Your reservation is not yet confirmed.{link_txt_en}",
+                        pt=f"Registrei sua solicitação sobre {t_disp} para {date_formatted}. Essa data conta com vagas limitadas e alta procura; nosso assessor atenderá você em breve para verificar disponibilidade e coordinar sua reserva. Sua reserva ainda não está confirmada.{link_txt_pt}",
+                    )
+                elif is_sold_out:
                     t_disp = tour_name or 'este tour'
                     result['response'] = _request_message(
                         language,

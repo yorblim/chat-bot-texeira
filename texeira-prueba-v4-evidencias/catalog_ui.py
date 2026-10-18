@@ -597,6 +597,9 @@ def get_catalog_html(csrf_token: str) -> str:
         <button type="button" id="tabBtnTourRates" class="modal-tab-btn" onclick="switchModalTab('tourRates')">
           🏷️ Tarifas Especiales <span id="ratesCountBadge" class="tab-badge">0</span>
         </button>
+        <button type="button" id="tabBtnTourDates" class="modal-tab-btn" onclick="switchModalTab('tourDates')">
+          📅 Fechas y Cupos <span id="datesCountBadge" class="tab-badge">0</span>
+        </button>
       </div>
 
       <div class="modal-body">
@@ -792,6 +795,65 @@ def get_catalog_html(csrf_token: str) -> str:
             </div>
           </div>
         </div>
+
+        <!-- PESTAÑA 3: FECHAS Y CUPOS -->
+        <div id="tabPaneTourDates" class="tab-pane">
+          <div id="datesSection">
+            <!-- Referencia de Disponibilidad General del Tour -->
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #334155; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <strong>Tour:</strong> <span id="datesTourNameRef" style="font-weight: 600; color: #0369a1;">-</span>
+                <span id="datesTourAvailRef" style="margin-left: 8px;"></span>
+              </div>
+              <div style="font-size: 12px; color: var(--muted);">
+                ℹ️ Bloqueos de calendario con vencimiento automático
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div>
+                <h4 style="margin: 0; font-size: 15px; color: #0369a1;">Bloqueo de Fechas Específicas</h4>
+                <p style="margin: 2px 0 0; font-size: 12px; color: var(--muted);">Marca salidas agotadas o con cupos limitados en días concretos. El bot informará con total exactitud al turista.</p>
+              </div>
+              <button type="button" id="btnAddDate" class="btn btn-secondary btn-sm" onclick="showDateForm()">+ Bloquear fecha</button>
+            </div>
+
+            <!-- Formulario de Bloqueo de Fecha (Oculto por defecto) -->
+            <div id="dateFormBox" style="display: none; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+              <h5 id="dateFormTitle" style="margin: 0 0 12px; font-size: 14px; color: #0369a1; font-weight: 700;">Bloquear Fecha para este Tour</h5>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="dateTourDate">Fecha a bloquear <span class="field-req">*</span></label>
+                  <input type="date" id="dateTourDate">
+                  <div class="form-help">Selecciona el día específico que no tendrá salidas o estará saturado.</div>
+                </div>
+                <div class="form-group">
+                  <label for="dateStatus">Condición de cupos <span class="field-req">*</span></label>
+                  <select id="dateStatus" class="select-input">
+                    <option value="sold_out">🔴 Agotado / Sin cupos (Sold Out)</option>
+                    <option value="limited">🟡 Cupos limitados / Alta demanda</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="dateNotes">Motivo o nota interna (opcional)</label>
+                <input type="text" id="dateNotes" placeholder="ej: Grupo cerrado, cupos de tren agotados, feriado saturado">
+                <div class="form-help">Esta nota ayuda a los asesores a conocer la causa del bloqueo.</div>
+              </div>
+
+              <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);">
+                <button type="button" id="btnCancelDate" class="btn btn-secondary btn-sm" onclick="hideDateForm()">Cancelar</button>
+                <button type="button" id="btnSaveDate" class="btn btn-primary btn-sm" onclick="saveTourDate()">Guardar bloqueo</button>
+              </div>
+            </div>
+
+            <!-- Contenedor de la lista de fechas -->
+            <div id="tourDatesList">
+              <!-- Cargado dinámicamente -->
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -827,6 +889,7 @@ def get_catalog_html(csrf_token: str) -> str:
     const CSRF_TOKEN = "{csrf_token}";
     let TOURS_DATA = [];
     let CURRENT_TOUR_RATES = [];
+    let CURRENT_TOUR_DATES = [];
     let lastFocusedElement = null;
 
     // Control de sesión del editor y secuencia de peticiones de tarifas
@@ -996,36 +1059,41 @@ def get_catalog_html(csrf_token: str) -> str:
     function switchModalTab(tabKey) {{
       const tabTourData = document.getElementById('tabPaneTourData');
       const tabTourRates = document.getElementById('tabPaneTourRates');
+      const tabTourDates = document.getElementById('tabPaneTourDates');
       const btnTourData = document.getElementById('tabBtnTourData');
       const btnTourRates = document.getElementById('tabBtnTourRates');
+      const btnTourDates = document.getElementById('tabBtnTourDates');
+
+      // Si cambia desde datos del tour y hay cambios pendientes
+      if (tabKey !== 'tourData' && isTourFormDirty()) {{
+        if (!confirm('Tienes cambios sin guardar en los datos del tour.\\n\\n¿Deseas descartarlos para cambiar de pestaña, o permanecer aquí para guardarlos primero?')) {{
+          return;
+        }}
+        restoreTourFormFromSnapshot();
+      }}
+
+      // Si cambia desde tarifas y hay una tarifa en edición sin guardar
+      if (tabKey !== 'tourRates' && isRateFormDirty()) {{
+        if (!confirm('Tienes una tarifa en edición sin guardar.\\n\\n¿Deseas descartar los cambios de esta tarifa?')) {{
+          return;
+        }}
+        hideRateForm();
+      }}
+
+      // Desactivar todas las pestañas
+      [tabTourData, tabTourRates, tabTourDates].forEach(t => t && t.classList.remove('active'));
+      [btnTourData, btnTourRates, btnTourDates].forEach(b => b && b.classList.remove('active'));
 
       if (tabKey === 'tourRates') {{
-        // Si va a tarifas pero hay cambios pendientes en los datos del tour
-        if (isTourFormDirty()) {{
-          if (!confirm('Tienes cambios sin guardar en los datos del tour.\\n\\n¿Deseas descartarlos para ver las tarifas especiales, o permanecer aquí para guardarlos primero?')) {{
-            return;
-          }}
-          // Restaurar valores confirmados al descartar cambios no guardados
-          restoreTourFormFromSnapshot();
-        }}
-        tabTourData.classList.remove('active');
         tabTourRates.classList.add('active');
-        btnTourData.classList.remove('active');
         btnTourRates.classList.add('active');
-
-        // Actualizar referencia visual de la tarifa base usando exclusivamente datos confirmados
         updateRatesTourBaseRef();
+      }} else if (tabKey === 'tourDates') {{
+        tabTourDates.classList.add('active');
+        btnTourDates.classList.add('active');
+        updateDatesTourRef();
       }} else {{
-        // Si va a datos del tour pero hay una tarifa en edición sin guardar
-        if (isRateFormDirty()) {{
-          if (!confirm('Tienes una tarifa en edición sin guardar.\\n\\n¿Deseas descartar los cambios de esta tarifa para volver a los datos del tour?')) {{
-            return;
-          }}
-          hideRateForm();
-        }}
-        tabTourRates.classList.remove('active');
         tabTourData.classList.add('active');
-        btnTourRates.classList.remove('active');
         btnTourData.classList.add('active');
       }}
     }}
@@ -1186,7 +1254,9 @@ def get_catalog_html(csrf_token: str) -> str:
       if (adv) adv.open = true; // Abierto por defecto para ingresar el entity_id requerido
 
       hideRateForm();
+      hideDateForm();
       loadTourRates(null);
+      loadTourDates(null);
       switchModalTab('tourData');
       initialTourSnapshot = getTourFormSnapshot();
       updateRatesTourBaseRef();
@@ -1236,10 +1306,12 @@ def get_catalog_html(csrf_token: str) -> str:
       if (adv) adv.open = false; // Cerrado al editar para mantener limpio el formulario
 
       hideRateForm();
+      hideDateForm();
       switchModalTab('tourData');
       initialTourSnapshot = getTourFormSnapshot();
       updateRatesTourBaseRef();
       loadTourRates(t.entity_id);
+      loadTourDates(t.entity_id);
       openModal('tourModal');
     }}
 
@@ -1534,6 +1606,183 @@ def get_catalog_html(csrf_token: str) -> str:
         }}
       }} catch (err) {{
         showToast('Error de conexión', 'error');
+      }}
+    }}
+
+    // --- GESTIÓN DE BLOQUEO DE FECHAS Y CUPOS ---
+
+    function updateDatesTourRef() {{
+      const nameEl = document.getElementById('datesTourNameRef');
+      const availEl = document.getElementById('datesTourAvailRef');
+      const eid = (document.getElementById('formEntityId').value || '').trim();
+      const tourName = document.getElementById('formName').value || eid || 'Tour';
+      const availVal = document.getElementById('formAvailability').value || 'available';
+      if (nameEl) nameEl.textContent = tourName;
+      if (availEl) {{
+        if (availVal === 'sold_out') {{
+          availEl.innerHTML = '<span class="rate-status" style="background:#fee2e2; color:#991b1b;">🔴 Disponibilidad general: Agotado</span>';
+        }} else if (availVal === 'limited') {{
+          availEl.innerHTML = '<span class="rate-status" style="background:#fef3c7; color:#92400e;">🟡 Disponibilidad general: Cupos limitados</span>';
+        }} else {{
+          availEl.innerHTML = '<span class="rate-status" style="background:#dcfce7; color:#166534;">🟢 Disponibilidad general: Disponible</span>';
+        }}
+      }}
+    }}
+
+    function showDateForm() {{
+      const eid = (document.getElementById('formEntityId').value || '').trim();
+      if (!eid) {{
+        showToast('Debe guardar los datos del tour primero', 'error');
+        return;
+      }}
+      document.getElementById('dateFormBox').style.display = 'block';
+      document.getElementById('dateTourDate').value = '';
+      document.getElementById('dateStatus').value = 'sold_out';
+      document.getElementById('dateNotes').value = '';
+      safeFocus(document.getElementById('dateTourDate'));
+    }}
+
+    function hideDateForm() {{
+      const box = document.getElementById('dateFormBox');
+      if (box) box.style.display = 'none';
+    }}
+
+    async function loadTourDates(entityId) {{
+      const listEl = document.getElementById('tourDatesList');
+      const badgeEl = document.getElementById('datesCountBadge');
+      const btnAdd = document.getElementById('btnAddDate');
+
+      if (!entityId) {{
+        CURRENT_TOUR_DATES = [];
+        if (badgeEl) badgeEl.textContent = '0';
+        if (listEl) {{
+          listEl.innerHTML = '<p style="color:var(--muted); font-size: 13px; margin: 8px 0; background:#f8fafc; padding:12px; border-radius:6px; border:1px dashed var(--border);">Guarda los datos del tour primero para bloquear fechas y cupos.</p>';
+        }}
+        if (btnAdd) btnAdd.style.display = 'none';
+        return;
+      }}
+
+      if (btnAdd) btnAdd.style.display = 'inline-flex';
+      if (listEl) {{
+        listEl.innerHTML = '<p style="color:var(--muted); font-size: 13px; margin: 8px 0;">Cargando fechas...</p>';
+      }}
+      try {{
+        const r = await fetch('/api/catalog/tours/' + encodeURIComponent(entityId) + '/dates?future_only=1');
+        if (!r.ok) throw new Error('Error al cargar fechas bloqueadas');
+        const data = await r.json();
+        CURRENT_TOUR_DATES = Array.isArray(data) ? data : [];
+        if (badgeEl) badgeEl.textContent = String(CURRENT_TOUR_DATES.length);
+        renderTourDates(CURRENT_TOUR_DATES);
+      }} catch (err) {{
+        if (listEl) {{
+          listEl.innerHTML = '<p style="color:var(--danger); font-size: 13px; margin: 8px 0;">No se pudieron cargar las fechas bloqueadas.</p>';
+        }}
+      }}
+    }}
+
+    function renderTourDates(dates) {{
+      const listEl = document.getElementById('tourDatesList');
+      if (!listEl) return;
+      listEl.innerHTML = '';
+      if (!dates || !dates.length) {{
+        listEl.innerHTML = '<p style="color:var(--muted); font-size: 13px; margin: 8px 0;">🟢 No hay fechas bloqueadas para este tour. Las salidas operan según la disponibilidad general del catálogo.</p>';
+        return;
+      }}
+
+      dates.forEach(d => {{
+        const item = document.createElement('div');
+        item.className = 'rate-card';
+        const isSold = (d.status === 'sold_out');
+        const badgeStyle = isSold ? 'background:#fee2e2; color:#991b1b; border:1px solid #fca5a5;' : 'background:#fef3c7; color:#92400e; border:1px solid #fcd34d;';
+        const badgeText = isSold ? '🔴 Agotado / Sin cupos' : '🟡 Cupos limitados';
+        const notesHtml = d.notes ? `<div style="font-size: 12px; color: #475569; margin-top: 3px;">📝 Motivo: ${{escapeRateText(d.notes)}}</div>` : '';
+
+        item.innerHTML = `
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span class="rate-badge" style="${{badgeStyle}}">${{badgeText}}</span>
+              <strong style="font-size: 14px; color: #0f172a;">📅 ${{escapeRateText(d.tour_date)}}</strong>
+            </div>
+            ${{notesHtml}}
+          </div>
+          <div class="rate-card-actions">
+            <button type="button" class="btn btn-danger btn-sm" onclick="deleteDateByTourDate('${{escapeRateText(d.tour_date)}}')" title="Eliminar bloqueo de fecha">🗑️ Quitar</button>
+          </div>
+        `;
+        listEl.appendChild(item);
+      }});
+    }}
+
+    async function saveTourDate() {{
+      const entityId = (document.getElementById('formEntityId').value || '').trim();
+      if (!entityId) {{
+        showToast('Debe guardar los datos del tour primero', 'error');
+        return;
+      }}
+      const tourDate = (document.getElementById('dateTourDate').value || '').trim();
+      const status = document.getElementById('dateStatus').value;
+      const notes = (document.getElementById('dateNotes').value || '').trim();
+
+      if (!tourDate) {{
+        showToast('Selecciona una fecha válida', 'error');
+        return;
+      }}
+
+      const saveBtn = document.getElementById('btnSaveDate');
+      if (saveBtn) {{
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Guardando...';
+      }}
+
+      try {{
+        const r = await fetch('/api/catalog/tours/' + encodeURIComponent(entityId) + '/dates', {{
+          method: 'POST',
+          headers: {{
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-Catalog-CSRF': CSRF_TOKEN
+          }},
+          body: JSON.stringify({{
+            tour_date: tourDate,
+            status: status,
+            notes: notes
+          }})
+        }});
+        const d = await r.json();
+        if (!r.ok || !d.ok) throw new Error(d.error || 'Error al guardar fecha');
+        showToast('Fecha bloqueada guardada correctamente.');
+        hideDateForm();
+        await loadTourDates(entityId);
+      }} catch (err) {{
+        showToast('Error: ' + err.message, 'error');
+      }} finally {{
+        if (saveBtn) {{
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Guardar bloqueo';
+        }}
+      }}
+    }}
+
+    async function deleteDateByTourDate(tourDate) {{
+      const entityId = (document.getElementById('formEntityId').value || '').trim();
+      if (!entityId || !tourDate) return;
+      if (!confirm('¿Deseas quitar el bloqueo para la fecha ' + tourDate + '?\\n\\nEl tour volverá a operar con disponibilidad normal en este día.')) {{
+        return;
+      }}
+      try {{
+        const r = await fetch('/api/catalog/tours/' + encodeURIComponent(entityId) + '/dates/' + encodeURIComponent(tourDate), {{
+          method: 'DELETE',
+          headers: {{
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-Catalog-CSRF': CSRF_TOKEN
+          }}
+        }});
+        const d = await r.json();
+        if (!r.ok || !d.ok) throw new Error(d.error || 'Error al eliminar');
+        showToast(d.message || 'Bloqueo eliminado correctamente.');
+        await loadTourDates(entityId);
+      }} catch (err) {{
+        showToast('Error: ' + err.message, 'error');
       }}
     }}
 
