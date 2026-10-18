@@ -348,6 +348,7 @@ def apply_request(ns, result, user_id, channel, question):
         is_date_limited = False
         parsed_booking_date = None
         date_formatted = ""
+        date_notes = ""
         if is_booking and eid:
             try:
                 from catalog_service import is_sold_out_tour, parse_date_from_query, get_tour_availability_on_date, format_date_localized
@@ -363,6 +364,7 @@ def apply_request(ns, result, user_id, channel, question):
                 if parsed_booking_date:
                     date_info = get_tour_availability_on_date(eid, parsed_booking_date)
                     date_formatted = format_date_localized(parsed_booking_date, language)
+                    date_notes = str(date_info.get("notes") or "").strip()
                     if date_info.get("status") == "sold_out":
                         is_date_sold_out = True
                     elif date_info.get("status") == "limited":
@@ -382,6 +384,9 @@ def apply_request(ns, result, user_id, channel, question):
                 prefix = "[Reserva - AGOTADO"
             else:
                 prefix = "[Reserva"
+            # Nota interna del bloqueo: visible solo para el asesor en el ticket.
+            if (is_date_sold_out or is_date_limited) and date_notes:
+                prefix += f" (Nota: {date_notes[:120]})"
 
             if tour_name and tour_name.lower() not in question.lower():
                 ticket_question = f"{prefix} - {tour_name}] {question}"
