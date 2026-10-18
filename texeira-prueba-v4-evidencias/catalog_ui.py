@@ -546,10 +546,78 @@ def get_catalog_html(csrf_token: str) -> str:
       .filter-group {{ width: 100%; justify-content: space-between; }}
       .filter-group select {{ flex: 1; }}
     }}
+    .admin-nav {{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      flex-wrap: wrap;
+    }}
+    .admin-nav strong {{
+      font-size: 16px;
+      color: #0369a1;
+      font-weight: 700;
+      margin-right: 8px;
+    }}
+    .admin-nav a {{
+      color: #64748b;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: all 0.15s ease;
+    }}
+    .admin-nav a:hover {{
+      background: #f1f5f9;
+      color: #0f172a;
+    }}
+    .admin-nav a[aria-current="page"] {{
+      background: #e0f2fe;
+      color: #0369a1;
+      font-weight: 700;
+    }}
+    .admin-nav-user {{
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }}
+    .btn-logout {{
+      background: #fee2e2 !important;
+      color: #b91c1c !important;
+      padding: 6px 14px !important;
+      border-radius: 6px !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      text-decoration: none !important;
+      transition: background 0.15s ease !important;
+    }}
+    .btn-logout:hover {{
+      background: #fecaca !important;
+      color: #991b1b !important;
+    }}
   </style>
 </head>
 <body>
   <div class="container">
+    <nav class="admin-nav" aria-label="Navegación principal">
+      <strong>Texeira Travel</strong>
+      <a href="/dashboard">Resumen</a>
+      <a href="/handoffs">Atención al cliente</a>
+      <a href="/catalogo" aria-current="page">Catálogo</a>
+      <a href="/operational-metrics">Métricas</a>
+      <div class="admin-nav-user">
+        <span style="font-size: 13px; color: #64748b; font-weight: 600;">👤 Admin</span>
+        <a href="/logout" class="btn-logout">Cerrar sesión</a>
+      </div>
+    </nav>
+
     <header>
       <div>
         <h1>🗺️ Catálogo de Tours y Tarifas</h1>
