@@ -704,9 +704,19 @@ def navigation(current):
         ('catalogo', '/catalogo', 'Catálogo'),
         ('metrics', '/operational-metrics', 'Métricas')
     ]
-    return '<nav class="admin-nav" aria-label="Navegación principal"><strong>Texeira Travel</strong>' + ''.join(
+    import os
+    admin_user = os.getenv('ADMIN_USER', 'Admin')
+    nav_links = ''.join(
         f'<a href="{url}"' + (' aria-current="page"' if key == current else '') + f'>{label}</a>'
-        for key, url, label in links) + '</nav>'
+        for key, url, label in links
+    )
+    user_nav = (
+        f'<div class="admin-nav-user" style="margin-left: auto; display: flex; align-items: center; gap: 10px;">'
+        f'<span style="font-size: 13px; color: #64748b; font-weight: 600;">👤 {admin_user}</span>'
+        f'<a href="/logout" style="background: #fee2e2; color: #b91c1c; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none; transition: background .15s ease;">Cerrar sesión</a>'
+        f'</div>'
+    )
+    return f'<nav class="admin-nav" aria-label="Navegación principal"><strong>Texeira Travel</strong>{nav_links}{user_nav}</nav>'
 
 def decorate(html, current):
     # Legacy templates without an explicit body are normalized here.
