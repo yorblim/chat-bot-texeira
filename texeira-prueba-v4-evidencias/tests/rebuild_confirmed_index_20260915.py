@@ -10,7 +10,7 @@ os.environ['ANONYMIZED_TELEMETRY']='False'
 import trial_support as support
 from src.retriever import build_vector_retriever
 
-target=support.ROOT/'chroma_f1_confirmado_20260915_db'
+target=support.ROOT/'historico'/'indices_anteriores'/'chroma_f1_confirmado_20260915_db'
 if target.exists(): raise SystemExit('El destino ya existe; no se sobrescribe.')
 docs=support.documents()
 _, db=build_vector_retriever(docs,persist_directory=str(target))
