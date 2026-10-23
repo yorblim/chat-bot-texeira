@@ -51,8 +51,8 @@ async def shutdown():
             else: await asyncio.to_thread(handler)
     _state['local_app']=None
 
-@app.get('/health')
-@app.get('/healthz')
+@app.api_route('/health', methods=['GET', 'HEAD'])
+@app.api_route('/healthz', methods=['GET', 'HEAD'])
 def health():
     ready=_state['ready'] and _state['local_app'] is not None and not _state['error']
     return JSONResponse({'status':'ok' if ready else 'unavailable'},status_code=200 if ready else 503)
