@@ -203,13 +203,20 @@ def get_advisor_whatsapp_phone(ns=None):
     Obtiene el número telefónico de WhatsApp del asesor humano.
     Prioridad:
     1. ns.get('ADVISOR_WHATSAPP_PHONE') o ns.get('ADVISOR_PHONE')
-    2. Variable de entorno ADVISOR_WHATSAPP_PHONE o ADVISOR_PHONE
-    3. Si está vacío, 'none', 'false', '0' o 'disabled', retorna None (enlace deshabilitado).
-    4. Por defecto, retorna '51953767860' (número oficial registrado en documentos de Texeira Travel).
+    2. Base de datos (agency_settings: 'advisor_whatsapp_phone' o 'advisor_phone')
+    3. Variable de entorno ADVISOR_WHATSAPP_PHONE o ADVISOR_PHONE
+    4. Si está vacío, 'none', 'false', '0' o 'disabled', retorna None (enlace deshabilitado).
+    5. Por defecto, retorna '51953767860' (número oficial registrado en documentos de Texeira Travel).
     """
     val = None
     if isinstance(ns, dict):
         val = ns.get('ADVISOR_WHATSAPP_PHONE') or ns.get('ADVISOR_PHONE')
+    if not val:
+        try:
+            from catalog_service import get_agency_setting
+            val = get_agency_setting('advisor_whatsapp_phone') or get_agency_setting('advisor_phone')
+        except Exception:
+            val = None
     if not val:
         val = os.getenv('ADVISOR_WHATSAPP_PHONE') or os.getenv('ADVISOR_PHONE')
 
@@ -395,7 +402,19 @@ def apply_request(ns, result, user_id, channel, question):
 
         row, created = create_request(user_id, channel, ticket_question, history[:-2])
         result.update(handoff_id=row['id'], handoff_status=row['status'], handoff_registered=True)
-        if created and channel in {'whatsapp', 'messenger'} and ns.get('ADVISOR_NOTIFICATIONS_ENABLED', False):
+        # Verificar si las notificaciones al asesor están habilitadas en BD o ns
+        notifications_enabled = False
+        try:
+            from catalog_service import get_agency_setting
+            db_notif = get_agency_setting('advisor_notifications_enabled')
+            if db_notif is not None:
+                notifications_enabled = str(db_notif).lower() in ('true', '1', 'yes', 'on')
+            elif isinstance(ns, dict):
+                notifications_enabled = bool(ns.get('ADVISOR_NOTIFICATIONS_ENABLED', False))
+        except Exception:
+            notifications_enabled = bool(ns.get('ADVISOR_NOTIFICATIONS_ENABLED', False)) if isinstance(ns, dict) else False
+
+        if created and channel in {'whatsapp', 'messenger'} and notifications_enabled:
             send_fn = ns.get('send_whatsapp_message')
             advisor_phone = get_advisor_whatsapp_phone(ns)
             try:

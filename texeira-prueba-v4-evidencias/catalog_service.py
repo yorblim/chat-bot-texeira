@@ -141,6 +141,22 @@ CREATE TABLE IF NOT EXISTS catalog_tour_dates (
 );
 """
 
+SCHEMA_SETTINGS_SQLITE = """
+CREATE TABLE IF NOT EXISTS agency_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+"""
+
+SCHEMA_SETTINGS_POSTGRES = """
+CREATE TABLE IF NOT EXISTS agency_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+"""
+
 # Alias iniciales de tours canónicos de Texeira Travel
 INITIAL_CANONICAL_ALIASES = {
     'city-tour-cusco': ['city tour', 'citytour', 'city-tour', 'tour cusco', 'tour de cusco'],
@@ -193,10 +209,12 @@ def init_catalog_db() -> None:
     schema = SCHEMA_POSTGRES if is_postgres() else SCHEMA_SQLITE
     schema_rates = SCHEMA_RATES_POSTGRES if is_postgres() else SCHEMA_RATES_SQLITE
     schema_dates = SCHEMA_DATES_POSTGRES if is_postgres() else SCHEMA_DATES_SQLITE
+    schema_settings = SCHEMA_SETTINGS_POSTGRES if is_postgres() else SCHEMA_SETTINGS_SQLITE
     with get_db_session() as conn:
         conn.execute(schema)
         conn.execute(schema_rates)
         conn.execute(schema_dates)
+        conn.execute(schema_settings)
         conn.execute("""CREATE TABLE IF NOT EXISTS catalog_field_overrides (
             entity_id TEXT NOT NULL, field TEXT NOT NULL,
             PRIMARY KEY (entity_id, field)
@@ -1397,4 +1415,59 @@ def is_sold_out_on_date(entity_id: str, tour_date: Union[str, date]) -> bool:
     """Verifica si un tour está agotado en una fecha específica."""
     status_info = get_tour_availability_on_date(entity_id, tour_date)
     return status_info.get("status") == "sold_out"
+
+
+# ============================================================
+# CONFIGURACIÓN GENERAL DE LA AGENCIA (AGENCY SETTINGS)
+# ============================================================
+
+def get_agency_setting(key: str, default: Optional[str] = None) -> Optional[str]:
+    """Obtiene una configuración general de la agencia desde SQLite/PostgreSQL."""
+    try:
+        with get_db_session() as conn:
+            row = conn.execute("SELECT value FROM agency_settings WHERE key = ?", (key,)).fetchone()
+            if row:
+                return row[0] if isinstance(row, (tuple, list)) else row["value"]
+    except Exception as e:
+        pass
+    return default
+
+
+def set_agency_setting(key: str, value: str) -> bool:
+    """Guarda o actualiza una configuración general de la agencia."""
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        with get_db_session() as conn:
+            if is_postgres():
+                conn.execute(
+                    "INSERT INTO agency_settings (key, value, updated_at) VALUES (?, ?, ?) "
+                    "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at",
+                    (key, str(value), now)
+                )
+            else:
+                conn.execute(
+                    "INSERT INTO agency_settings (key, value, updated_at) VALUES (?, ?, ?) "
+                    "ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+                    (key, str(value), now)
+                )
+        return True
+    except Exception as e:
+        print(f"[SETTING ERROR] No se pudo guardar ajuste {key}: {e}")
+        return False
+
+
+def get_all_agency_settings() -> Dict[str, str]:
+    """Retorna todos los ajustes de la agencia registrados en la base de datos."""
+    res = {}
+    try:
+        with get_db_session() as conn:
+            rows = conn.execute("SELECT key, value FROM agency_settings").fetchall()
+            for r in rows:
+                k = r[0] if isinstance(r, (tuple, list)) else r["key"]
+                v = r[1] if isinstance(r, (tuple, list)) else r["value"]
+                res[k] = v
+    except Exception:
+        pass
+    return res
+
 

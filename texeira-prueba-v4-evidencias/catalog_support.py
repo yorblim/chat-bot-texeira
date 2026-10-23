@@ -77,6 +77,41 @@ def install(app):
             return JSONResponse({"ok": False, "error": "No autorizado"}, status_code=401)
         return JSONResponse({"ok": True, "csrf_token": csrf_token}, headers={"Cache-Control": "no-store"})
 
+    @app.get("/api/catalog/settings")
+    async def get_catalog_settings(request: Request):
+        if not _check_credentials(request):
+            return JSONResponse({"ok": False, "error": "No autorizado"}, status_code=401)
+        settings = catalog_service.get_all_agency_settings()
+        advisor_phone = settings.get("advisor_whatsapp_phone") or os.getenv("ADVISOR_WHATSAPP_PHONE") or os.getenv("ADVISOR_PHONE") or "51953767860"
+        notifications_enabled = settings.get("advisor_notifications_enabled")
+        if notifications_enabled is None:
+            notifications_enabled = os.getenv("TEXEIRA_ENABLE_ADVISOR_NOTIFICATIONS", "false").lower() in ("true", "1", "yes")
+        else:
+            notifications_enabled = str(notifications_enabled).lower() in ("true", "1", "yes")
+
+        return JSONResponse({
+            "ok": True,
+            "advisor_whatsapp_phone": advisor_phone,
+            "advisor_notifications_enabled": notifications_enabled,
+        })
+
+    @app.post("/api/catalog/settings")
+    async def save_catalog_settings(request: Request):
+        ok_auth, status, err = _authorized_mutation(request)
+        if not ok_auth:
+            return JSONResponse({"ok": False, "error": err}, status_code=status)
+        try:
+            data = await request.json()
+            if "advisor_whatsapp_phone" in data:
+                raw_phone = str(data["advisor_whatsapp_phone"]).strip()
+                catalog_service.set_agency_setting("advisor_whatsapp_phone", raw_phone)
+            if "advisor_notifications_enabled" in data:
+                val = "true" if data["advisor_notifications_enabled"] in (True, "true", "1", 1) else "false"
+                catalog_service.set_agency_setting("advisor_notifications_enabled", val)
+            return JSONResponse({"ok": True, "message": "Ajustes guardados correctamente"})
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
     @app.post("/api/catalog/tours")
     async def create_or_update_tour(request: Request):
         ok_auth, status, err = _authorized_mutation(request)

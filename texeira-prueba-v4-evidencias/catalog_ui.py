@@ -560,6 +560,31 @@ def get_catalog_html(csrf_token: str) -> str:
       </div>
     </header>
 
+    <!-- Card de Configuración de Asesor y Atención Humana -->
+    <div style="background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; margin-bottom: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div style="flex: 1; min-width: 260px;">
+          <h2 style="font-size: 15px; margin: 0 0 4px 0; color: #0369a1; display: flex; align-items: center; gap: 8px;">
+            <span>📞</span> WhatsApp de Atención y Derivación a Asesores
+          </h2>
+          <p style="margin: 0; font-size: 13px; color: var(--muted);">
+            Número al que se derivan los turistas cuando solicitan atención humana o preguntan por reservas de tours agotados.
+          </p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <input type="text" id="advisorPhoneInput" placeholder="+51 953 767 860" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; width: 175px;">
+            <button id="btnSaveAdvisorSettings" class="btn btn-primary" style="padding: 8px 14px; font-size: 13px;">💾 Guardar Número</button>
+          </div>
+          <label style="font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="checkbox" id="advisorNotifyCheckbox" style="cursor: pointer;">
+            <span>🔔 Notificar al WhatsApp del asesor ante nuevas solicitudes</span>
+          </label>
+        </div>
+      </div>
+      <div id="advisorSettingFeedback" style="display: none; margin-top: 10px; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 6px;"></div>
+    </div>
+
     <div class="toolbar">
       <div class="search-box">
         <span class="search-icon">🔍</span>
@@ -1943,8 +1968,71 @@ def get_catalog_html(csrf_token: str) -> str:
       }}
     }});
 
-    // Cargar tours al iniciar
+    async function loadAdvisorSettings() {{
+      try {{
+        const res = await fetch('/api/catalog/settings');
+        if (res.ok) {{
+          const data = await res.json();
+          if (data.ok) {{
+            const input = document.getElementById('advisorPhoneInput');
+            const check = document.getElementById('advisorNotifyCheckbox');
+            if (input && data.advisor_whatsapp_phone) input.value = data.advisor_whatsapp_phone;
+            if (check) check.checked = Boolean(data.advisor_notifications_enabled);
+          }}
+        }}
+      }} catch (e) {{
+        console.warn('No se pudo cargar ajuste de asesor:', e);
+      }}
+    }}
+
+    async function saveAdvisorSettings() {{
+      const input = document.getElementById('advisorPhoneInput');
+      const check = document.getElementById('advisorNotifyCheckbox');
+      const btn = document.getElementById('btnSaveAdvisorSettings');
+      const fb = document.getElementById('advisorSettingFeedback');
+      if (!input || !btn) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Guardando...';
+      try {{
+        const res = await fetch('/api/catalog/settings', {{
+          method: 'POST',
+          headers: {{
+            'Content-Type': 'application/json',
+            'X-Catalog-CSRF': CSRF_TOKEN,
+          }},
+          body: JSON.stringify({{
+            advisor_whatsapp_phone: input.value.trim(),
+            advisor_notifications_enabled: check ? check.checked : false,
+          }}),
+        }});
+        const data = await res.json();
+        if (data.ok) {{
+          if (fb) {{
+            fb.style.display = 'block';
+            fb.style.background = '#dcfce7';
+            fb.style.color = '#15803d';
+            fb.textContent = '✅ Número de WhatsApp del asesor guardado correctamente.';
+            setTimeout(() => {{ fb.style.display = 'none'; }}, 4000);
+          }}
+          showToast('Ajustes de asesor guardados correctamente', 'success');
+        }} else {{
+          showToast(data.error || 'Error al guardar ajustes', 'error');
+        }}
+      }} catch (err) {{
+        showToast('Error de conexión al guardar ajustes', 'error');
+      }} finally {{
+        btn.disabled = false;
+        btn.textContent = '💾 Guardar Número';
+      }}
+    }}
+
+    const btnSaveAdv = document.getElementById('btnSaveAdvisorSettings');
+    if (btnSaveAdv) btnSaveAdv.addEventListener('click', saveAdvisorSettings);
+
+    // Cargar tours y ajustes al iniciar
     loadTours();
+    loadAdvisorSettings();
   </script>
 </body>
 </html>""", 'catalogo')
