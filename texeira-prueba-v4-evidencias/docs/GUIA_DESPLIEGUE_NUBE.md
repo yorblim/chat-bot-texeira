@@ -53,9 +53,21 @@ En un servidor VPS (DigitalOcean Droplet, AWS Lightsail o Hetzner):
 
 ---
 
-## 3. Monitoreo de Disponibilidad 24/7 (Indicador VI 3.1)
+## 3. Monitoreo de Disponibilidad 24/7 y Keep-Alive (Indicador VI 3.1)
 
-Para medir formalmente el porcentaje de disponibilidad requerido por el **Indicador 3.1 del Anexo 5**:
-1. Registrar el endpoint de salud `https://<tu-dominio>/chat` en una herramienta de monitoreo externa gratuita (como [UptimeRobot](https://uptimerobot.com) o [Better Uptime](https://betteruptime.com)).
-2. Configurar el sondeo HTTP cada **5 minutos**.
-3. Al finalizar el periodo de prueba de 15 o 30 días, exportar el reporte de Uptime (%) para incorporarlo como evidencia documental del postest en la tesis.
+Para mantener el contenedor permanentemente caliente (eliminando el *Cold Start* de ~119s a **Costo $0.00**) y registrar formalmente el porcentaje de disponibilidad para el **Indicador 3.1 del Anexo 5**:
+
+1. Ingresar a [UptimeRobot](https://uptimerobot.com) y crear una cuenta gratuita.
+2. Hacer clic en **"+ Add New Monitor"**.
+3. Configurar los parámetros exactos del servicio activo:
+   - **Monitor Type:** `HTTP(s)`
+   - **Friendly Name:** `Texeira WhatsApp Bot (Cloud Run Keep-Alive)`
+   - **URL (or IP):** `https://texeira-whatsapp-1038134693816.us-central1.run.app/health`
+   - **Monitoring Interval:** `5 minutes` (o `10 minutes`)
+   - **Monitor Timeout:** `30 seconds`
+   - **HTTP Method:** `GET`
+4. Al activarse, UptimeRobot enviará un sondeo ligero cada 5 minutos. Esto garantiza:
+   - **Cero latencia de arranque:** La instancia de Cloud Run no entrará en reposo durante el horario de atención; las respuestas de WhatsApp tardan de 2 a 3 segundos.
+   - **Costo $0.00:** 8,640 peticiones al mes consumen menos del 0.5 % de las 2,000,000 de peticiones mensuales gratuitas de Google Cloud Run.
+   - **Evidencia para la tesis:** Exportar el reporte mensual de Uptime (%) para la sustentación del postest.
+
