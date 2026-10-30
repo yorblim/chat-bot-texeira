@@ -77,6 +77,22 @@ def install(app):
             return JSONResponse({"ok": False, "error": "No autorizado"}, status_code=401)
         return JSONResponse({"ok": True, "csrf_token": csrf_token}, headers={"Cache-Control": "no-store"})
 
+    def _normalize_hhmm(raw_val: str, default_val: str) -> str:
+        val = str(raw_val or "").strip()
+        parts = val.split(":")
+        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+            hh, mm = int(parts[0]), int(parts[1])
+            if 0 <= hh <= 23 and 0 <= mm <= 59:
+                return f"{hh:02d}:{mm:02d}"
+        return default_val
+
+    def _as_bool(raw_val, default_val: bool) -> bool:
+        if raw_val is None:
+            return default_val
+        if isinstance(raw_val, bool):
+            return raw_val
+        return str(raw_val).strip().lower() in ("true", "1", "yes", "on")
+
     @app.get("/api/catalog/settings")
     async def get_catalog_settings(request: Request):
         if not _check_credentials(request):
@@ -89,10 +105,35 @@ def install(app):
         else:
             notifications_enabled = str(notifications_enabled).lower() in ("true", "1", "yes")
 
+        hours_enabled = _as_bool(
+            settings.get("advisor_hours_enabled"),
+            _as_bool(os.getenv("TEXEIRA_ENABLE_ADVISOR_HOURS"), True),
+        )
+        hours_start = _normalize_hhmm(
+            settings.get("advisor_hours_start") or os.getenv("ADVISOR_HOURS_START"),
+            "09:00",
+        )
+        hours_end = _normalize_hhmm(
+            settings.get("advisor_hours_end") or os.getenv("ADVISOR_HOURS_END"),
+            "18:00",
+        )
+        workdays = settings.get("advisor_workdays") or os.getenv("ADVISOR_WORKDAYS") or "mon_sat"
+        if workdays not in ("mon_sat", "everyday"):
+            workdays = "mon_sat"
+        quiet_after_hours = _as_bool(
+            settings.get("advisor_quiet_after_hours"),
+            _as_bool(os.getenv("TEXEIRA_ADVISOR_QUIET_AFTER_HOURS"), True),
+        )
+
         return JSONResponse({
             "ok": True,
             "advisor_whatsapp_phone": advisor_phone,
             "advisor_notifications_enabled": notifications_enabled,
+            "advisor_hours_enabled": hours_enabled,
+            "advisor_hours_start": hours_start,
+            "advisor_hours_end": hours_end,
+            "advisor_workdays": workdays,
+            "advisor_quiet_after_hours": quiet_after_hours,
         })
 
     @app.post("/api/catalog/settings")
@@ -106,8 +147,31 @@ def install(app):
                 raw_phone = str(data["advisor_whatsapp_phone"]).strip()
                 catalog_service.set_agency_setting("advisor_whatsapp_phone", raw_phone)
             if "advisor_notifications_enabled" in data:
-                val = "true" if data["advisor_notifications_enabled"] in (True, "true", "1", 1) else "false"
+                val = "true" if _as_bool(data["advisor_notifications_enabled"], False) else "false"
                 catalog_service.set_agency_setting("advisor_notifications_enabled", val)
+            if "advisor_hours_enabled" in data:
+                val = "true" if _as_bool(data["advisor_hours_enabled"], True) else "false"
+                catalog_service.set_agency_setting("advisor_hours_enabled", val)
+            if "advisor_hours_start" in data:
+                raw_s = str(data["advisor_hours_start"]).strip()
+                norm_s = _normalize_hhmm(raw_s, "")
+                if not norm_s:
+                    return JSONResponse({"ok": False, "error": "Hora de inicio inválida (usa HH:MM)"}, status_code=400)
+                catalog_service.set_agency_setting("advisor_hours_start", norm_s)
+            if "advisor_hours_end" in data:
+                raw_e = str(data["advisor_hours_end"]).strip()
+                norm_e = _normalize_hhmm(raw_e, "")
+                if not norm_e:
+                    return JSONResponse({"ok": False, "error": "Hora de cierre inválida (usa HH:MM)"}, status_code=400)
+                catalog_service.set_agency_setting("advisor_hours_end", norm_e)
+            if "advisor_workdays" in data:
+                wd = str(data["advisor_workdays"]).strip()
+                if wd not in ("mon_sat", "everyday"):
+                    return JSONResponse({"ok": False, "error": "Días laborales inválidos"}, status_code=400)
+                catalog_service.set_agency_setting("advisor_workdays", wd)
+            if "advisor_quiet_after_hours" in data:
+                val = "true" if _as_bool(data["advisor_quiet_after_hours"], True) else "false"
+                catalog_service.set_agency_setting("advisor_quiet_after_hours", val)
             return JSONResponse({"ok": True, "message": "Ajustes guardados correctamente"})
         except Exception as e:
             return JSONResponse({"ok": False, "error": str(e)}, status_code=500)

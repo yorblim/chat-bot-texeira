@@ -485,7 +485,7 @@ def get_dashboard_html(metrics: dict, interactions: list[dict]) -> str:
                 <div class="kpi-card">
                     <div class="kpi-icon indigo">🌙</div>
                     <div class="kpi-value">{metrics.get('after_hours_count', 0)}</div>
-                    <div class="kpi-label">Fuera de Horario (18:00 - 08:00)</div>
+                    <div class="kpi-label">{metrics.get('after_hours_label', 'Fuera de Horario (18:00 - 09:00 · Dom)')}</div>
                     <div class="kpi-change positive">{metrics.get('after_hours_pct', 0.0):.1f}% del tráfico</div>
                 </div>
             </div>

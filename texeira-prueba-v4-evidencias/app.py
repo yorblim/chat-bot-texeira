@@ -2881,6 +2881,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                     record_paused_message,
                     close_requested_by_customer,
                     close_by_customer,
+                    try_append_pending_details,
                 )
                 btn_action = item.get("button_action") or ""
                 raw_or_msg = item.get("raw_user_text") or u_msg
@@ -2970,10 +2971,29 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         "is_predefined": True,
                     }
                 else:
-                    rag_result = rag_chain(u_msg, user_id=u_id)
-                    from handoff_support import apply_request
-                    rag_result = apply_request(globals(), rag_result, u_id, u_chan, u_msg)
-                    bot_response = rag_result["response"]
+                    pending_details = (
+                        try_append_pending_details(u_id, u_chan, raw_or_msg, language=i_lang)
+                        if not btn_action else None
+                    )
+                    if pending_details is not None:
+                        bot_response = pending_details["response"]
+                        rag_result = {
+                            "response": bot_response,
+                            "route": "human_request_details",
+                            "response_route": "human_request_details",
+                            "language": pending_details["language"],
+                            "resolved_autonomously": True,
+                            "is_fallback": False,
+                            "is_predefined": True,
+                            "handoff_id": pending_details["ticket_id"],
+                            "handoff_status": "pending",
+                            "handoff_registered": False,
+                        }
+                    else:
+                        rag_result = rag_chain(u_msg, user_id=u_id)
+                        from handoff_support import apply_request
+                        rag_result = apply_request(globals(), rag_result, u_id, u_chan, u_msg)
+                        bot_response = rag_result["response"]
 
                 resolved_autonomously = rag_result.get("resolved_autonomously", not rag_result.get("is_fallback", False))
                 escalated_to_human = rag_result.get('handoff_registered', False)
@@ -3008,7 +3028,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
 
                     # Evaluar solicitud de folleto previo al envío de texto para incorporar nota si no existe PDF
                     route = rag_result.get('response_route') or rag_result.get('route') or ''
-                    no_multimedia_routes = {'social', 'help', 'evidence_unknown', 'evidence_conflict', 'evidence_contact', 'evidence_listing', 'evidence_inactive_tour'}
+                    no_multimedia_routes = {'social', 'help', 'evidence_unknown', 'evidence_conflict', 'evidence_contact', 'evidence_listing', 'evidence_inactive_tour', 'human_request', 'human_request_details'}
                     detected_eid = rag_result.get('entity_id') or ''
 
                     tour_doc_info = None
@@ -3281,17 +3301,37 @@ async def test_chat(request: TestChatRequest):
 
         # ---- FLUJO NORMAL (RAG) ----
         detected_lang = detect_language(request.message)
-        rag_result = rag_chain(request.message, user_id=request.user_id)
-        from handoff_support import apply_request
-        rag_result = apply_request(globals(), rag_result, request.user_id, 'test', request.message)
-        detected_lang = rag_result.get("language") or detected_lang
-        bot_response = rag_result["response"]
+        from handoff_support import apply_request, try_append_pending_details
+        pending_details = try_append_pending_details(
+            request.user_id, "test", request.message, language=detected_lang
+        )
+        if pending_details is not None:
+            detected_lang = pending_details["language"]
+            bot_response = pending_details["response"]
+            rag_result = {
+                "response": bot_response,
+                "route": "human_request_details",
+                "response_route": "human_request_details",
+                "language": detected_lang,
+                "resolved_autonomously": True,
+                "is_fallback": False,
+                "is_predefined": True,
+                "needs_agency_confirmation": False,
+                "handoff_id": pending_details["ticket_id"],
+                "handoff_status": "pending",
+                "handoff_registered": False,
+            }
+        else:
+            rag_result = rag_chain(request.message, user_id=request.user_id)
+            rag_result = apply_request(globals(), rag_result, request.user_id, 'test', request.message)
+            detected_lang = rag_result.get("language") or detected_lang
+            bot_response = rag_result["response"]
 
         # Enriquecer respuesta en /test-chat para que fotos y folletos se muestren en la UI web
         from src.visual.visual_engine import is_photo_requested, is_brochure_requested, get_tour_image_data, get_tour_brochure_data
         detected_eid = rag_result.get('entity_id') or ''
         route = rag_result.get('response_route') or rag_result.get('route') or ''
-        no_multimedia_routes = {'social', 'help', 'evidence_unknown', 'evidence_conflict', 'evidence_contact', 'evidence_listing', 'evidence_inactive_tour'}
+        no_multimedia_routes = {'social', 'help', 'evidence_unknown', 'evidence_conflict', 'evidence_contact', 'evidence_listing', 'evidence_inactive_tour', 'human_request', 'human_request_details'}
 
         if is_photo_requested(request.message) and route not in no_multimedia_routes:
             tour_img_info = get_tour_image_data(request.message + " " + bot_response, user_msg=request.message, entity_id=detected_eid)

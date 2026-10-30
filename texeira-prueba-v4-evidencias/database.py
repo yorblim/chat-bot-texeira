@@ -218,6 +218,48 @@ def log_interaction(
         return cursor.lastrowid
 
 
+def _parse_hhmm_minutes(val: str, fallback_hhmm: str) -> tuple[str, int]:
+    """Valida formato HH:MM y devuelve (HH:MM normalizado, minutos desde 00:00)."""
+    raw = str(val or "").strip()
+    parts = raw.split(":")
+    if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+        hh, mm = int(parts[0]), int(parts[1])
+        if 0 <= hh <= 23 and 0 <= mm <= 59:
+            return f"{hh:02d}:{mm:02d}", hh * 60 + mm
+    fb_h, fb_m = (int(x) for x in fallback_hhmm.split(":"))
+    return fallback_hhmm, fb_h * 60 + fb_m
+
+
+def _resolve_office_hours_window() -> tuple[str, str, int, int, str, str]:
+    """
+    Resuelve la ventana de horario laboral humano en Cusco (UTC-5) para métricas.
+    Canónico según Rúbrica Académica (Indicador 3.2): Lunes a Sábado 09:00–18:00 UTC-5.
+    Si la agencia personalizó su horario en agency_settings, usa esos valores.
+    """
+    start_raw = "09:00"
+    end_raw = "18:00"
+    workdays = "mon_sat"
+    try:
+        from catalog_service import get_all_agency_settings
+        settings = get_all_agency_settings() or {}
+        enabled_raw = settings.get("advisor_hours_enabled")
+        if enabled_raw is None or str(enabled_raw).lower() not in ("false", "0", "no", "off"):
+            if settings.get("advisor_hours_start"):
+                start_raw = settings["advisor_hours_start"]
+            if settings.get("advisor_hours_end"):
+                end_raw = settings["advisor_hours_end"]
+            if settings.get("advisor_workdays") in ("mon_sat", "everyday"):
+                workdays = settings["advisor_workdays"]
+    except Exception:
+        pass
+
+    start_str, start_mins = _parse_hhmm_minutes(start_raw, "09:00")
+    end_str, end_mins = _parse_hhmm_minutes(end_raw, "18:00")
+    suffix = " · Dom" if workdays == "mon_sat" else ""
+    label = f"Fuera de Horario ({end_str} - {start_str}{suffix})"
+    return start_str, end_str, start_mins, end_mins, workdays, label
+
+
 def get_metrics_summary(db_path: str = "texeira_logs.db") -> dict:
     """
     Calcula y retorna un resumen de métricas de todas las interacciones.
@@ -307,6 +349,7 @@ def get_metrics_summary(db_path: str = "texeira_logs.db") -> dict:
         # Métricas globales sobre interacciones conversacionales (llm + predefined),
         # EXCLUYENDO ui_navigation Y is_rate_limit para no contaminar la tasa
         # de resolución con artefactos de UI ni con errores de infraestructura.
+        _, _, start_mins, end_mins, workdays, after_hours_label = _resolve_office_hours_window()
         conversational_total = llm_block["total_interactions"] + predefined_block["total_interactions"]
         if conversational_total == 0:
             avg_latency = 0.0
@@ -330,23 +373,33 @@ def get_metrics_summary(db_path: str = "texeira_logs.db") -> dict:
                 "AND escalated_to_human = 1"
             ).fetchone()[0]
 
-            # Indicador 1.2 (Anexo 8 y 9): Tráfico atendido fuera del horario laboral
-            # estándar de Cusco (09:00–18:00 UTC-5). Los timestamps se almacenan en UTC,
-            # por lo que se resta el offset de 5 horas antes de extraer la hora.
-            # Compatible con SQLite y PostgreSQL sin depender de extensiones no estándar.
+            # Indicador 3.2 (Rúbrica Académica / Anexos 8 y 9): Tráfico atendido fuera del
+            # horario laboral humano de Cusco (por defecto Lunes a Sábado 09:00–18:00 UTC-5).
+            # Los timestamps se almacenan en UTC, por lo que se resta el offset fijo de 5 horas
+            # (Perú no usa horario de verano). Compatible con SQLite y PostgreSQL.
+            time_op = "OR" if start_mins <= end_mins else "AND"
             if is_postgres():
+                local_expr = "(CAST(timestamp AS TIMESTAMP) - INTERVAL '5 hours')"
+                mins_expr = f"(EXTRACT(HOUR FROM {local_expr}) * 60 + EXTRACT(MINUTE FROM {local_expr}))"
+                sun_clause = f" OR EXTRACT(DOW FROM {local_expr}) = 0" if workdays == "mon_sat" else ""
                 after_hours_total = conn.execute(
                     "SELECT COUNT(*) FROM interactions "
                     "WHERE interaction_type != 'ui_navigation' AND is_rate_limit = 0 "
-                    "AND (EXTRACT(HOUR FROM (CAST(timestamp AS TIMESTAMP) - INTERVAL '5 hours')) >= 18 "
-                    "  OR EXTRACT(HOUR FROM (CAST(timestamp AS TIMESTAMP) - INTERVAL '5 hours')) < 9)"
+                    f"AND (({mins_expr} >= ? {time_op} {mins_expr} < ?){sun_clause})",
+                    (end_mins, start_mins),
                 ).fetchone()[0]
             else:
+                local_expr = "DATETIME(timestamp, '-5 hours')"
+                mins_expr = (
+                    f"(CAST(STRFTIME('%H', {local_expr}) AS INTEGER) * 60 "
+                    f"+ CAST(STRFTIME('%M', {local_expr}) AS INTEGER))"
+                )
+                sun_clause = f" OR CAST(STRFTIME('%w', {local_expr}) AS INTEGER) = 0" if workdays == "mon_sat" else ""
                 after_hours_total = conn.execute(
                     "SELECT COUNT(*) FROM interactions "
                     "WHERE interaction_type != 'ui_navigation' AND is_rate_limit = 0 "
-                    "AND (CAST(STRFTIME('%H', DATETIME(timestamp, '-5 hours')) AS INTEGER) >= 18 "
-                    "  OR CAST(STRFTIME('%H', DATETIME(timestamp, '-5 hours')) AS INTEGER) < 9)"
+                    f"AND (({mins_expr} >= ? {time_op} {mins_expr} < ?){sun_clause})",
+                    (end_mins, start_mins),
                 ).fetchone()[0]
 
             resolution_rate = (resolved_total / conversational_total) * 100
@@ -361,6 +414,7 @@ def get_metrics_summary(db_path: str = "texeira_logs.db") -> dict:
             "escalation_rate_pct": round(escalation_rate, 2),
             "after_hours_count": after_hours_count,
             "after_hours_pct": round(after_hours_pct, 2),
+            "after_hours_label": after_hours_label,
             "conversacion_real_llm": llm_block,
             "respuestas_predefinidas": predefined_block,
             "ui_navigation": ui_block,

@@ -1438,6 +1438,7 @@ def set_agency_setting(key: str, value: str) -> bool:
     now = datetime.now(timezone.utc).isoformat()
     try:
         with get_db_session() as conn:
+            conn.execute(SCHEMA_SETTINGS_POSTGRES if is_postgres() else SCHEMA_SETTINGS_SQLITE)
             if is_postgres():
                 conn.execute(
                     "INSERT INTO agency_settings (key, value, updated_at) VALUES (?, ?, ?) "
