@@ -772,6 +772,15 @@ def ensure_postgres_schema():
             CREATE INDEX IF NOT EXISTS idx_tour_dates_lookup
             ON catalog_tour_dates(entity_id, tour_date);
         """))
+
+        # 8. Ajustes dinámicos de agencia (WhatsApp asesor, horario laboral, notificaciones)
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS agency_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+        """))
     _PG_INITIALIZED = True
     logger.info("[DB_ADAPTER] Esquema PostgreSQL verificado e inicializado.")
 

@@ -562,25 +562,44 @@ def get_catalog_html(csrf_token: str) -> str:
 
     <!-- Card de Configuración de Asesor y Atención Humana -->
     <div style="background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; margin-bottom: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
         <div style="flex: 1; min-width: 260px;">
           <h2 style="font-size: 15px; margin: 0 0 4px 0; color: #0369a1; display: flex; align-items: center; gap: 8px;">
-            <span>📞</span> WhatsApp de Atención y Derivación a Asesores
+            <span>📞</span> WhatsApp de Atención y Horario de Asesores Humanos
           </h2>
           <p style="margin: 0; font-size: 13px; color: var(--muted);">
-            Número al que se derivan los turistas cuando solicitan atención humana o preguntan por reservas de tours agotados.
+            El asistente virtual IA atiende consultas <strong>24/7</strong>. Aquí configuras el WhatsApp y horario de oficina de los asesores humanos (hora Cusco/Perú, UTC-5) para informar tiempos reales en la madrugada.
           </p>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             <input type="text" id="advisorPhoneInput" placeholder="+51 953 767 860" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; width: 175px;">
-            <button id="btnSaveAdvisorSettings" class="btn btn-primary" style="padding: 8px 14px; font-size: 13px;">💾 Guardar Número</button>
+            <button id="btnSaveAdvisorSettings" class="btn btn-primary" style="padding: 8px 14px; font-size: 13px;">💾 Guardar Ajustes</button>
           </div>
           <label style="font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; cursor: pointer;">
             <input type="checkbox" id="advisorNotifyCheckbox" style="cursor: pointer;">
             <span>🔔 Notificar al WhatsApp del asesor ante nuevas solicitudes</span>
           </label>
         </div>
+      </div>
+      <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px;">
+          <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; cursor: pointer;">
+            <input type="checkbox" id="advisorHoursEnabledCheckbox" checked style="cursor: pointer;">
+            <span>🕒 Informar horario de oficina humana (UTC-5):</span>
+          </label>
+          <input type="time" id="advisorHoursStartInput" value="09:00" style="padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+          <span>a</span>
+          <input type="time" id="advisorHoursEndInput" value="18:00" style="padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+          <select id="advisorWorkdaysSelect" style="padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+            <option value="mon_sat" selected>Lunes a Sábado</option>
+            <option value="everyday">Todos los días</option>
+          </select>
+        </div>
+        <label style="font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; cursor: pointer;">
+          <input type="checkbox" id="advisorQuietCheckbox" checked style="cursor: pointer;">
+          <span>🌙 Silenciar aviso push al celular en madrugada</span>
+        </label>
       </div>
       <div id="advisorSettingFeedback" style="display: none; margin-top: 10px; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 6px;"></div>
     </div>
@@ -1976,8 +1995,18 @@ def get_catalog_html(csrf_token: str) -> str:
           if (data.ok) {{
             const input = document.getElementById('advisorPhoneInput');
             const check = document.getElementById('advisorNotifyCheckbox');
+            const hoursCheck = document.getElementById('advisorHoursEnabledCheckbox');
+            const hoursStart = document.getElementById('advisorHoursStartInput');
+            const hoursEnd = document.getElementById('advisorHoursEndInput');
+            const workdaysSel = document.getElementById('advisorWorkdaysSelect');
+            const quietCheck = document.getElementById('advisorQuietCheckbox');
             if (input && data.advisor_whatsapp_phone) input.value = data.advisor_whatsapp_phone;
             if (check) check.checked = Boolean(data.advisor_notifications_enabled);
+            if (hoursCheck && data.advisor_hours_enabled !== undefined) hoursCheck.checked = Boolean(data.advisor_hours_enabled);
+            if (hoursStart && data.advisor_hours_start) hoursStart.value = data.advisor_hours_start;
+            if (hoursEnd && data.advisor_hours_end) hoursEnd.value = data.advisor_hours_end;
+            if (workdaysSel && data.advisor_workdays) workdaysSel.value = data.advisor_workdays;
+            if (quietCheck && data.advisor_quiet_after_hours !== undefined) quietCheck.checked = Boolean(data.advisor_quiet_after_hours);
           }}
         }}
       }} catch (e) {{
@@ -1988,6 +2017,11 @@ def get_catalog_html(csrf_token: str) -> str:
     async function saveAdvisorSettings() {{
       const input = document.getElementById('advisorPhoneInput');
       const check = document.getElementById('advisorNotifyCheckbox');
+      const hoursCheck = document.getElementById('advisorHoursEnabledCheckbox');
+      const hoursStart = document.getElementById('advisorHoursStartInput');
+      const hoursEnd = document.getElementById('advisorHoursEndInput');
+      const workdaysSel = document.getElementById('advisorWorkdaysSelect');
+      const quietCheck = document.getElementById('advisorQuietCheckbox');
       const btn = document.getElementById('btnSaveAdvisorSettings');
       const fb = document.getElementById('advisorSettingFeedback');
       if (!input || !btn) return;
@@ -2004,6 +2038,11 @@ def get_catalog_html(csrf_token: str) -> str:
           body: JSON.stringify({{
             advisor_whatsapp_phone: input.value.trim(),
             advisor_notifications_enabled: check ? check.checked : false,
+            advisor_hours_enabled: hoursCheck ? hoursCheck.checked : true,
+            advisor_hours_start: hoursStart && hoursStart.value ? hoursStart.value : '09:00',
+            advisor_hours_end: hoursEnd && hoursEnd.value ? hoursEnd.value : '18:00',
+            advisor_workdays: workdaysSel && workdaysSel.value ? workdaysSel.value : 'mon_sat',
+            advisor_quiet_after_hours: quietCheck ? quietCheck.checked : true,
           }}),
         }});
         const data = await res.json();
@@ -2012,7 +2051,7 @@ def get_catalog_html(csrf_token: str) -> str:
             fb.style.display = 'block';
             fb.style.background = '#dcfce7';
             fb.style.color = '#15803d';
-            fb.textContent = '✅ Número de WhatsApp del asesor guardado correctamente.';
+            fb.textContent = '✅ WhatsApp y horario de atención humana guardados correctamente.';
             setTimeout(() => {{ fb.style.display = 'none'; }}, 4000);
           }}
           showToast('Ajustes de asesor guardados correctamente', 'success');
@@ -2023,7 +2062,7 @@ def get_catalog_html(csrf_token: str) -> str:
         showToast('Error de conexión al guardar ajustes', 'error');
       }} finally {{
         btn.disabled = false;
-        btn.textContent = '💾 Guardar Número';
+        btn.textContent = '💾 Guardar Ajustes';
       }}
     }}
 

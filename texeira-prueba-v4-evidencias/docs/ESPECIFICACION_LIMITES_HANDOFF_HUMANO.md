@@ -106,3 +106,21 @@ La suite automatizada [`tests/test_handoff_and_listing_fixes.py`](file:///c:/Use
 * **Tasa de falsos positivos en suites de regresión:** **0.0%**.
 
 Esta delimitación explícita respalda rigurosamente los resultados ante las evaluaciones metodológicas del jurado de tesis.
+
+---
+
+## 5. Protocolo de Continuidad 24/7 vs. Horario Laboral de Asesores Humanos (UTC-5)
+
+Para garantizar coherencia metodológica con el **Indicador 3.2** (*Disponibilidad de atención 24/7 fuera del horario laboral: Lunes a Sábado 09:00–18:00 UTC-5*), el sistema separa formalmente la disponibilidad continua del asistente virtual de la disponibilidad sincrónica del asesor humano:
+
+1. **Asistente Virtual Activo 24/7 (`status='pending'` no pausa al bot):**
+   * El chatbot atiende de forma ininterrumpida las 24 horas del día, los 7 días de la semana (consultas de catálogo, tarifas confirmadas, horarios, inclusiones, fotografías y folletos PDF).
+   * El bot únicamente entra en pausa silenciosa cuando un asesor humano toma activamente el caso (`status='in_progress'`).
+2. **Reloj Canónico Cusco/Perú (`UTC-5` fijo) y Configuración Dinámica:**
+   * Independientemente del reloj `UTC` de la infraestructura serverless (Google Cloud Run), el módulo de derivación evalúa el horario humano en zona horaria fija `UTC-5` (Perú no aplica horario de verano) y permite personalizar o desactivar el horario desde `/catalogo` (`agency_settings`).
+3. **Captura Asíncrona Honesta en Madrugada / Domingos (ES / EN / PT):**
+   * Fuera del horario laboral humano, toda solicitud de reserva o asesor se registra inmediatamente en base de datos (`pending`), informando con transparencia la hora actual en Cusco, el horario de oficina humana y confirmando que la solicitud quedó asegurada para atención prioritaria al iniciar el turno, sin prometer falsamente atención humana inmediata a las 3:00 a. m.
+   * El modo silencioso nocturno (`advisor_quiet_after_hours`) evita despertar el celular del asesor en la madrugada sin perder ningún prospecto en la consola `/handoffs`.
+4. **Anexado Seguro de Datos de Reserva en Espera y Ventana de 24 h de Meta:**
+   * Si un turista con ticket `pending` adelanta datos operativos de su reserva (nombre, número de pasajeros, hotel o documento) sin formular una pregunta sobre tours, el sistema los anexa automáticamente a la nota e historial del ticket (`human_request_details`) evitando falsos fallbacks del RAG, mientras mantiene libre toda consulta informativa sobre tours.
+   * Si transcurren `>= 24` horas desde el último mensaje del cliente (ej. domingo completo), la consola `/handoffs` alerta preventivamente sobre la ventana de 24 horas de Meta WhatsApp Cloud API (`error 131047`) y ofrece enlace directo `wa.me` para contacto inmediato desde el WhatsApp de la agencia.

@@ -6,8 +6,10 @@ import secrets
 import sqlite3
 import unicodedata
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+PERU_TZ = timezone(timedelta(hours=-5))
 
 from fastapi import Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -629,7 +631,147 @@ def get_advisor_whatsapp_phone(ns=None):
     return '51953767860'
 
 
-def get_advisor_whatsapp_link_text(language='es', ns=None):
+def _parse_hhmm(raw_val, default_hhmm):
+    s = str(raw_val or '').strip()
+    parts = s.split(':')
+    if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+        hh, mm = int(parts[0]), int(parts[1])
+        if 0 <= hh <= 23 and 0 <= mm <= 59:
+            return f'{hh:02d}:{mm:02d}', hh * 60 + mm
+    dh, dm = (int(x) for x in default_hhmm.split(':'))
+    return default_hhmm, dh * 60 + dm
+
+
+def _parse_bool(raw_val, default_val):
+    if raw_val is None:
+        return default_val
+    if isinstance(raw_val, bool):
+        return raw_val
+    return str(raw_val).strip().lower() in {'true', '1', 'yes', 'on'}
+
+
+def get_advisor_schedule_status(now=None, ns=None):
+    """Evalúa si la hora actual en Cusco/Perú (UTC-5 fijo) está dentro del horario
+    laboral de los asesores humanos configurado por la agencia.
+    El bot opera 24/7; este horario aplica exclusivamente a la atención humana.
+    """
+    settings = {}
+    try:
+        from catalog_service import get_all_agency_settings
+        settings = get_all_agency_settings() or {}
+    except Exception:
+        settings = {}
+
+    ns_dict = ns if isinstance(ns, dict) else {}
+
+    if 'ADVISOR_HOURS_ENABLED' in ns_dict:
+        enabled = _parse_bool(ns_dict.get('ADVISOR_HOURS_ENABLED'), True)
+    elif 'advisor_hours_enabled' in settings:
+        enabled = _parse_bool(settings.get('advisor_hours_enabled'), True)
+    elif os.getenv('TEXEIRA_ENABLE_ADVISOR_HOURS') is not None:
+        enabled = _parse_bool(os.getenv('TEXEIRA_ENABLE_ADVISOR_HOURS'), True)
+    else:
+        enabled = True
+
+    raw_start = (
+        ns_dict.get('ADVISOR_HOURS_START')
+        or settings.get('advisor_hours_start')
+        or os.getenv('ADVISOR_HOURS_START')
+        or '09:00'
+    )
+    raw_end = (
+        ns_dict.get('ADVISOR_HOURS_END')
+        or settings.get('advisor_hours_end')
+        or os.getenv('ADVISOR_HOURS_END')
+        or '18:00'
+    )
+    start_str, start_mins = _parse_hhmm(raw_start, '09:00')
+    end_str, end_mins = _parse_hhmm(raw_end, '18:00')
+
+    workdays = (
+        ns_dict.get('ADVISOR_WORKDAYS')
+        or settings.get('advisor_workdays')
+        or os.getenv('ADVISOR_WORKDAYS')
+        or 'mon_sat'
+    )
+    if workdays not in {'mon_sat', 'everyday'}:
+        workdays = 'mon_sat'
+
+    if 'ADVISOR_QUIET_AFTER_HOURS' in ns_dict:
+        quiet_after_hours = _parse_bool(ns_dict.get('ADVISOR_QUIET_AFTER_HOURS'), True)
+    elif 'advisor_quiet_after_hours' in settings:
+        quiet_after_hours = _parse_bool(settings.get('advisor_quiet_after_hours'), True)
+    elif os.getenv('TEXEIRA_ADVISOR_QUIET_AFTER_HOURS') is not None:
+        quiet_after_hours = _parse_bool(os.getenv('TEXEIRA_ADVISOR_QUIET_AFTER_HOURS'), True)
+    elif ns_dict.get('ADVISOR_NOTIFICATIONS_ENABLED') is True:
+        quiet_after_hours = False
+    else:
+        quiet_after_hours = True
+
+    now_dt = _parse_ts(now) if now is not None else datetime.now(timezone.utc)
+    if now_dt is None:
+        now_dt = datetime.now(timezone.utc)
+    local_now = now_dt.astimezone(PERU_TZ)
+    cur_mins = local_now.hour * 60 + local_now.minute
+    weekday = local_now.weekday()  # 0=Lun .. 5=Sáb, 6=Dom
+
+    is_workday = True if workdays == 'everyday' else (weekday < 6)
+    if start_mins <= end_mins:
+        is_within_time = start_mins <= cur_mins < end_mins
+    else:
+        is_within_time = cur_mins >= start_mins or cur_mins < end_mins
+
+    is_open = (not enabled) or (is_workday and is_within_time)
+    after_hours = bool(enabled and not is_open)
+    return {
+        'enabled': enabled,
+        'is_open': is_open,
+        'after_hours': after_hours,
+        'start': start_str,
+        'end': end_str,
+        'workdays': workdays,
+        'quiet_after_hours': quiet_after_hours,
+        'local_time': local_now.strftime('%H:%M'),
+        'local_weekday': weekday,
+    }
+
+
+def build_after_hours_notice(language='es', status_info=None):
+    """Aviso claro cuando el turista solicita reserva/asesor fuera del horario de oficina."""
+    info = status_info or get_advisor_schedule_status()
+    if not info.get('after_hours'):
+        return ''
+    start = info.get('start', '09:00')
+    end = info.get('end', '18:00')
+    local_time = info.get('local_time', '')
+    mon_sat = info.get('workdays', 'mon_sat') == 'mon_sat'
+    days_es = 'Lunes a Sábado' if mon_sat else 'Todos los días'
+    days_en = 'Monday to Saturday' if mon_sat else 'Every day'
+    days_pt = 'Segunda a Sábado' if mon_sat else 'Todos os dias'
+    return _request_message(
+        language,
+        es=(
+            f"\n\n🕒 *Horario de atención humana:* {days_es} de {start} a {end} "
+            f"(hora Perú, UTC-5 · hora actual en Cusco: {local_time}). "
+            "Tu solicitud ya quedó asegurada para atención prioritaria apenas inicie el turno. "
+            "Mientras tanto, sigo activo *24/7* por aquí para ayudarte con tours, precios, horarios, fotos o folletos."
+        ),
+        en=(
+            f"\n\n🕒 *Human advisor hours:* {days_en}, {start} to {end} "
+            f"(Peru time, UTC-5 · current Cusco time: {local_time}). "
+            "Your request is already secured for priority attention as soon as office hours begin. "
+            "Meanwhile, I remain active *24/7* right here to help you with tours, prices, schedules, photos, or brochures."
+        ),
+        pt=(
+            f"\n\n🕒 *Horário de atendimento humano:* {days_pt}, das {start} às {end} "
+            f"(horário do Peru, UTC-5 · hora atual em Cusco: {local_time}). "
+            "Sua solicitação já ficou garantida para atendimento prioritário assim que o expediente começar. "
+            "Enquanto isso, continuo ativo *24/7* por aqui para ajudar com passeios, preços, horários, fotos ou folhetos."
+        ),
+    )
+
+
+def get_advisor_whatsapp_link_text(language='es', ns=None, after_hours=False):
     """
     Construye el texto con enlace directo a WhatsApp para el turista.
     Si el número está deshabilitado o vacío, retorna cadena vacía.
@@ -639,19 +781,25 @@ def get_advisor_whatsapp_link_text(language='es', ns=None):
         return ""
     link = f"https://wa.me/{phone}"
     if language == 'en':
-        return f"\n\n👉 You can also contact our advisor directly on WhatsApp: {link}"
+        extra = " (outside office hours, our advisor will reply when the shift begins)" if after_hours else ""
+        return f"\n\n👉 You can also contact our advisor directly on WhatsApp: {link}{extra}"
     elif language == 'pt':
-        return f"\n\n👉 Você também pode falar diretamente com nosso assessor no WhatsApp: {link}"
+        extra = " (fora do horário comercial, nosso assessor responderá no início do turno)" if after_hours else ""
+        return f"\n\n👉 Você também pode falar diretamente com nosso assessor no WhatsApp: {link}{extra}"
     else:
-        return f"\n\n👉 También puedes coordinar directamente con nuestro asesor en WhatsApp: {link}"
+        extra = " (fuera del horario de oficina, te responderá al iniciar el turno)" if after_hours else ""
+        return f"\n\n👉 También puedes coordinar directamente con nuestro asesor en WhatsApp: {link}{extra}"
 
 
-def notify_advisor(row, send_fn=None, advisor_phone=None):
+_UNSET_PHONE = object()
+
+
+def notify_advisor(row, send_fn=None, advisor_phone=_UNSET_PHONE):
     """
     Envía una notificación push vía WhatsApp al número del asesor humano
     cuando se registra una nueva solicitud de derivación (handoff).
     """
-    phone = advisor_phone or get_advisor_whatsapp_phone()
+    phone = get_advisor_whatsapp_phone() if advisor_phone is _UNSET_PHONE else advisor_phone
     if not phone:
         print(f"[ADVISOR NOTIFY] Aviso no enviado para ticket {row.get('id')}: número de asesor ausente o deshabilitado.")
         return False
@@ -702,7 +850,166 @@ def _update_request_history(ns, user_id, response):
             history[-1]['content'] = response
 
 
-def apply_request(ns, result, user_id, channel, question):
+_TOUR_QUERY_GUARD_RE = re.compile(
+    r'\b('
+    r'precio\w*|cuesta\w*|cuanto\w*|tarifa\w*|costo\w*|valor|'
+    r'horario\w*|que\s+hora|a\s+que\s+hora|'
+    r'incluye\w*|excluye\w*|no\s+incluye|itinerario\w*|duracion|dura|'
+    r'foto\w*|imagen\w*|folleto\w*|brochure\w*|pdf|catalogo|'
+    r'que\s+tours|cuales\s+tours|lista\s+de\s+tours|recomiend\w*|'
+    r'informacion|info|detalles|disponib\w*|cupos?|'
+    r'aceptan|metodo\w*\s+de\s+pago|pagar|yape|plin|paypal|tarjeta|'
+    r'cancel\w*|reembols\w*|politica\w*|ubicacion|direccion|correo|telefono|'
+    r'hola|buenos\s+dias|buenas\s+tardes|buenas\s+noches|gracias|thank\w*|obrigad\w*|ayuda|help|ajuda|'
+    r'price\w*|cost\w*|schedule\w*|include\w*|photo\w*|what\s+tours|how\s+much|'
+    r'quanto\s+custa|o\s+que\s+inclui'
+    r')\b'
+)
+
+_PENDING_DATA_PATTERNS = [
+    re.compile(r'\b(somos|para|seriamos|vamos|we\s+are|for|party\s+of)\s+\d{1,2}\s+(personas?|adultos?|pasajeros?|turistas?|viajeros?|ninos?|estudiantes?|pax|people|adults?|passengers?|travelers?|guests?|children|kids?|pessoas?|passageiros?|criancas?)\b'),
+    re.compile(r'^\d{1,2}\s+(personas?|adultos?|pasajeros?|pax|people|adults?|pessoas?|passageiros?)\b'),
+    re.compile(r'\b(mi\s+nombre\s+es|me\s+llamo|a\s+nombre\s+de|nombre\s*:|my\s+name\s+is|name\s*:|meu\s+nome\s+e|nome\s*:)\b'),
+    re.compile(r'\b(pasaporte|passport|passaporte|dni|documento\s+de\s+identidad)\s*[:#]?\s*[a-z0-9]{5,}'),
+    re.compile(r'\b(mi\s+hotel\s+es|nuestro\s+hotel\s+es|estamos\s+en\s+el\s+hotel|nos\s+hospedamos\s+en|alojados?\s+en|recojo\s+en\s+(el\s+)?hotel|our\s+hotel\s+is|staying\s+at|pickup\s+at\s+hotel|nosso\s+hotel\s+e|estamos\s+no\s+hotel|hospedados?\s+no?\s+hotel)\b'),
+    re.compile(r'^hotel\s+[a-z0-9][a-z0-9\s]{2,}'),
+    re.compile(r'\b(mi\s+correo\s+es|mi\s+email\s+es|my\s+email\s+is|meu\s+email\s+e)\s*\S+@\S+'),
+]
+
+
+def try_append_pending_details(user_id, channel, text, language=None):
+    """Si el turista ya tiene un ticket 'pending' abierto y envía datos sueltos de su
+    reserva (nombre, cantidad de pasajeros, hotel, pasaporte/DNI) sin formular una
+    consulta sobre tours, anexa esos datos al ticket pendiente para que el asesor los
+    vea al iniciar su turno, evitando que caigan por error en el fallback del RAG.
+    """
+    if not user_id or not channel or not text:
+        return None
+    clean_text = str(text).strip()
+    if len(clean_text) < 4 or len(clean_text) > 500:
+        return None
+    if '?' in clean_text or '¿' in clean_text:
+        return None
+    if close_requested_by_customer(clean_text) or requested(clean_text):
+        return None
+
+    normalized = ''.join(
+        c for c in unicodedata.normalize('NFKD', clean_text.lower()) if not unicodedata.combining(c)
+    )
+    q = normalized.strip(' .!¡\'"')
+    if not q or _TOUR_QUERY_GUARD_RE.search(q):
+        return None
+    if not any(pat.search(q) for pat in _PENDING_DATA_PATTERNS):
+        return None
+
+    try:
+        with connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM requests WHERE user_id=? AND channel=? AND status='pending'",
+                (user_id, channel),
+            ).fetchone()
+            if not row:
+                return None
+            row = dict(row)
+
+            # Si menciona un tour distinto al registrado en el ticket, dejar que el bot 24/7 responda.
+            try:
+                from trial_support import detect_entity_from_question
+                mentioned_eid = detect_entity_from_question(clean_text)
+                if mentioned_eid and mentioned_eid != 'unknown':
+                    ticket_eid = detect_entity_from_question(row.get('question', ''))
+                    if ticket_eid != mentioned_eid:
+                        return None
+            except Exception:
+                pass
+
+            prev_note = (row.get('note') or '').strip()
+            entry = f'[Datos del cliente]: {clean_text}'
+            if entry not in prev_note:
+                new_note = f'{prev_note}\n{entry}'.strip() if prev_note else entry
+            else:
+                new_note = prev_note
+            now_iso = datetime.now(timezone.utc).isoformat()
+            conn.execute(
+                "UPDATE requests SET note=?, updated_at=? WHERE id=? AND status='pending'",
+                (new_note[:2000], now_iso, row['id']),
+            )
+    except Exception as exc:
+        print(f'[HANDOFF DETAILS] No se pudieron anexar datos al ticket pendiente: {type(exc).__name__}')
+        return None
+
+    lang = language if language in ('es', 'en', 'pt') else None
+    if not lang:
+        detect = _HOOKS.get('detect_language')
+        detected = detect(clean_text) if detect else None
+        lang = detected if detected in ('es', 'en', 'pt') else _customer_language(user_id)
+
+    reply = _request_message(
+        lang,
+        es=(
+            f"✅ Anoté estos datos en tu solicitud pendiente (#{row['id']}) para que nuestro asesor "
+            "los tenga listos al atenderte. Recuerda que tu reserva aún no está confirmada.\n\n"
+            "Mientras tanto, sigo disponible *24/7* si deseas consultar precios, horarios, fotos o detalles de cualquier tour."
+        ),
+        en=(
+            f"✅ I added these details to your pending request (#{row['id']}) so our advisor "
+            "has them ready when assisting you. Please remember your reservation is not yet confirmed.\n\n"
+            "Meanwhile, I remain available *24/7* if you want to check prices, schedules, photos, or details for any tour."
+        ),
+        pt=(
+            f"✅ Anotei esses dados na sua solicitação pendente (#{row['id']}) para que nosso assessor "
+            "os tenha prontos ao atender você. Lembre-se de que sua reserva ainda não está confirmada.\n\n"
+            "Enquanto isso, continuo disponível *24/7* se quiser consultar preços, horários, fotos ou detalhes de qualquer passeio."
+        ),
+    )
+    _history_append(user_id, 'human', clean_text, {'handoff_id': row['id'], 'event': 'customer_pending_details'})
+    _history_append(user_id, 'ai', reply, {'handoff_id': row['id'], 'author': 'system', 'event': 'pending_details_saved'})
+    return {
+        'appended': True,
+        'ticket_id': row['id'],
+        'language': lang,
+        'response': reply,
+        'route': 'human_request_details',
+        'response_route': 'human_request_details',
+    }
+
+
+def whatsapp_window_status(row, conversation=None, now=None):
+    """Calcula si la ventana gratuita/libre de 24 h de Meta WhatsApp Cloud API expiró
+    desde el último mensaje entrante del cliente (error 131047 fuera de las 24 h).
+    """
+    is_wa = row.get('channel') == 'whatsapp' and row.get('status') != 'closed'
+    digits = re.sub(r'\D', '', str(row.get('user_id') or ''))
+    wa_url = f'https://wa.me/{digits}' if (is_wa and len(digits) >= 8) else ''
+    if not is_wa:
+        return {'window_24h_expired': False, 'hours_since_customer': None, 'customer_wa_url': wa_url}
+
+    last_ts = None
+    if isinstance(conversation, list):
+        for msg in conversation:
+            if msg.get('author') == 'cliente' and isinstance(msg.get('timestamp'), (int, float)):
+                if last_ts is None or msg['timestamp'] > last_ts:
+                    last_ts = float(msg['timestamp'])
+
+    created_dt = _parse_ts(row.get('created_at'))
+    if last_ts is None and created_dt is not None:
+        last_ts = created_dt.timestamp()
+
+    if last_ts is None:
+        return {'window_24h_expired': False, 'hours_since_customer': None, 'customer_wa_url': wa_url}
+
+    now_dt = _parse_ts(now) if now is not None else datetime.now(timezone.utc)
+    if now_dt is None:
+        now_dt = datetime.now(timezone.utc)
+    elapsed_hours = max(0.0, (now_dt.timestamp() - last_ts) / 3600.0)
+    return {
+        'window_24h_expired': elapsed_hours >= 24.0,
+        'hours_since_customer': round(elapsed_hours, 1),
+        'customer_wa_url': wa_url,
+    }
+
+
+def apply_request(ns, result, user_id, channel, question, now=None):
     if not result.get('handoff_requested'): return result
     result=dict(result)
     language=result.get('handoff_language', 'es')
@@ -796,7 +1103,14 @@ def apply_request(ns, result, user_id, channel, question):
                 ticket_question = f"{prefix}] {question}"
 
         row, created = create_request(user_id, channel, ticket_question, history[:-2])
-        result.update(handoff_id=row['id'], handoff_status=row['status'], handoff_registered=True)
+        sched = get_advisor_schedule_status(now=now, ns=ns)
+        is_after_hours = sched['after_hours']
+        result.update(
+            handoff_id=row['id'],
+            handoff_status=row['status'],
+            handoff_registered=True,
+            after_hours=is_after_hours,
+        )
         # Verificar si las notificaciones al asesor están habilitadas en BD o ns
         notifications_enabled = False
         try:
@@ -810,16 +1124,23 @@ def apply_request(ns, result, user_id, channel, question):
             notifications_enabled = bool(ns.get('ADVISOR_NOTIFICATIONS_ENABLED', False)) if isinstance(ns, dict) else False
 
         if created and channel in {'whatsapp', 'messenger'} and notifications_enabled:
-            send_fn = ns.get('send_whatsapp_message')
-            advisor_phone = get_advisor_whatsapp_phone(ns)
-            try:
-                notify_advisor(row, send_fn=send_fn, advisor_phone=advisor_phone)
-            except Exception as e:
-                print(f"[ADVISOR NOTIFY] Error silencioso al notificar asesor: {e}")
+            if is_after_hours and sched['quiet_after_hours']:
+                print(
+                    f"[ADVISOR NOTIFY] Ticket #{row.get('id')} registrado fuera de horario laboral "
+                    f"({sched['local_time']} UTC-5); aviso push al celular silenciado."
+                )
+            else:
+                send_fn = ns.get('send_whatsapp_message') if isinstance(ns, dict) else None
+                advisor_phone = get_advisor_whatsapp_phone(ns)
+                try:
+                    notify_advisor(row, send_fn=send_fn, advisor_phone=advisor_phone)
+                except Exception as e:
+                    print(f"[ADVISOR NOTIFY] Error silencioso al notificar asesor: {e}")
 
-        link_txt_es = get_advisor_whatsapp_link_text('es', ns)
-        link_txt_en = get_advisor_whatsapp_link_text('en', ns)
-        link_txt_pt = get_advisor_whatsapp_link_text('pt', ns)
+        link_txt_es = get_advisor_whatsapp_link_text('es', ns, after_hours=is_after_hours)
+        link_txt_en = get_advisor_whatsapp_link_text('en', ns, after_hours=is_after_hours)
+        link_txt_pt = get_advisor_whatsapp_link_text('pt', ns, after_hours=is_after_hours)
+        ah_notice = build_after_hours_notice(language, sched) if is_after_hours else ''
 
         if is_booking:
             if created:
@@ -830,15 +1151,18 @@ def apply_request(ns, result, user_id, channel, question):
                         es=f"Registré tu solicitud sobre {t_disp} para el {date_formatted}. Actualmente esa fecha figura con cupos agotados en el catálogo oficial, pero nuestro asesor verificará si existen liberaciones de última hora o cupos en lista de espera. Tu reserva aún no está confirmada.{link_txt_es}",
                         en=f"I registered your request regarding {t_disp} for {date_formatted}. That date is currently marked sold out in the official catalog, but our advisor will check for last-minute releases or waitlist spots. Your reservation is not yet confirmed.{link_txt_en}",
                         pt=f"Registrei sua solicitação sobre {t_disp} para {date_formatted}. Essa data consta com vagas esgotadas no catálogo oficial, mas nosso assessor verificará se há liberações de última hora ou lista de espera. Sua reserva ainda não está confirmada.{link_txt_pt}",
-                    )
+                    ) + ah_notice
                 elif is_date_limited and parsed_booking_date:
                     t_disp = tour_name or 'este tour'
+                    wait_es = 'te atenderá con prioridad al iniciar nuestro horario de atención' if is_after_hours else 'te atenderá a la brevedad'
+                    wait_en = 'will assist you with priority when office hours begin' if is_after_hours else 'will assist you shortly'
+                    wait_pt = 'atenderá você com prioridade no início do horário comercial' if is_after_hours else 'atenderá você em breve'
                     result['response'] = _request_message(
                         language,
-                        es=f"Registré tu solicitud sobre {t_disp} para el {date_formatted}. Esa fecha cuenta con cupos limitados y alta demanda; nuestro asesor te atenderá a la brevedad para verificar disponibilidad y coordinar tu reserva. Tu reserva aún no está confirmada.{link_txt_es}",
-                        en=f"I registered your request regarding {t_disp} for {date_formatted}. That date has limited spots and high demand; our advisor will assist you shortly to verify availability and secure your reservation. Your reservation is not yet confirmed.{link_txt_en}",
-                        pt=f"Registrei sua solicitação sobre {t_disp} para {date_formatted}. Essa data conta com vagas limitadas e alta procura; nosso assessor atenderá você em breve para verificar disponibilidade e coordinar sua reserva. Sua reserva ainda não está confirmada.{link_txt_pt}",
-                    )
+                        es=f"Registré tu solicitud sobre {t_disp} para el {date_formatted}. Esa fecha cuenta con cupos limitados y alta demanda; nuestro asesor {wait_es} para verificar disponibilidad y coordinar tu reserva. Tu reserva aún no está confirmada.{link_txt_es}",
+                        en=f"I registered your request regarding {t_disp} for {date_formatted}. That date has limited spots and high demand; our advisor {wait_en} to verify availability and secure your reservation. Your reservation is not yet confirmed.{link_txt_en}",
+                        pt=f"Registrei sua solicitação sobre {t_disp} para {date_formatted}. Essa data conta com vagas limitadas e alta procura; nosso assessor {wait_pt} para verificar disponibilidade e coordinar sua reserva. Sua reserva ainda não está confirmada.{link_txt_pt}",
+                    ) + ah_notice
                 elif is_sold_out:
                     t_disp = tour_name or 'este tour'
                     result['response'] = _request_message(
@@ -846,21 +1170,21 @@ def apply_request(ns, result, user_id, channel, question):
                         es=f"Registré tu solicitud sobre {t_disp}. Actualmente figura sin cupos disponibles en el catálogo oficial, pero nuestro asesor verificará si existen liberaciones de última hora o cupos en lista de espera. Tu reserva aún no está confirmada.{link_txt_es}",
                         en=f"I registered your request regarding {t_disp}. It is currently marked with no spots available in the catalog, but our advisor will check for last-minute releases or waitlist spots. Your reservation is not yet confirmed.{link_txt_en}",
                         pt=f"Registrei sua solicitação sobre {t_disp}. Atualmente consta sem vagas disponíveis no catálogo, mas nosso assessor verificará si há liberações de última hora ou lista de espera. Sua reserva ainda não está confirmada.{link_txt_pt}",
-                    )
+                    ) + ah_notice
                 elif tour_name:
                     result['response'] = _request_message(
                         language,
                         es=f"Registré tu solicitud sobre {tour_name}. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.{link_txt_es}",
                         en=f"I registered your request regarding {tour_name}. It is pending review by an advisor; your reservation is not yet confirmed.{link_txt_en}",
                         pt=f"Registrei sua solicitação sobre {tour_name}. Ela aguarda atendimento por um assessor; sua reserva ainda não está confirmada.{link_txt_pt}",
-                    )
+                    ) + ah_notice
                 else:
                     result['response'] = _request_message(
                         language,
                         es=f"Registré tu solicitud de reserva. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.{link_txt_es}",
                         en=f"I registered your reservation request. It is pending review by an advisor; your reservation is not yet confirmed.{link_txt_en}",
                         pt=f"Registrei sua solicitação de reserva. Ela aguarda atendimento por um assessor; sua reserva ainda não está confirmada.{link_txt_pt}",
-                    )
+                    ) + ah_notice
             else:
                 if row['status'] == 'in_progress':
                     result['response'] = _request_message(
@@ -870,12 +1194,14 @@ def apply_request(ns, result, user_id, channel, question):
                         pt=f"Sua solicitação sobre {tour_name or 'sua reserva'} (Ticket {row['id']}) já está em atendimento por um assessor. Sua reserva ainda não está confirmada.",
                     )
                 else:
+                    rep_wait_es = 'un asesor te atenderá al iniciar nuestro horario de atención' if is_after_hours else 'te atenderemos a la brevedad'
+                    rep_wait_en = 'an advisor will assist you when office hours begin' if is_after_hours else 'we will assist you shortly'
                     result['response'] = _request_message(
                         language,
-                        es=f"Ya tienes una solicitud registrada (Ticket {row['id']}) pendiente de atención por un asesor. Tu reserva aún no está confirmada; te atenderemos a la brevedad.{link_txt_es}",
-                        en=f"You already have a registered request (Ticket {row['id']}) pending review by an advisor. Your reservation is not yet confirmed; we will assist you shortly.{link_txt_en}",
+                        es=f"Ya tienes una solicitud registrada (Ticket {row['id']}) pendiente de atención por un asesor. Tu reserva aún no está confirmada; {rep_wait_es}.{link_txt_es}",
+                        en=f"You already have a registered request (Ticket {row['id']}) pending review by an advisor. Your reservation is not yet confirmed; {rep_wait_en}.{link_txt_en}",
                         pt=f"Você já tem uma solicitação registrada (Ticket {row['id']}) aguardando atendimento por um assessor. Sua reserva ainda não está confirmada; você pode continuar consultando o bot.{link_txt_pt}",
-                    )
+                    ) + ah_notice
         else:
             if created:
                 result['response'] = _request_message(
@@ -886,7 +1212,7 @@ def apply_request(ns, result, user_id, channel, question):
                     f"It has not been handled yet. You can continue asking the bot questions.{link_txt_en}",
                     pt=f"Sua solicitação {row['id']} está registrada e aguarda atendimento humano. "
                     f"Ela ainda não foi atendida. Você pode continuar consultando o bot.{link_txt_pt}",
-                )
+                ) + ah_notice
             else:
                 if row['status'] == 'in_progress':
                     result['response'] = _request_message(
@@ -904,7 +1230,7 @@ def apply_request(ns, result, user_id, channel, question):
                         f"It has not been handled yet. You can continue asking the bot questions.{link_txt_en}",
                         pt=f"Você já tem uma solicitação registrada ({row['id']}) aguardando atendimento humano. "
                         f"Ela ainda não foi atendida. Você pode continuar consultando o bot.{link_txt_pt}",
-                    )
+                    ) + ah_notice
     except (sqlite3.Error, Exception):
         result['response']=_request_message(
             language,
@@ -990,8 +1316,10 @@ def install(ns):
         for row in rows:
             if row.get('status') != 'closed':
                 # Conversación en vivo: mensajes del cliente, del asesor y del bot desde la solicitud.
-                row['conversation'] = conversation_since(row['user_id'], row.get('created_at'), ticket_id=row.get('id'))
+                conv = conversation_since(row['user_id'], row.get('created_at'), ticket_id=row.get('id'))
+                row['conversation'] = conv
                 row['bot_paused'] = row.get('status') == 'in_progress' and row.get('channel') in PAUSE_CHANNELS
+                row.update(whatsapp_window_status(row, conversation=conv))
         return JSONResponse(rows)
 
     @app.post('/handoffs/{ticket}/message')
@@ -1076,6 +1404,8 @@ PANEL='''<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewpo
   .msg-asesor { background: #dcfce7; margin-left: auto; }
   .msg-bot { background: #e0f2fe; margin-left: auto; }
   .pause-banner { background: #fef3c7; color: #92400e; border-radius: 8px; padding: 10px 12px; font-size: 14px; font-weight: 600; }
+  .window-expired-banner { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; margin: 10px 0; font-size: 14px; font-weight: 600; }
+  .window-expired-banner a { color: #991b1b; text-decoration: underline; font-weight: 700; }
   .btn-send { background: var(--primary); color: white; }
   .btn-send:hover { background: var(--primary-hover); }
   fieldset { border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 14px 14px; margin: 14px 0 0; }
@@ -1184,10 +1514,27 @@ async function load(keepOpenId) {
       } else {
         const isWhatsapp = x.channel === 'whatsapp';
 
+        if (isWhatsapp && x.window_24h_expired) {
+          const warn = elem('div', 'window-expired-banner');
+          const hrsTxt = x.hours_since_customer ? `${x.hours_since_customer} h` : 'más de 24 h';
+          warn.append(
+            `⚠️ Ventana de 24 h de Meta WhatsApp vencida (${hrsTxt} desde el último mensaje del cliente). `
+            + 'La API oficial bloqueará respuestas libres desde esta consola (error 131047). '
+          );
+          if (x.customer_wa_url) {
+            const waLink = elem('a', '', `Contactar directo por WhatsApp (${x.user_id})`);
+            waLink.href = x.customer_wa_url;
+            waLink.target = '_blank';
+            waLink.rel = 'noopener noreferrer';
+            warn.append(waLink, ' desde el celular de la agencia y luego registra aquí el cierre.');
+          }
+          a.append(warn);
+        }
+
         if (x.bot_paused) {
           a.append(elem('p', 'pause-banner', '⏸️ Bot en pausa: solo tú respondes a este cliente. El bot volverá a atenderlo cuando tú o el cliente finalicen la conversación.'));
         } else if (x.status === 'pending' && isWhatsapp) {
-          a.append(elem('p', 'client-meta', 'Mientras nadie tome la solicitud, el bot sigue respondiendo al cliente. Al tomarla, el bot se pausa.'));
+          a.append(elem('p', 'client-meta', 'Mientras nadie tome la solicitud, el bot sigue respondiendo al cliente 24/7. Al tomarla, el bot se pausa.'));
         }
 
         if (x.conversation && x.conversation.length) {
