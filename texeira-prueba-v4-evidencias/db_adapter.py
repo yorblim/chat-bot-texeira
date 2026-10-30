@@ -73,14 +73,38 @@ class SecureConnection(pg8000.dbapi.Connection):
         self._channel_binding_mode = channel_binding_mode
         self._sslmode = sslmode
         self._sasl_plus_completed = False
+        self._cb_override = None
         super().__init__(*args, **kwargs)
+
+    @property
+    def channel_binding(self):
+        if getattr(self, "_channel_binding_mode", "prefer") == "disable":
+            return None
+        if hasattr(self, "_cb_override") and self._cb_override is not None:
+            return self._cb_override
+        cb = getattr(super(), "channel_binding", None)
+        if cb is not None:
+            return cb
+        try:
+            from ssl import SSLSocket
+            usock = getattr(self, "_usock", None)
+            if usock is not None and isinstance(usock, SSLSocket):
+                return ("tls-server-end-point", usock)
+        except Exception:
+            pass
+        return None
+
+    @channel_binding.setter
+    def channel_binding(self, val):
+        self._cb_override = val
 
     def handle_AUTHENTICATION_REQUEST(self, data, context):
         auth_code = i_unpack(data)[0]
         if self._channel_binding_mode == "disable":
             self.channel_binding = None
         elif self._channel_binding_mode == "require":
-            if self.channel_binding is None:
+            cb = getattr(self, "channel_binding", None)
+            if cb is None:
                 raise pg8000.exceptions.InterfaceError(
                     "channel_binding=require solicitado, pero la conexión no es SSL o no se pudo establecer channel binding."
                 )
