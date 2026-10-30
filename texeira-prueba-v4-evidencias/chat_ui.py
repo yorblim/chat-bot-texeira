@@ -436,7 +436,8 @@ def get_chat_html() -> str:
                 descuentos: '¿Hay descuentos?',
                 verPrecio: 'Ver precio',
                 queIncluye: '¿Qué incluye?',
-                horarios: 'Horarios disponibles'
+                horarios: 'Horarios disponibles',
+                finalizar: '✅ Finalizar atención'
             },
             en: {
                 tours: '🏔️ View tours',
@@ -448,7 +449,8 @@ def get_chat_html() -> str:
                 descuentos: 'Any discounts?',
                 verPrecio: 'See price',
                 queIncluye: 'What\u2019s included?',
-                horarios: 'Available schedules'
+                horarios: 'Available schedules',
+                finalizar: '✅ End conversation'
             },
             pt: {
                 tours: '🏔️ Ver passeios',
@@ -460,7 +462,8 @@ def get_chat_html() -> str:
                 descuentos: 'Tem descontos?',
                 verPrecio: 'Ver pre\u00e7o',
                 queIncluye: 'O que est\u00e1 inclu\u00eddo?',
-                horarios: 'Hor\u00e1rios dispon\u00edveis'
+                horarios: 'Hor\u00e1rios dispon\u00edveis',
+                finalizar: '✅ Encerrar conversa'
             }
         };
 
@@ -734,7 +737,15 @@ def get_chat_html() -> str:
             var L = BUTTON_LABELS[lang];
             var t = botText.toLowerCase();
             var labels;
-            if (t.indexOf('no dispongo de esa informaci\u00f3n') !== -1 ||
+            if (t.indexOf('pendiente de atenci\u00f3n') !== -1 ||
+                t.indexOf('ya est\u00e1 en atenci\u00f3n') !== -1 ||
+                t.indexOf('pending human attention') !== -1 ||
+                t.indexOf('pending review by an advisor') !== -1 ||
+                t.indexOf('being attended by an advisor') !== -1 ||
+                t.indexOf('aguarda atendimento') !== -1 ||
+                t.indexOf('em atendimento') !== -1) {
+                labels = [L.tours, L.finalizar];
+            } else if (t.indexOf('no dispongo de esa informaci\u00f3n') !== -1 ||
                 t.indexOf('asesor humano') !== -1 ||
                 t.indexOf('human advisor') !== -1 ||
                 t.indexOf('atendente') !== -1) {

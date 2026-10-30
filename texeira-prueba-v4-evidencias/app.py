@@ -344,8 +344,8 @@ def get_history(user_id: str) -> List[dict]:
     return conversation_history.get(user_id, [])
 
 
-def add_to_history(user_id: str, role: str, content: str):
-    conversation_history.append(user_id, role, content)
+def add_to_history(user_id: str, role: str, content: str, metadata=None):
+    conversation_history.append(user_id, role, content, metadata=metadata)
 
 
 def add_history_turn(user_id: str, question: str, response: str, metadata=None):
@@ -1997,6 +1997,7 @@ def _localize_button_titles(buttons: List[dict], lang: str) -> List[dict]:
         "🌄 Clásicos Cusco": "🌄 Clássicos Cusco",
         "🚌 Rutas Regionales": "🚌 Rotas Regionais",
         "➡️ Más tours": "➡️ Mais passeios",
+        "✅ Finalizar atención": "✅ Encerrar conversa",
     }
     if lang == "fr":
         labels = {
@@ -2007,6 +2008,7 @@ def _localize_button_titles(buttons: List[dict], lang: str) -> List[dict]:
             "💰 Tarifas": "💰 Tarifs", "📸 Ver Fotos": "📸 Voir photos",
             "🙋‍♂️ Asesor": "🙋‍♂️ Conseiller", "🌄 Clásicos Cusco": "🌄 Classiques Cusco",
             "🚌 Rutas Regionales": "🚌 Routes régionales", "➡️ Más tours": "➡️ Autres circuits",
+            "✅ Finalizar atención": "✅ Finir demande",
         }
     elif lang == "it":
         labels = {
@@ -2017,6 +2019,7 @@ def _localize_button_titles(buttons: List[dict], lang: str) -> List[dict]:
             "💰 Tarifas": "💰 Prezzi", "📸 Ver Fotos": "📸 Mostra foto",
             "🙋‍♂️ Asesor": "🙋‍♂️ Consulente", "🌄 Clásicos Cusco": "🌄 Classici Cusco",
             "🚌 Rutas Regionales": "🚌 Rotte regionali", "➡️ Más tours": "➡️ Altri tour",
+            "✅ Finalizar atención": "✅ Chiudi richiesta",
         }
     return [dict(button, title=labels.get(button["title"], button["title"])[:20])
             for button in buttons]
@@ -2111,9 +2114,8 @@ def _build_quick_buttons(
         buttons = [{"id": f"btn_tours:{lang}", "title": "View other tours" if is_en else "Ver otros tours"}]
         if detected_eid and not is_deactivated_tour(detected_eid):
             buttons.append({"id": f"btn_inc:{detected_eid}:{lang}", "title": "📄 What's included" if is_en else "📄 Qué incluye"})
-        else:
-            buttons.append({"id": f"btn_advisor:{lang}", "title": "Consult advisor" if is_en else "Consultar asesor"})
-        return buttons[:2]
+        buttons.append({"id": f"btn_end_handoff:{lang}", "title": "✅ End conversation" if is_en else "✅ Finalizar atención"})
+        return buttons[:3]
 
     # 7. Listado de tours o categorías
     if route == "evidence_listing" or _is_listing_question(u_lower):
@@ -2579,6 +2581,8 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                     is_interactive_ambiguous = False
                     ambiguous_clarif_buttons = []
                     interaction_lang = None
+                    raw_interactive_label = ""
+                    button_action = ""
 
                     # Soporte para respuestas interactivas de WhatsApp
                     if msg_type == "interactive":
@@ -2594,9 +2598,11 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                             reply_data = interactive_obj.get("list_reply", {})
                             btn_id = reply_data.get("id", "")
                             btn_title = reply_data.get("title", "")
+                        raw_interactive_label = btn_title or btn_id
 
                         btn_parts = btn_id.split(":")
                         action = btn_parts[0]
+                        button_action = action
                         explicit_eid = None
                         explicit_lang = None
                         cat_page_num = 0
@@ -2627,15 +2633,15 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
 
                         if explicit_lang in ("es", "en", "pt", "fr", "it"):
                             interaction_lang = explicit_lang
-                        elif any(w in btn_title.lower() for w in ["voir circuits", "conseiller", "services inclus", "tarifs", "réessayer", "catégories", "autres circuits", "voir photos"]):
+                        elif any(w in btn_title.lower() for w in ["voir circuits", "conseiller", "services inclus", "tarifs", "réessayer", "catégories", "autres circuits", "voir photos", "finir demande"]):
                             interaction_lang = "fr"
-                        elif any(w in btn_title.lower() for w in ["mostra tour", "consulente", "servizi inclusi", "prezzi", "riprova", "altri tour", "mostra foto"]) or btn_title.strip() == "⬅️ Categorie":
+                        elif any(w in btn_title.lower() for w in ["mostra tour", "consulente", "servizi inclusi", "prezzi", "riprova", "altri tour", "mostra foto", "chiudi richiesta"]) or btn_title.strip() == "⬅️ Categorie":
                             interaction_lang = "it"
-                        elif any(w in btn_title.lower() for w in ["passeios", "assessor", "o que inclui", "preços", "rotas regionais", "clássicos cusco"]):
+                        elif any(w in btn_title.lower() for w in ["passeios", "assessor", "o que inclui", "preços", "rotas regionais", "clássicos cusco", "encerrar conversa", "encerrar atendimento"]):
                             interaction_lang = "pt"
-                        elif any(w in btn_title.lower() for w in ["rates", "photo", "what's included", "what is included", "advisor", "view tours", "book now", "request reservation", "inca trail", "rainbow mtn", "categories"]):
+                        elif any(w in btn_title.lower() for w in ["rates", "photo", "what's included", "what is included", "advisor", "view tours", "book now", "request reservation", "inca trail", "rainbow mtn", "categories", "end conversation"]):
                             interaction_lang = "en"
-                        elif any(w in btn_title.lower() for w in ["qué incluye", "que incluye", "asesor", "ver tours", "más tours"]):
+                        elif any(w in btn_title.lower() for w in ["qué incluye", "que incluye", "asesor", "ver tours", "más tours", "finalizar atención", "finalizar atencion"]):
                             interaction_lang = "es"
                         else:
                             history_lang = detect_language(last_user_turn) if last_user_turn else "es"
@@ -2675,7 +2681,9 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
 
                         from catalog_service import is_deactivated_tour
                         # Mapeo semántico de botones interactivos preservando entidad e idioma
-                        if target_eid and target_eid != "__AMBIGUOUS__" and is_deactivated_tour(target_eid):
+                        if action == "btn_end_handoff":
+                            user_message = interaction_text("finalizar atención", "end conversation", "encerrar conversa")
+                        elif target_eid and target_eid != "__AMBIGUOUS__" and is_deactivated_tour(target_eid):
                             user_message = interaction_text(
                                 f"informacion de {tour_name or target_eid}",
                                 f"information about {tour_name or target_eid}",
@@ -2761,7 +2769,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                         # handoff_support only recognizes and answers ES/EN/PT,
                         # so they keep the canonical query that registers the
                         # request (its confirmation text is not yet FR/IT).
-                        if (is_fr or is_it) and not is_interactive_ambiguous and action not in ("btn_advisor", "btn_book"):
+                        if (is_fr or is_it) and not is_interactive_ambiguous and action not in ("btn_advisor", "btn_book", "btn_end_handoff"):
                             cat_key = explicit_eid or ""
                             if is_fr:
                                 info_query = f"quelles informations pour {tour_name or target_eid or 'le circuit'}"
@@ -2827,6 +2835,8 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
 
                     items_to_process.append({
                         "user_message": user_message,
+                        "raw_user_text": raw_interactive_label if is_interactive_ambiguous else user_message,
+                        "button_action": button_action,
                         "message_id": msg_id,
                         "owner": owner,
                         "user_id": user_id,
@@ -2866,6 +2876,85 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
             receipt_finished = False
 
             try:
+                from handoff_support import (
+                    active_pause,
+                    record_paused_message,
+                    close_requested_by_customer,
+                    close_by_customer,
+                )
+                btn_action = item.get("button_action") or ""
+                raw_or_msg = item.get("raw_user_text") or u_msg
+
+                # 1. El cliente pulsa '✅ Finalizar atención' o escribe explícitamente que desea
+                # cerrar la conversación con el asesor y volver al asistente virtual.
+                if btn_action == "btn_end_handoff" or close_requested_by_customer(u_msg):
+                    close_info = close_by_customer(u_id, u_chan, language=i_lang, user_text=raw_or_msg)
+                    close_reply = close_info["response"]
+                    eff_lang = i_lang or close_info.get("language") or "es"
+                    if eff_lang not in ("es", "en", "pt", "fr", "it"):
+                        eff_lang = "es"
+                    if u_chan == "whatsapp":
+                        event_id = operational.start()
+                        close_clean = format_whatsapp_text(close_reply)
+                        close_buttons = get_quick_buttons(route="social", user_message="", detected_eid="", lang=eff_lang)
+                        accepted = u_id != "unknown" and send_whatsapp_message(
+                            text=close_clean,
+                            to_phone=p_num if p_num else None,
+                            recipient_bsuid=p_bsuid if p_bsuid else None,
+                            phone_number_id=p_id,
+                            buttons=close_buttons,
+                        )
+                        send_status = "rejected"
+                        is_accepted = False
+                        if hasattr(accepted, "status"):
+                            send_status = accepted.status
+                            is_accepted = accepted.is_accepted
+                        elif accepted is True:
+                            send_status = "accepted"
+                            is_accepted = True
+                        op_status = "api_accepted" if is_accepted else ("send_uncertain" if send_status == "uncertain" else "send_failed")
+                        generation_ms = (time.perf_counter() - item_metric_start) * 1000
+                        try:
+                            operational.finish(
+                                event_id,
+                                op_status,
+                                generation_ms,
+                                (time.perf_counter() - item_metric_start) * 1000,
+                                {"route": "human_request_closed"},
+                            )
+                        except Exception as op_err:
+                            print(f"[OPERATIONAL METRICS ERROR] {op_err}")
+                    elif u_chan == "messenger":
+                        accepted = send_messenger_message(text=close_reply, psid=p_bsuid)
+                        send_status = "accepted" if accepted else "rejected"
+                        is_accepted = bool(accepted)
+                    else:
+                        send_status = "accepted"
+                        is_accepted = True
+
+                    if u_owner and not receipt_finished:
+                        database.finish_webhook(m_id, u_owner, send_status, SQLITE_DB_PATH)
+                        receipt_finished = True
+                    elapsed = (time.time() - item_start) * 1000
+                    channel_tag = "FB" if u_chan == "messenger" else ("TEST" if u_chan == "test" else "WA")
+                    print(f"[{channel_tag} HANDOFF CLOSED BY CUSTOMER] user_id={u_id} ticket={close_info.get('ticket_id')} latency={elapsed:.0f}ms")
+                    return send_status
+
+                # 2. Si un asesor humano tomó el caso ('in_progress'), el bot espera en silencio
+                # sin responder encima y conserva cada mensaje en la memoria conversacional.
+                paused_ticket = active_pause(u_id, u_chan)
+                if paused_ticket is not None:
+                    record_paused_message(u_id, raw_or_msg, paused_ticket)
+                    send_status = "accepted"
+                    is_accepted = True
+                    if u_owner and not receipt_finished:
+                        database.finish_webhook(m_id, u_owner, send_status, SQLITE_DB_PATH)
+                        receipt_finished = True
+                    elapsed = (time.time() - item_start) * 1000
+                    channel_tag = "FB" if u_chan == "messenger" else ("TEST" if u_chan == "test" else "WA")
+                    print(f"[{channel_tag} PAUSED BY ADVISOR] user_id={u_id} ticket={paused_ticket.get('id')} latency={elapsed:.0f}ms")
+                    return send_status
+
                 if u_chan == 'whatsapp':
                     event_id = operational.start()
                 if is_ambig:
@@ -3163,6 +3252,30 @@ async def test_chat(request: TestChatRequest):
                 "resolved_autonomously": False,
                 "escalated_to_human": False,
                 "detected_language": lang,
+                "latency_ms": round(latency_ms, 2),
+            })
+
+        # ---- FINALIZACIÓN DE ATENCIÓN HUMANA POR EL CLIENTE ----
+        from handoff_support import close_requested_by_customer, close_by_customer
+        if request.action == "end_handoff" or close_requested_by_customer(request.message):
+            detected_lang = detect_language(request.message) if request.message else "es"
+            close_info = close_by_customer(request.user_id, "test", language=detected_lang, user_text=request.message)
+            eff_lang = close_info["language"]
+            bot_response = close_info["response"]
+            latency_ms = (time.time() - start_time) * 1000
+            quick_buttons = get_quick_buttons(route="social", user_message="", detected_eid="", lang=eff_lang)
+            return JSONResponse(status_code=200, content={
+                "status": "ok",
+                "response": bot_response,
+                "quick_buttons": quick_buttons,
+                "resolved_autonomously": False,
+                "escalated_to_human": False,
+                "detected_language": eff_lang,
+                "needs_agency_confirmation": False,
+                "route": "human_request_closed",
+                "response_route": "human_request_closed",
+                "handoff_id": close_info.get("ticket_id"),
+                "handoff_status": "closed",
                 "latency_ms": round(latency_ms, 2),
             })
 

@@ -49,9 +49,12 @@ class ConversationMemory:
             messages = change(json.loads(row[0]))[-self.limit:]
             conn.execute('UPDATE conversation_memory SET messages=? WHERE user_id=?', (json.dumps(messages, ensure_ascii=False), user_id))
 
-    def append(self, user_id, role, content):
+    def append(self, user_id, role, content, metadata=None):
         if not _suspended.get():
-            self.mutate(user_id, lambda messages: messages + [dict(role=role, content=content, timestamp=time.time())])
+            entry = dict(role=role, content=content, timestamp=time.time())
+            if metadata:
+                entry['metadata'] = metadata
+            self.mutate(user_id, lambda messages: messages + [entry])
 
     def clear(self, user_id):
         self.mutate(user_id, lambda messages: [])

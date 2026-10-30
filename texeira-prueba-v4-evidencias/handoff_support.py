@@ -65,21 +65,69 @@ class AdvisorDeliveryError(RuntimeError):
     """El proveedor no confirmó el envío; no confirmar cambios del ticket."""
 
 
-def update_request(ticket, status, advisor, note, send_to_customer=False):
-    if not isinstance(send_to_customer, bool):
-        raise ValueError('La opción de envío debe ser verdadera o falsa.')
+_DELIVERY_ERROR = 'WhatsApp no confirmó el envío. El ticket no se actualizó. Comprueba la entrega antes de reintentar.'
+
+
+def _deliver(to_phone, text, buttons=None):
+    """Envío obligatorio: si WhatsApp no confirma, la transacción se revierte."""
+    try:
+        from src.services.whatsapp import send_whatsapp_message
+        kwargs = {'text': text, 'to_phone': to_phone}
+        if buttons:
+            kwargs['buttons'] = buttons
+        sent = send_whatsapp_message(**kwargs)
+    except Exception:
+        raise AdvisorDeliveryError(_DELIVERY_ERROR) from None
+    if not sent:
+        raise AdvisorDeliveryError(_DELIVERY_ERROR)
+
+
+def _deliver_best_effort(to_phone, text, buttons=None):
+    """Envío de cortesía (aviso de toma / agradecimiento): nunca bloquea el ticket."""
+    try:
+        from src.services.whatsapp import send_whatsapp_message
+        kwargs = {'text': text, 'to_phone': to_phone}
+        if buttons:
+            kwargs['buttons'] = buttons
+        return bool(send_whatsapp_message(**kwargs))
+    except Exception as exc:
+        print(f'[HANDOFF] Mensaje de cortesía no enviado a {to_phone}: {type(exc).__name__}')
+        return False
+
+
+def advisor_text(advisor, text):
+    """Formato visible para el cliente de cada mensaje escrito por un asesor."""
+    return f"*{advisor.strip()} · Texeira Travel:*\n{text.strip()}"
+
+
+def update_request(ticket, status, advisor, note, send_to_customer=False,
+                   notify_customer=False, send_closing=False, outcome=None):
+    """Cambia el estado del ticket.
+
+    - send_to_customer: envía la nota al cliente (obligatorio; si falla, revierte).
+    - notify_customer: al tomar (pending -> in_progress) avisa al cliente que un
+      asesor ya lo atiende (cortesía; no revierte si falla).
+    - send_closing: al cerrar envía el agradecimiento y el bot vuelve a atender
+      (cortesía; no revierte si falla).
+    - outcome: diccionario opcional que recibe el resultado de cada envío.
+    """
+    for flag in (send_to_customer, notify_customer, send_closing):
+        if not isinstance(flag, bool):
+            raise ValueError('La opción de envío debe ser verdadera o falsa.')
     if status not in {'in_progress','closed'} or not advisor.strip():
         raise ValueError('Indica el asesor y un estado válido.')
     if status == 'closed' and not note.strip():
         raise ValueError('Describe el resultado de la atención antes de cerrar.')
     if send_to_customer and not note.strip():
         raise ValueError('Escribe la respuesta que deseas enviar.')
+    note_body = advisor_text(advisor, note) if send_to_customer else ''
     with connection() as conn:
         # BEGIN IMMEDIATE eliminado: incompatible con PostgreSQL vía db_adapter.
         # El bloqueo pesimista se logra con FOR UPDATE en la sentencia SELECT.
         lock = ' FOR UPDATE' if is_postgres() else ''
         row=conn.execute('SELECT * FROM requests WHERE id=?' + lock,(ticket,)).fetchone()
         if not row: raise ValueError('Solicitud inexistente.')
+        row = dict(row)
         if row['status']=='closed': raise ValueError('La solicitud ya está cerrada.')
         if row['status']=='pending' and status=='closed': raise ValueError('Primero toma la solicitud en atención.')
         if send_to_customer and row['channel'] != 'whatsapp':
@@ -91,20 +139,367 @@ def update_request(ticket, status, advisor, note, send_to_customer=False):
         if send_to_customer:
             # Mantener el bloqueo hasta terminar: otra operación no puede cerrar
             # el mismo ticket entre la validación y el intento de envío.
-            try:
-                from src.services.whatsapp import send_whatsapp_message
-                sent = send_whatsapp_message(
-                    text=f"Hola, soy {advisor.strip()} de Texeira Travel:\n\n{note.strip()}",
-                    to_phone=row['user_id'],
-                )
-            except Exception:
-                raise AdvisorDeliveryError('WhatsApp no confirmó el envío. El ticket no se actualizó. Comprueba la entrega antes de reintentar.') from None
-            if not sent:
-                raise AdvisorDeliveryError('WhatsApp no confirmó el envío. El ticket no se actualizó. Comprueba la entrega antes de reintentar.')
+            _deliver(row['user_id'], note_body)
+
+    # Tras confirmar el ticket: registrar en la memoria para que el bot conserve
+    # el contexto de lo que respondió el asesor, y enviar mensajes de cortesía.
+    customer = row['user_id']
+    advisor_name = advisor.strip()
+    on_whatsapp = row['channel'] == 'whatsapp'
+    result = {'message_sent': send_to_customer, 'customer_notified': False, 'closing_sent': False}
+    if send_to_customer:
+        _history_append(customer, 'ai', note_body, {'author': 'advisor', 'advisor': advisor_name, 'handoff_id': ticket})
+    if on_whatsapp and notify_customer and status == 'in_progress' and row['status'] == 'pending':
+        cust_lang = _customer_language(customer)
+        text = taken_message(advisor_name, cust_lang)
+        if _deliver_best_effort(customer, text, buttons=[end_handoff_button(cust_lang)]):
+            result['customer_notified'] = True
+            _history_append(customer, 'ai', text, {'author': 'advisor', 'advisor': advisor_name, 'handoff_id': ticket, 'event': 'handoff_taken'})
+    if on_whatsapp and send_closing and status == 'closed':
+        text = closing_message(advisor_name, _customer_language(customer))
+        if _deliver_best_effort(customer, text):
+            result['closing_sent'] = True
+            _history_append(customer, 'ai', text, {'author': 'system', 'handoff_id': ticket, 'event': 'handoff_closed'})
+    if isinstance(outcome, dict):
+        outcome.update(result)
     return send_to_customer
 
 
+def send_advisor_message(ticket, advisor, text):
+    """Mensaje del asesor durante la atención, sin cerrar la solicitud.
+
+    Si el ticket seguía pendiente, escribir al cliente equivale a tomarlo. El
+    ticket queda 'in_progress', por lo que el bot permanece en pausa. Incluye
+    un botón rápido para que el cliente también pueda finalizar la atención
+    cuando su duda o reserva quede resuelta.
+    """
+    advisor = (advisor or '').strip()[:100]
+    text = (text or '').strip()[:2000]
+    if not advisor or not text:
+        raise ValueError('Indica tu nombre de asesor y el mensaje para el cliente.')
+    body = advisor_text(advisor, text)
+    with connection() as conn:
+        lock = ' FOR UPDATE' if is_postgres() else ''
+        row = conn.execute('SELECT * FROM requests WHERE id=?' + lock, (ticket,)).fetchone()
+        if not row: raise ValueError('Solicitud inexistente.')
+        row = dict(row)
+        if row['status'] == 'closed': raise ValueError('La solicitud ya está cerrada.')
+        if row['channel'] != 'whatsapp':
+            raise ValueError('Esta solicitud no pertenece al canal WhatsApp.')
+        changed = conn.execute('UPDATE requests SET status=?,advisor=?,updated_at=? WHERE id=? AND status=?',
+                               ('in_progress', advisor, datetime.now(timezone.utc).isoformat(), ticket, row['status']))
+        if changed.rowcount != 1:
+            raise ValueError('Otro asesor actualizó la solicitud; recarga antes de continuar.')
+        cust_lang = _customer_language(row['user_id'])
+        _deliver(row['user_id'], body, buttons=[end_handoff_button(cust_lang)])
+    _history_append(row['user_id'], 'ai', body, {'author': 'advisor', 'advisor': advisor, 'handoff_id': ticket})
+    return True
+
+
+# ------------------------------------------------------------------
+# Pausa del bot mientras un asesor atiende la conversación
+# ------------------------------------------------------------------
+# Regla: solo un ticket 'in_progress' (un asesor lo tomó) silencia al bot.
+# Un ticket 'pending' no lo silencia: todavía nadie atiende y el cliente puede
+# seguir consultando. El silencio termina al cerrar el ticket o, como red de
+# seguridad, si el asesor no registra actividad en HANDOFF_PAUSE_TIMEOUT_HOURS.
+PAUSE_CHANNELS = {'whatsapp'}
+_HOOKS = {}
+
+
+def _pause_timeout_hours():
+    try:
+        return max(0.0, float(os.getenv('HANDOFF_PAUSE_TIMEOUT_HOURS', '24')))
+    except ValueError:
+        return 24.0
+
+
+def _parse_ts(value):
+    if isinstance(value, datetime):
+        dt = value
+    else:
+        try:
+            dt = datetime.fromisoformat(str(value))
+        except (TypeError, ValueError):
+            return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def active_pause(user_id, channel, now=None):
+    """Ticket que mantiene al bot en silencio para este cliente, o None."""
+    if channel not in PAUSE_CHANNELS or not user_id:
+        return None
+    try:
+        with connection() as conn:
+            row = conn.execute("SELECT * FROM requests WHERE user_id=? AND channel=? AND status='in_progress'",
+                               (user_id, channel)).fetchone()
+    except Exception as exc:
+        # Ante un fallo de lectura el bot responde: es preferible a dejar al cliente sin respuesta.
+        print(f'[HANDOFF PAUSE] Estado no disponible, el bot continúa: {type(exc).__name__}')
+        return None
+    if not row:
+        return None
+    row = dict(row)
+    timeout = _pause_timeout_hours()
+    updated = _parse_ts(row.get('updated_at'))
+    if timeout and updated:
+        now = now or datetime.now(timezone.utc)
+        if (now - updated).total_seconds() > timeout * 3600:
+            print(f"[HANDOFF PAUSE] Ticket {row['id']} sin actividad del asesor en {timeout:g} h; el bot retoma.")
+            return None
+    return row
+
+
+def record_paused_message(user_id, text, ticket):
+    """Guarda el mensaje del cliente durante la pausa (lo verá el asesor y el bot).
+
+    Si no puede guardarse, lanza la excepción para que Meta reintente la entrega
+    y el mensaje no se pierda.
+    """
+    _history_append(user_id, 'human', text,
+                    {'handoff_id': ticket.get('id'), 'during_advisor_pause': True}, strict=True)
+
+
+def _history_append(user_id, role, content, metadata=None, strict=False):
+    add = _HOOKS.get('add_to_history')
+    if add is None:
+        if strict:
+            raise RuntimeError('Memoria de conversación no disponible.')
+        return False
+    try:
+        add(user_id, role, content, metadata=metadata)
+        return True
+    except Exception as exc:
+        if strict:
+            raise
+        print(f'[HANDOFF] No se pudo registrar el mensaje en la memoria: {type(exc).__name__}')
+        return False
+
+
+def _customer_language(user_id):
+    """Idioma de los últimos mensajes del cliente; español por defecto."""
+    get_hist = _HOOKS.get('get_history')
+    detect = _HOOKS.get('detect_language')
+    if not get_hist or not detect:
+        return 'es'
+    try:
+        texts = [h.get('content', '') for h in get_hist(user_id) if h.get('role') == 'human'][-3:]
+        lang = detect(' '.join(texts)) if texts else 'es'
+    except Exception:
+        return 'es'
+    return lang if lang in ('es', 'en', 'pt') else 'es'
+
+
+def taken_message(advisor, language):
+    return _request_message(
+        language,
+        es=f"👋 Hola, soy {advisor}, asesor(a) de Texeira Travel. Ya tengo tu consulta y te responderé por este mismo chat en unos minutos.",
+        en=f"👋 Hi, I'm {advisor}, an advisor at Texeira Travel. I have your request and will reply in this same chat in a few minutes.",
+        pt=f"👋 Olá, sou {advisor}, assessor(a) da Texeira Travel. Já recebi sua consulta e responderei por este mesmo chat em alguns minutos.",
+    )
+
+
+def closing_message(advisor, language):
+    return _request_message(
+        language,
+        es=(f"✅ Tu consulta fue atendida por {advisor}. ¡Muchas gracias por confiar en Texeira Travel! 🙌\n\n"
+            "Si necesitas algo más, escríbeme por aquí: vuelvo a estar disponible para ayudarte con tours, precios y horarios 😊"),
+        en=(f"✅ Your request was handled by {advisor}. Thank you very much for choosing Texeira Travel! 🙌\n\n"
+            "If you need anything else, just write here: I'm available again to help you with tours, prices and schedules 😊"),
+        pt=(f"✅ Sua consulta foi atendida por {advisor}. Muito obrigado por confiar na Texeira Travel! 🙌\n\n"
+            "Se precisar de mais alguma coisa, escreva aqui: estou disponível novamente para ajudar com passeios, preços e horários 😊"),
+    )
+
+
+def end_handoff_button(language='es'):
+    """Botón rápido de WhatsApp (<= 20 caracteres) para que el cliente finalice la atención."""
+    lang = language if language in ('es', 'en', 'pt') else 'es'
+    title = _request_message(
+        lang,
+        es='✅ Finalizar atención',
+        en='✅ End conversation',
+        pt='✅ Encerrar conversa',
+    )
+    return {'id': f'btn_end_handoff:{lang}', 'title': title[:20]}
+
+
+def customer_closing_message(advisor, previous_status, language):
+    """Mensaje de agradecimiento y reactivación cuando el propio cliente finaliza la atención."""
+    advisor = (advisor or '').strip()
+    if previous_status == 'in_progress' or advisor:
+        who_es = advisor or 'nuestro asesor'
+        who_en = advisor or 'our advisor'
+        who_pt = advisor or 'nosso assessor'
+        return _request_message(
+            language,
+            es=(f"✅ Dimos por finalizada tu atención con {who_es}. ¡Muchas gracias por confiar en Texeira Travel! 🙌\n\n"
+                "Tu asistente virtual vuelve a estar activo para ayudarte con tours, precios y horarios 😊"),
+            en=(f"✅ We have closed your conversation with {who_en}. Thank you very much for choosing Texeira Travel! 🙌\n\n"
+                "Your virtual assistant is active again to help you with tours, prices and schedules 😊"),
+            pt=(f"✅ Encerramos seu atendimento com {who_pt}. Muito obrigado por confiar na Texeira Travel! 🙌\n\n"
+                "Seu assistente virtual está ativo novamente para ajudar com passeios, preços e horários 😊"),
+        )
+    if previous_status == 'pending':
+        return _request_message(
+            language,
+            es=("✅ Tu solicitud de atención con un asesor fue finalizada. ¡Muchas gracias por comunicarte con Texeira Travel! 🙌\n\n"
+                "Sigo disponible por aquí para ayudarte con tours, precios y horarios 😊"),
+            en=("✅ Your request to speak with an advisor has been closed. Thank you very much for contacting Texeira Travel! 🙌\n\n"
+                "I'm still here to help you with tours, prices and schedules 😊"),
+            pt=("✅ Sua solicitação de atendimento com um assessor foi encerrada. Muito obrigado por falar com a Texeira Travel! 🙌\n\n"
+                "Continuo disponível por aqui para ajudar com passeios, preços e horários 😊"),
+        )
+    return _request_message(
+        language,
+        es=("✅ Tu atención con el asesor ya se encuentra finalizada. ¡Muchas gracias por confiar en Texeira Travel! 🙌\n\n"
+            "¿En qué más puedo ayudarte hoy con nuestros tours, precios u horarios? 😊"),
+        en=("✅ Your advisor session is already closed. Thank you very much for choosing Texeira Travel! 🙌\n\n"
+            "How else can I help you today with our tours, prices or schedules? 😊"),
+        pt=("✅ Seu atendimento com o assessor já está encerrado. Muito obrigado por confiar na Texeira Travel! 🙌\n\n"
+            "Como posso ajudar você hoje com nossos passeios, preços ou horários? 😊"),
+    )
+
+
+def close_requested_by_customer(text):
+    """Reconoce únicamente solicitudes EXPLÍCITAS del cliente para finalizar la atención
+    humana o volver al bot (nunca un simple 'gracias', para no cortar al asesor a mitad de charla).
+    """
+    if not text:
+        return False
+    normalized = ''.join(c for c in unicodedata.normalize('NFKD', str(text).lower()) if not unicodedata.combining(c))
+    q = re.sub(r'^[^a-z0-9]+', '', normalized).strip(' .!¿?¡\'"')
+    if not q:
+        return False
+
+    neg_close = [
+        r'\b(no|todavia\s+no|aun\s+no|nunca|jamas)\s+(quiero\s+|deseo\s+)?(finaliz\w*|termin\w*|cerr\w*|cancel\w*|volv\w*|regres\w*)\b',
+        r'\b(do\s+not|don\'?t|not\s+yet|never)\s+(want\s+to\s+)?(end|finish|close|cancel|return)\b',
+        r'\b(nao|ainda\s+nao|nunca)\s+(quero\s+|desejo\s+)?(encerr\w*|finaliz\w*|fech\w*|cancel\w*|volt\w*)\b',
+    ]
+    if any(re.search(pat, q) for pat in neg_close):
+        return False
+
+    exact_close = {
+        'finalizar conversacion', 'finalizar la conversacion',
+        'finalizar atencion', 'finalizar la atencion',
+        'finalizar consulta', 'finalizar la consulta', 'finalizar chat',
+        'terminar conversacion', 'terminar atencion', 'terminar consulta',
+        'cerrar conversacion', 'cerrar atencion', 'cerrar consulta', 'cerrar solicitud',
+        'cancelar solicitud', 'cancelar asesor', 'cancelar atencion',
+        'volver al bot', 'volver al asistente', 'regresar al bot', 'regresar al asistente',
+        'continuar con el bot', 'seguir con el bot',
+        'end conversation', 'finish conversation', 'close conversation', 'end chat',
+        'end session', 'close request', 'cancel request', 'cancel advisor',
+        'return to bot', 'back to bot', 'back to assistant', 'continue with bot',
+        'encerrar conversa', 'finalizar conversa', 'fechar conversa',
+        'encerrar atendimento', 'finalizar atendimento', 'fechar solicitacao',
+        'cancelar solicitacao', 'cancelar assessor',
+        'voltar ao bot', 'voltar para o bot', 'voltar ao assistente', 'continuar com o bot',
+    }
+    if q in exact_close:
+        return True
+
+    close_patterns = [
+        r'\b(quiero\s+|deseo\s+|quisiera\s+|por\s+favor\s+|puedes\s+)?(finalizar|terminar|cerrar|cancelar|dar\s+por\s+finalizada|dar\s+por\s+terminada)\s+(la\s+|mi\s+|esta\s+|el\s+)?(conversacion|atencion|consulta|solicitud|chat|asesor\w*)(\s+humana?|\s+de\s+reserva)?\b',
+        r'\b(quiero\s+|deseo\s+|quisiera\s+)?(volver|regresar|continuar|seguir)\s+(con\s+|a\s+|al\s+)(el\s+)?(bot|asistente|chat\s+automatico|ia)\b',
+        r'\b(ya\s+(me\s+atendieron|fue\s+resuelt[oa]|resolvieron\s+mi\s+(duda|consulta)|quedo\s+resuelt[oa]))\b',
+        r'\b(i\s+want\s+to\s+|please\s+|can\s+you\s+)?(end|finish|close|cancel)\s+(the\s+|my\s+|this\s+)?(conversation|chat|session|support|request|advisor)\b',
+        r'\b(i\s+want\s+to\s+|please\s+)?(return|go\s+back|switch\s+back|continue)\s+(to|with)\s+(the\s+)?(bot|virtual\s+assistant|assistant|ai)\b',
+        r'\b(quero\s+|desejo\s+|gostaria\s+de\s+|por\s+favor\s+)?(encerrar|finalizar|fechar|cancelar)\s+(a\s+|minha\s+|esta\s+|o\s+)?(conversa|atendimento|consulta|solicitacao|chat|assessor\w*)\b',
+        r'\b(quero\s+|desejo\s+)?(voltar|retornar|continuar)\s+(ao|para\s+o|com\s+o)\s+(bot|assistente|ia)\b',
+        r'\b(ja\s+fui\s+atendid[oa]|minha\s+duvida\s+foi\s+resolvida)\b',
+    ]
+    return any(re.search(pat, q) for pat in close_patterns)
+
+
+def close_by_customer(user_id, channel, language=None, user_text=''):
+    """Permite que el cliente finalice su solicitud abierta ('pending' o 'in_progress')
+    y reactive de inmediato al bot IA sin perder el contexto conversacional.
+    """
+    lang = language if language in ('es', 'en', 'pt') else None
+    if not lang:
+        detect = _HOOKS.get('detect_language')
+        detected = detect(user_text) if (detect and user_text) else None
+        lang = detected if detected in ('es', 'en', 'pt') else _customer_language(user_id)
+
+    closed_row = None
+    prev_status = None
+    prev_advisor = ''
+    now = datetime.now(timezone.utc).isoformat()
+    with connection() as conn:
+        lock = ' FOR UPDATE' if is_postgres() else ''
+        row = conn.execute(
+            "SELECT * FROM requests WHERE user_id=? AND channel=? AND status!='closed'" + lock,
+            (user_id, channel),
+        ).fetchone()
+        if row:
+            row = dict(row)
+            prev_status = row.get('status')
+            prev_advisor = (row.get('advisor') or '').strip()
+            prev_note = (row.get('note') or '').strip()
+            advisor_val = prev_advisor or 'Cliente (autocierre)'
+            tag = '[Finalizado por el cliente]'
+            note_val = f'{prev_note}\n{tag}'.strip() if (prev_note and tag not in prev_note) else (prev_note or tag)
+            changed = conn.execute(
+                "UPDATE requests SET status='closed', advisor=?, note=?, updated_at=? WHERE id=? AND status=?",
+                (advisor_val, note_val, now, row['id'], prev_status),
+            )
+            if changed.rowcount == 1:
+                closed_row = row
+
+    reply = customer_closing_message(prev_advisor, prev_status if closed_row else None, lang)
+    recorded_user_text = (user_text or '').strip() or _request_message(
+        lang, es='Finalizar atención', en='End conversation', pt='Encerrar conversa',
+    )
+    ticket_meta = {'handoff_id': closed_row['id']} if closed_row else {}
+    _history_append(user_id, 'human', recorded_user_text,
+                    dict(ticket_meta, event='customer_close_request'))
+    _history_append(user_id, 'ai', reply,
+                    dict(ticket_meta, author='system', event='handoff_closed_by_customer'))
+    return {
+        'closed': closed_row is not None,
+        'ticket_id': closed_row['id'] if closed_row else None,
+        'previous_status': prev_status if closed_row else 'closed',
+        'advisor': prev_advisor,
+        'language': lang,
+        'response': reply,
+    }
+
+
+def conversation_since(user_id, created_at, ticket_id=None, limit=30):
+    """Mensajes desde la creación del ticket, etiquetados por autor, para el panel."""
+    get_hist = _HOOKS.get('get_history')
+    if not get_hist:
+        return []
+    start = _parse_ts(created_at)
+    # El turno que abrió la solicitud se guarda segundos antes de crear el ticket.
+    since = start.timestamp() - 5 if start else None
+    out = []
+    try:
+        messages = get_hist(user_id)
+    except Exception:
+        return []
+    for m in messages:
+        ts = m.get('timestamp')
+        if since is not None and isinstance(ts, (int, float)) and ts < since:
+            continue
+        meta = m.get('metadata') or {}
+        if ticket_id and meta.get('handoff_id') and meta.get('handoff_id') != ticket_id:
+            continue
+        if m.get('role') == 'human':
+            author = 'cliente'
+        elif meta.get('author') == 'advisor':
+            author = 'asesor'
+        else:
+            author = 'bot'
+        out.append({'author': author, 'content': m.get('content', ''), 'timestamp': ts,
+                    'advisor': meta.get('advisor', '')})
+    return out[-limit:]
+
+
 def requested(text):
+    if close_requested_by_customer(text):
+        return False
     normalized = ''.join(c for c in unicodedata.normalize('NFKD', text.lower()) if not unicodedata.combining(c))
     q = normalized.strip(' .!¿?¡\'"')
 
@@ -525,6 +920,12 @@ def apply_request(ns, result, user_id, channel, question):
 
 
 def install(ns):
+    # Acceso a la memoria compartida sin importar app.py (evita importación circular).
+    _HOOKS.update(
+        add_to_history=ns.get('add_to_history'),
+        get_history=ns.get('get_history'),
+        detect_language=ns.get('detect_language'),
+    )
     original=ns['rag_chain']
     def chain(question,user_id='default'):
         if not requested(question):
@@ -586,7 +987,25 @@ def install(ns):
         if not local(request): return JSONResponse({'error':'Acceso local requerido'},status_code=403)
         with connection() as conn:
             rows=[dict(r) for r in conn.execute('SELECT * FROM requests ORDER BY created_at DESC LIMIT 200')]
+        for row in rows:
+            if row.get('status') != 'closed':
+                # Conversación en vivo: mensajes del cliente, del asesor y del bot desde la solicitud.
+                row['conversation'] = conversation_since(row['user_id'], row.get('created_at'), ticket_id=row.get('id'))
+                row['bot_paused'] = row.get('status') == 'in_progress' and row.get('channel') in PAUSE_CHANNELS
         return JSONResponse(rows)
+
+    @app.post('/handoffs/{ticket}/message')
+    async def message(ticket:str,request:Request):
+        if not local(request) or request.headers.get('X-Handoff-CSRF')!=csrf:
+            return JSONResponse({'error':'Solicitud no autorizada'},status_code=403)
+        try:
+            body=await request.json()
+            send_advisor_message(ticket,str(body.get('advisor','')),str(body.get('text','')))
+            return JSONResponse({'ok':True,'message_sent':True})
+        except AdvisorDeliveryError as exc:
+            return JSONResponse({'ok':False,'message_sent':False,'error':str(exc)},status_code=502)
+        except (ValueError,TypeError,AttributeError) as exc:
+            return JSONResponse({'error':str(exc)},status_code=400)
 
     @app.post('/handoffs/{ticket}')
     async def update(ticket:str,request:Request):
@@ -598,8 +1017,14 @@ def install(ns):
             advisor=str(body.get('advisor',''))[:100]
             note=str(body.get('note',''))[:2000]
             send_to_customer=body.get('send_to_customer',False)
-            msg_sent=update_request(ticket,status,advisor,note,send_to_customer)
-            return JSONResponse({'ok':True, 'message_sent': msg_sent})
+            notify_customer=body.get('notify_customer',False)
+            send_closing=body.get('send_closing',False)
+            outcome={}
+            msg_sent=update_request(ticket,status,advisor,note,send_to_customer,
+                                    notify_customer=notify_customer,send_closing=send_closing,outcome=outcome)
+            return JSONResponse({'ok':True, 'message_sent': msg_sent,
+                                 'customer_notified': outcome.get('customer_notified', False),
+                                 'closing_sent': outcome.get('closing_sent', False)})
         except AdvisorDeliveryError as exc:
             return JSONResponse({'ok':False, 'message_sent':False, 'error':str(exc)},status_code=502)
         except (ValueError,TypeError,AttributeError) as exc:
@@ -643,6 +1068,18 @@ PANEL='''<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewpo
   #feedback { margin: 10px 0; font-weight: 600; }
   #feedback.error { color: #dc2626; }
   #feedback.success { color: #16a34a; }
+  .live-chat { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin: 12px 0; max-height: 360px; overflow-y: auto; }
+  .msg { margin: 8px 0; padding: 8px 12px; border-radius: 10px; max-width: 85%; }
+  .msg p { margin: 4px 0 0; white-space: pre-wrap; font-size: 14px; }
+  .msg-who { font-size: 12px; font-weight: 700; color: var(--muted); }
+  .msg-cliente { background: #ffffff; border: 1px solid #e2e8f0; }
+  .msg-asesor { background: #dcfce7; margin-left: auto; }
+  .msg-bot { background: #e0f2fe; margin-left: auto; }
+  .pause-banner { background: #fef3c7; color: #92400e; border-radius: 8px; padding: 10px 12px; font-size: 14px; font-weight: 600; }
+  .btn-send { background: var(--primary); color: white; }
+  .btn-send:hover { background: var(--primary-hover); }
+  fieldset { border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 14px 14px; margin: 14px 0 0; }
+  legend { font-weight: 700; font-size: 14px; color: #334155; padding: 0 6px; }
 </style>
 <header>
   <div>
@@ -689,7 +1126,7 @@ const elem = (tag, cls, text) => {
   return e;
 };
 
-async function load() {
+async function load(keepOpenId) {
   const list = document.getElementById('list');
   try {
     const r = await fetch('/handoffs/data');
@@ -703,7 +1140,9 @@ async function load() {
     }
     for (const x of rows) {
       const a = elem('details', 'ticket');
+      a.dataset.id = x.id;
       a.dataset.state = x.status;
+      if (keepOpenId && keepOpenId === x.id) a.open = true;
       a.dataset.search = `${x.id} ${x.user_id} ${x.question} ${x.advisor || ''}`.toLocaleLowerCase();
       const overview = elem('summary');
       
@@ -743,8 +1182,31 @@ async function load() {
         );
         a.append(closedBox);
       } else {
+        const isWhatsapp = x.channel === 'whatsapp';
+
+        if (x.bot_paused) {
+          a.append(elem('p', 'pause-banner', '⏸️ Bot en pausa: solo tú respondes a este cliente. El bot volverá a atenderlo cuando tú o el cliente finalicen la conversación.'));
+        } else if (x.status === 'pending' && isWhatsapp) {
+          a.append(elem('p', 'client-meta', 'Mientras nadie tome la solicitud, el bot sigue respondiendo al cliente. Al tomarla, el bot se pausa.'));
+        }
+
+        if (x.conversation && x.conversation.length) {
+          const live = elem('div', 'live-chat');
+          live.append(elem('strong', '', '💬 Conversación desde la solicitud'));
+          for (const m of x.conversation) {
+            const who = m.author === 'cliente' ? '👤 Cliente' : (m.author === 'asesor' ? `🧑‍💼 ${m.advisor || 'Asesor'}` : '🤖 Bot');
+            const when = m.timestamp ? ' · ' + new Date(m.timestamp * 1000).toLocaleString() : '';
+            const line = elem('div', `msg msg-${m.author}`);
+            line.append(elem('span', 'msg-who', who + when), elem('p', '', m.content));
+            live.append(line);
+          }
+          a.append(live);
+          setTimeout(() => { live.scrollTop = live.scrollHeight; }, 0);
+        }
+
         const formDiv = elem('div');
-        
+        const hasAdvisorMessages = Array.isArray(x.conversation) && x.conversation.some(m => m.author === 'asesor');
+
         const lWho = elem('label', '', 'Nombre del Asesor');
         const who = elem('input');
         who.type = 'text';
@@ -753,49 +1215,94 @@ async function load() {
         who.id = `advisor-${x.id}`;
         lWho.htmlFor = who.id;
         formDiv.append(lWho, who);
+        const needName = () => {
+          if (who.value.trim()) return true;
+          alert('Por favor ingresa tu nombre de asesor.'); who.focus(); return false;
+        };
 
-        const lNote = elem('label', '', 'Respuesta al cliente / Nota de atención');
+        const lNote = elem('label', '', x.status === 'in_progress' && isWhatsapp
+          ? 'Mensaje para el cliente / Nota de cierre'
+          : 'Respuesta al cliente / Nota de atención');
         const note = elem('textarea');
-        note.placeholder = 'Escribe aquí el mensaje para el cliente o el resultado de la atención...';
+        note.placeholder = x.status === 'in_progress' && isWhatsapp
+          ? 'Escribe un mensaje para seguir conversando con el cliente, o el resultado final antes de finalizar...'
+          : 'Escribe aquí el mensaje para el cliente o el resultado de la atención...';
         note.value = x.note || '';
         note.id = `note-${x.id}`;
         lNote.htmlFor = note.id;
         formDiv.append(lNote, note);
 
-        const checkLabel = elem('label', 'checkbox-group');
-        const sendCheck = elem('input');
-        sendCheck.type = 'checkbox';
-        sendCheck.checked = true;
-        checkLabel.append(sendCheck, ' Enviar esta respuesta directamente al WhatsApp del cliente');
-        formDiv.append(checkLabel);
+        let notifyCheck = null;
+        if (x.status === 'pending' && isWhatsapp) {
+          const notifyLabel = elem('label', 'checkbox-group');
+          notifyCheck = elem('input');
+          notifyCheck.type = 'checkbox';
+          notifyCheck.checked = true;
+          notifyLabel.append(notifyCheck, ' Avisar al cliente por WhatsApp que ya lo estoy atendiendo (pausa al bot)');
+          formDiv.append(notifyLabel);
+        }
+
+        let sendCheck = null;
+        let closingCheck = null;
+        if (isWhatsapp) {
+          const checkLabel = elem('label', 'checkbox-group');
+          sendCheck = elem('input');
+          sendCheck.type = 'checkbox';
+          sendCheck.checked = !hasAdvisorMessages;
+          checkLabel.append(sendCheck, hasAdvisorMessages
+            ? ' Enviar también este texto al WhatsApp del cliente al finalizar'
+            : ' Enviar esta respuesta directamente al WhatsApp del cliente al finalizar');
+          const closingLabel = elem('label', 'checkbox-group');
+          closingCheck = elem('input');
+          closingCheck.type = 'checkbox';
+          closingCheck.checked = true;
+          closingLabel.append(closingCheck, ' Enviar mensaje de finalización y agradecimiento (reactivar bot IA)');
+          formDiv.append(checkLabel, closingLabel);
+        }
 
         const btnGroup = elem('div', 'btn-group');
-        
+
         if (x.status === 'pending') {
           const bTake = elem('button', 'btn-take', '✋ Tomar solicitud');
           bTake.onclick = async () => {
-            if (!who.value.trim()) { alert('Por favor ingresa tu nombre de asesor.'); who.focus(); return; }
+            if (!needName()) return;
             bTake.disabled = true;
-            try { await sendUpdate(x.id, 'in_progress', who.value, note.value, false); }
+            try { await sendUpdate(x.id, 'in_progress', who.value, note.value, false, { notify_customer: !!(notifyCheck && notifyCheck.checked) }); }
             finally { bTake.disabled = false; }
           };
           btnGroup.append(bTake);
         }
 
-        const bClose = elem('button', 'btn-close', sendCheck.checked ? '🚀 Responder y Cerrar' : '✅ Cerrar Solicitud');
-        sendCheck.onchange = () => {
-          bClose.textContent = sendCheck.checked ? '🚀 Responder y Cerrar' : '✅ Cerrar Solicitud';
+        if (isWhatsapp && x.status === 'in_progress') {
+          const bSend = elem('button', 'btn-send', '📨 Enviar mensaje (seguir atendiendo)');
+          bSend.onclick = async () => {
+            if (!needName()) return;
+            if (!note.value.trim()) { alert('Escribe el mensaje para el cliente.'); note.focus(); return; }
+            bSend.disabled = true;
+            try { await sendMessage(x.id, who.value, note.value); }
+            finally { bSend.disabled = false; }
+          };
+          btnGroup.append(bSend);
+        }
+
+        const updateCloseLabel = () => {
+          bClose.textContent = (sendCheck && sendCheck.checked) ? '🚀 Responder y Finalizar' : '✅ Finalizar conversación';
         };
+        const bClose = elem('button', 'btn-close', '✅ Finalizar conversación');
+        updateCloseLabel();
+        if (sendCheck) sendCheck.onchange = updateCloseLabel;
 
         bClose.onclick = async () => {
-          if (!who.value.trim()) { alert('Por favor ingresa tu nombre de asesor.'); who.focus(); return; }
-          if (!note.value.trim()) { alert('Escribe la respuesta o nota de atención antes de cerrar.'); note.focus(); return; }
+          if (!needName()) return;
+          if (!note.value.trim()) { alert('Describe el resultado o respuesta de la atención antes de finalizar.'); note.focus(); return; }
           bClose.disabled = true;
-          try { await sendUpdate(x.id, 'closed', who.value, note.value, sendCheck.checked); }
+          try {
+            await sendUpdate(x.id, 'closed', who.value, note.value, !!(sendCheck && sendCheck.checked),
+                             { send_closing: !!(closingCheck && closingCheck.checked) });
+          }
           finally { bClose.disabled = false; }
         };
         btnGroup.append(bClose);
-
         formDiv.append(btnGroup);
         a.append(formDiv);
       }
@@ -808,7 +1315,14 @@ async function load() {
   }
 }
 
-async function sendUpdate(ticketId, status, advisor, note, sendToCustomer) {
+function showFeedback(ok, text) {
+  const fb = document.getElementById('feedback');
+  fb.className = ok ? 'success' : 'error';
+  fb.textContent = text;
+  if (ok) setTimeout(() => { fb.textContent = ''; }, 5000);
+}
+
+async function sendUpdate(ticketId, status, advisor, note, sendToCustomer, extra) {
   const fb = document.getElementById('feedback');
   fb.className = '';
   fb.textContent = 'Procesando...';
@@ -819,25 +1333,54 @@ async function sendUpdate(ticketId, status, advisor, note, sendToCustomer) {
         'Content-Type': 'application/json',
         'X-Handoff-CSRF':'__CSRF__'
       },
-      body: JSON.stringify({
+      body: JSON.stringify(Object.assign({
         status: status,
         advisor: advisor,
         note: note,
         send_to_customer: sendToCustomer
-      })
+      }, extra || {}))
     });
     const d = await r.json();
     if (!r.ok) throw Error(d.error || 'Error al actualizar');
-    fb.className = 'success';
-    fb.textContent = d.message_sent ? '¡Respuesta enviada por WhatsApp y ticket actualizado!' : 'Ticket actualizado correctamente.';
-    setTimeout(() => { fb.textContent = ''; }, 4000);
-    await load();
+    const parts = [status === 'closed' ? 'Conversación finalizada; el bot vuelve a atender al cliente.' : 'Solicitud tomada; el bot queda en pausa para este cliente.'];
+    if (d.message_sent) parts.push('Nota enviada por WhatsApp.');
+    if (d.customer_notified) parts.push('Se avisó al cliente.');
+    if (extra && extra.notify_customer && !d.customer_notified) parts.push('⚠️ No se pudo avisar al cliente por WhatsApp.');
+    if (d.closing_sent) parts.push('Agradecimiento enviado.');
+    if (extra && extra.send_closing && !d.closing_sent) parts.push('⚠️ No se pudo enviar el agradecimiento (¿pasaron más de 24 h desde el último mensaje del cliente?).');
+    showFeedback(true, parts.join(' '));
+    if (status === 'in_progress' && selectedState === 'pending') {
+      selectedState = 'in_progress';
+      document.querySelectorAll('[data-state]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.state === 'in_progress')));
+    }
+    await load(status === 'in_progress' ? ticketId : null);
   } catch (e) {
-    fb.className = 'error';
-    fb.textContent = e.message;
+    showFeedback(false, e.message);
   }
 }
 
-document.getElementById('refresh').onclick = load;
+async function sendMessage(ticketId, advisor, text) {
+  const fb = document.getElementById('feedback');
+  fb.className = '';
+  fb.textContent = 'Enviando...';
+  try {
+    const r = await fetch(`/handoffs/${ticketId}/message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Handoff-CSRF':'__CSRF__'
+      },
+      body: JSON.stringify({ advisor: advisor, text: text })
+    });
+    const d = await r.json();
+    if (!r.ok) throw Error(d.error || 'No se pudo enviar el mensaje');
+    showFeedback(true, 'Mensaje enviado por WhatsApp. El bot sigue en pausa hasta que finalices la conversación.');
+    await load(ticketId);
+  } catch (e) {
+    showFeedback(false, e.message);
+  }
+}
+
+document.getElementById('refresh').onclick = () => load();
 load();
 </script></html>'''
