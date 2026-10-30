@@ -26,6 +26,7 @@ pypdf==5.1.0
 # --- Persistencia (SQLite / PostgreSQL) ---
 sqlalchemy==2.0.36
 pg8000==1.31.5
+scramp==1.4.17
 
 # --- Variables de entorno ---
 python-dotenv==1.0.1
