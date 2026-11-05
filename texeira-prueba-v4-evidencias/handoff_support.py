@@ -513,6 +513,12 @@ def requested(text):
     if re.search(r'^se\s+(?:eu\s+)?(?:precisar|quiser|necessitar)\b', q):
         return False
 
+    # Consultas informativas sobre anticipos, depósitos, requisitos o políticas de cancelación:
+    if re.search(r'\b(?:cuanto|que|como|cuales|qual|quanto|how\s+much|what)\b.*?\b(?:adelanto|anticipo|deposito|se\s+paga|requisito\w*|necesit\w*|piden|document\w*|politica\w*|cancelac\w*|reembolso\w*|refund\w*|deposit|down\s*payment|sinal|proceso)\b', q):
+        return False
+    if re.search(r'\b(?:adelanto|anticipo|deposito|down\s*payment|sinal)\b', q) and not re.search(r'\b(?:quiero|deseo|solicito|transferir|asesor|advisor)\b', q):
+        return False
+
     # 1. Comprobar negación explícita hacia la atención humana:
     # "no quiero hablar con un asesor", "no deseo asesor", "no me llamen", "i don't want to speak to an advisor", etc.
     negation_patterns = [
@@ -1174,16 +1180,16 @@ def apply_request(ns, result, user_id, channel, question, now=None):
                 elif tour_name:
                     result['response'] = _request_message(
                         language,
-                        es=f"Registré tu solicitud sobre {tour_name}. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.{link_txt_es}",
-                        en=f"I registered your request regarding {tour_name}. It is pending review by an advisor; your reservation is not yet confirmed.{link_txt_en}",
-                        pt=f"Registrei sua solicitação sobre {tour_name}. Ela aguarda atendimento por um assessor; sua reserva ainda não está confirmada.{link_txt_pt}",
+                        es=f"Registré tu solicitud sobre {tour_name}. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.\n\n🎒 Para avanzar con tu registro mientras te atiende el asesor, indícanos: *fecha de viaje, número de pasajeros y hotel de recojo*.{link_txt_es}",
+                        en=f"I registered your request regarding {tour_name}. It is pending review by an advisor; your reservation is not yet confirmed.\n\n🎒 To speed up your booking while the advisor connects, please share: *travel date, group size, and pickup hotel*.{link_txt_en}",
+                        pt=f"Registrei sua solicitação sobre {tour_name}. Ela aguarda atendimento por um assessor; sua reserva ainda não está confirmada.\n\n🎒 Para agilizar seu registro enquanto o assessor conecta, informe: *data da viagem, número de pessoas e hotel de saída*.{link_txt_pt}",
                     ) + ah_notice
                 else:
                     result['response'] = _request_message(
                         language,
-                        es=f"Registré tu solicitud de reserva. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.{link_txt_es}",
-                        en=f"I registered your reservation request. It is pending review by an advisor; your reservation is not yet confirmed.{link_txt_en}",
-                        pt=f"Registrei sua solicitação de reserva. Ela aguarda atendimento por um assessor; sua reserva ainda não está confirmada.{link_txt_pt}",
+                        es=f"Registré tu solicitud de reserva. Está pendiente de atención por un asesor; tu reserva aún no está confirmada.\n\n🎒 Para avanzar con tu registro mientras te atiende el asesor, indícanos: *tour de interés, fecha de viaje y cantidad de personas*.{link_txt_es}",
+                        en=f"I registered your reservation request. It is pending review by an advisor; your reservation is not yet confirmed.\n\n🎒 To speed up your booking while the advisor connects, please share: *tour of interest, travel date, and group size*.{link_txt_en}",
+                        pt=f"Registrei sua solicitação de reserva. Ela aguarda atendimento por um assessor; sua reserva ainda não está confirmada.\n\n🎒 Para agilizar seu registro enquanto o assessor conecta, informe: *passeio de interesse, data da viagem e número de pessoas*.{link_txt_pt}",
                     ) + ah_notice
             else:
                 if row['status'] == 'in_progress':

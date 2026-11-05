@@ -28,11 +28,11 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
-echo [1/2] Entrando a la carpeta del proyecto...
+echo [1/3] Entrando a la carpeta del proyecto...
 cd /d "c:\Users\HP\Desktop\Chat bot\texeira-prueba-v4-evidencias"
 
 echo.
-echo [2/2] Subiendo y desplegando en Google Cloud Run (us-central1)...
+echo [2/3] Subiendo y desplegando en Google Cloud Run (us-central1)...
 echo       (Esto puede tomar unos 3-5 minutos mientras compila)
 echo.
 
@@ -56,6 +56,9 @@ if %ERRORLEVEL% EQU 0 (
     echo   ¡ACTUALIZACIÓN COMPLETADA CON ÉXITO!
     echo   La nueva versión de tu bot ya está activa y lista para responder.
     echo =====================================================================
+    echo.
+    echo [3/3] Ejecutando Limpieza Automática en la Nube (Garantía Costo $0.00)...
+    python tools\post_deploy_cleanup.py
 ) else (
     color 0c
     echo.
