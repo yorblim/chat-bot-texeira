@@ -1677,7 +1677,8 @@ def install(ns, support, original):
 
         # Operaciones comerciales, pagos y disponibilidad de cupos/fechas
         if re.search(r'cancel|reembols|refund|yape|paypal|\bpagar\b|\bpago\b|pagamento|adelant|deposit|\bpay\b|payment|descuento|discount|reserva|booking|\bbook\b|cupos?|espacios?|vagas?|spots?|availability|available|disponib|agotad|ocupad|sold\s*out|manana|tomorrow|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}|febrero|february|fevereiro', commercial_q):
-            # 1.1 Políticas de anticipo / depósito para reservar
+            # 1.1 Anticipo / depósito / proceso de reserva.
+            # Sin fuente oficial (F1/F2/F3) de porcentaje ni plazos: no se inventan cifras.
             is_deposit_policy = bool(re.search(
                 r'\b(?:adelanto|anticipo|deposito|deposit|down\s*payment|sinal|se\s+paga\s+para\s+reservar|que\s+necesito\s+para\s+reservar|requisitos?\s+para\s+reservar|como\s+reservar|proceso\s+de\s+reserva)\b',
                 q
@@ -1685,34 +1686,31 @@ def install(ns, support, original):
             if is_deposit_policy:
                 if en:
                     msg = (
-                        "💵 *Booking Deposit & Process — Texeira Travel:*\n\n"
-                        "To guarantee your booking, our official agency policy is:\n"
-                        "• 📝 *50% Deposit:* Required to purchase official train tickets, citadel permits (Ministry of Culture), and secure tourist transport.\n"
-                        "• 💳 *50% Balance:* Paid upon your arrival in Cusco or 24 hours prior to the tour at our agency office.\n"
-                        "• 📄 *Details needed:* Full names, passport/ID numbers, travel date, and pickup hotel.\n\n"
-                        "👉 Bank accounts (BCP, Interbank) and bookings are coordinated directly at our agency office (Calle Carmen Quicllu N.° 250). Write: *advisor* to start your booking 😊"
+                        "💵 *Booking deposit — Texeira Travel:*\n\n"
+                        "The deposit amount and payment terms are confirmed directly by our team at the agency, "
+                        "according to the tour and date you choose.\n\n"
+                        "📄 To speed things up, have ready: *tour of interest, travel date, number of travelers and pickup hotel*.\n\n"
+                        "👉 Write: *advisor* and we will confirm the exact conditions for your booking 😊"
                     )
                 elif pt:
                     msg = (
-                        "💵 *Sinal e Processo de Reserva — Texeira Travel:*\n\n"
-                        "Para garantir suas vagas, nossa política oficial na agência é:\n"
-                        "• 📝 *Sinal de 50%:* Necessário para emitir bilhetes oficiais de trem, ingressos da cidadela (Ministério da Cultura) e transporte turístico.\n"
-                        "• 💳 *Saldo restante (50%):* Pago ao chegar a Cusco ou 24 horas antes do passeio em nossa agência.\n"
-                        "• 📄 *Dados necessários:* Nomes completos, documento/passaporte, data da viagem e hotel de saída.\n\n"
-                        "👉 As contas bancárias (BCP, Interbank) e reservas são coordenadas diretamente em nossa agência (Calle Carmen Quicllu N.° 250). Escreva: *assessor* para reservar 😊"
+                        "💵 *Sinal para reserva — Texeira Travel:*\n\n"
+                        "O valor do sinal e as condições de pagamento são confirmados diretamente pela nossa equipe na agência, "
+                        "conforme o passeio e a data escolhidos.\n\n"
+                        "📄 Para agilizar, tenha em mãos: *passeio de interesse, data da viagem, número de pessoas e hotel de saída*.\n\n"
+                        "👉 Escreva: *assessor* e confirmamos as condições exatas da sua reserva 😊"
                     )
                 else:
                     msg = (
-                        "💵 *Anticipo y Proceso de Reserva — Texeira Travel:*\n\n"
-                        "Para garantizar tus cupos en cualquier tour, la política oficial de la agencia es:\n"
-                        "• 📝 *Anticipo del 50%:* Indispensable para emitir boletos oficiales de tren, entradas nominativas de la Llaqta (Ministerio de Cultura) y asegurar transporte turístico.\n"
-                        "• 💳 *Saldo restante (50%):* Se cancela al llegar a Cusco o 24 horas antes del tour en nuestra oficina de la agencia.\n"
-                        "• 📄 *Datos requeridos:* Nombres completos, pasaporte/DNI, fecha de viaje y hotel de recojo.\n\n"
-                        "👉 Las cuentas oficiales (BCP, Interbank) y reservas las coordinamos directamente en la agencia (Calle Carmen Quicllu N.° 250). Escribe: *asesor* para coordinar tu reserva 😊"
+                        "💵 *Anticipo para reservar — Texeira Travel:*\n\n"
+                        "El monto del anticipo y las condiciones de pago te los confirma directamente nuestro equipo en la agencia, "
+                        "según el tour y la fecha que elijas.\n\n"
+                        "📄 Para agilizar, ten a mano: *tour de interés, fecha de viaje, número de pasajeros y hotel de recojo*.\n\n"
+                        "👉 Escribe: *asesor* y te confirmamos las condiciones exactas de tu reserva 😊"
                     )
                 return finish(msg, 'evidence_unknown', True, entity_id=None)
 
-            # 1.2 Políticas de cancelación y reembolso
+            # 1.2 Cancelación / reembolso. Sin política oficial documentada: derivar a la agencia.
             is_cancellation_policy = bool(re.search(
                 r'\b(?:cancelac\w*|reembolso\w*|politicas?\s+de\s+cancelac\w*|politicas?\s+de\s+reembolso|que\s+pasa\s+si\s+cancelo|anulac\w*|refund\w*|cancellation\s+polic\w*|cancelamento)\b',
                 q
@@ -1720,36 +1718,30 @@ def install(ns, support, original):
             if is_cancellation_policy:
                 if en:
                     msg = (
-                        "📋 *Cancellation & Refund Policy — Texeira Travel:*\n\n"
-                        "Our agency policies are established according to operational and government regulations:\n"
-                        "• 🚐 *1-Day Regular Tours (City Tour, Sacred Valley, Maras Moray, Rainbow Mountain, Humantay):* Free cancellation or rescheduling up to 48 hours prior to departure.\n"
-                        "• 🎟️ *Machu Picchu & Inca Trail:* State entrance tickets (Ministry of Culture) and train tickets (PeruRail / Inca Rail) are strictly nominal, personal, and non-refundable per official government regulations.\n"
-                        "• 🌦️ *Force Majeure & Weather:* In cases of certified severe weather, flights delays, or national strikes, our agency coordinates immediate rescheduling without penalty fees.\n\n"
-                        "👉 Any specific case is handled with our team at the agency office (Calle Carmen Quicllu N.° 250). Write: *advisor*."
+                        "📋 *Cancellations and refunds — Texeira Travel:*\n\n"
+                        "Cancellation and refund conditions depend on the tour and are confirmed directly by our team at the agency. "
+                        "Keep in mind that some services (such as official entrance or train tickets) are subject to the rules of each provider.\n\n"
+                        "👉 Write: *advisor* and we will review your specific case."
                     )
                 elif pt:
                     msg = (
-                        "📋 *Políticas de Cancelamento e Reembolso — Texeira Travel:*\n\n"
-                        "Nossas políticas na agência seguem normas operacionais e regulamentações oficiais:\n"
-                        "• 🚐 *Passeios de 1 Dia (City Tour, Vale Sagrado, Maras Moray, Montanha 7 Cores, Laguna Humantay):* Cancelamento ou remarcação gratuita com até 48 horas de antecedência.\n"
-                        "• 🎟️ *Machu Picchu e Trilha Inca:* Os ingressos do Governo (Ministério da Cultura) e bilhetes de trem são estritamente nominais e não reembolsáveis conforme legislação oficial.\n"
-                        "• 🌦️ *Força Maior e Clima:* Em casos de clima severo certificado ou atrasos de voos, nossa agência coordena remarcações sem taxa de penalidade.\n\n"
-                        "👉 Casos específicos são atendidos diretamente em nossa agência (Calle Carmen Quicllu N.° 250). Escreva: *assessor*."
+                        "📋 *Cancelamentos e reembolsos — Texeira Travel:*\n\n"
+                        "As condições de cancelamento e reembolso dependem do passeio e são confirmadas diretamente pela nossa equipe na agência. "
+                        "Alguns serviços (como ingressos oficiais ou bilhetes de trem) seguem as regras de cada fornecedor.\n\n"
+                        "👉 Escreva: *assessor* e revisamos o seu caso."
                     )
                 else:
                     msg = (
-                        "📋 *Políticas de Cancelación y Reembolso — Texeira Travel:*\n\n"
-                        "Nuestras políticas en la agencia se rigen por la normativa operativa y oficial del destino:\n"
-                        "• 🚐 *Tours de 1 día (City Tour, Valle Sagrado, Maras Moray, Montaña 7 Colores, Laguna Humantay):* Cancelación o reprogramación sin costo hasta con 48 horas de anticipación.\n"
-                        "• 🎟️ *Machu Picchu y Camino Inca:* Los boletos de ingreso a la Llaqta (Ministerio de Cultura) y boletos de tren son estrictamente nominativos y no reembolsables según la normativa oficial de las entidades reguladoras.\n"
-                        "• 🌦️ *Fuerza mayor o clima:* Ante huelgas, bloqueos o clima extremo certificado, nuestra agencia gestiona la reprogramación inmediata a la fecha más próxima sin penalidad.\n\n"
-                        "👉 Cada caso particular se gestiona directamente en nuestra oficina de la agencia (Calle Carmen Quicllu N.° 250). Escribe: *asesor*."
+                        "📋 *Cancelaciones y reembolsos — Texeira Travel:*\n\n"
+                        "Las condiciones de cancelación y reembolso dependen del tour y te las confirma directamente nuestro equipo en la agencia. "
+                        "Ten en cuenta que algunos servicios (como entradas oficiales o boletos de tren) se rigen por las reglas de cada proveedor.\n\n"
+                        "👉 Escribe: *asesor* y revisamos tu caso en particular."
                     )
                 return finish(msg, 'evidence_unknown', True, entity_id=None)
 
-            # 1.3 Métodos de pago (incluyendo BCP, Interbank, Yape, Plin, Tarjetas y Efectivo)
+            # 1.3 Métodos de pago (contenido previo, sin agregar billeteras no verificadas)
             is_payment_methods = bool(re.search(
-                r'\b(?:m[eé]todos?\s+de\s+pago|formas?\s+de\s+pago|como\s+puedo\s+pagar|como\s+pagar|yape|plin|payment\s+methods?|how\s+(?:can\s+i|to)\s+pay|formas?\s+de\s+pagamento)\b',
+                r'\b(?:m[eé]todos?\s+de\s+pago|formas?\s+de\s+pago|como\s+puedo\s+pagar|como\s+pagar|payment\s+methods?|how\s+(?:can\s+i|to)\s+pay|formas?\s+de\s+pagamento)\b',
                 q
             ))
             if is_payment_methods:
@@ -1758,30 +1750,27 @@ def install(ns, support, original):
                         "💳 *Payment Methods — Texeira Travel:*\n\n"
                         "We coordinate bookings and payments through:\n"
                         "• 🏦 *Bank Transfer:* BCP and Interbank (in USD and PEN).\n"
-                        "• 📱 *Digital Wallets:* Yape and Plin (for instant payments in PEN).\n"
                         "• 💳 *Credit / Debit Cards:* Visa and Mastercard (upon prior coordination).\n"
                         "• 💵 *Cash:* Directly at our office in Cusco (Calle Carmen Quicllu N.° 250).\n\n"
-                        "👉 To receive official account details or confirm your spot with the agency, write: *advisor*."
+                        "👉 To receive bank account details or confirm your spot, write: *advisor*."
                     )
                 elif pt:
                     msg = (
                         "💳 *Formas de Pagamento — Texeira Travel:*\n\n"
                         "Coordenamos reservas e pagamentos através de:\n"
                         "• 🏦 *Transferência Bancária:* BCP e Interbank (em Dólares USD e Soles).\n"
-                        "• 📱 *Carteiras Digitais:* Yape e Plin (para pagamentos em Soles).\n"
                         "• 💳 *Cartões de Crédito / Débito:* Visa e Mastercard (com coordenação prévia).\n"
                         "• 💵 *Dinheiro (Espécie):* Diretamente em nossa agência em Cusco (Calle Carmen Quicllu N.° 250).\n\n"
-                        "👉 Para receber dados bancários oficiais ou confirmar sua vaga na agência, escreva: *assessor*."
+                        "👉 Para receber dados bancários ou confirmar sua vaga, escreva: *assessor*."
                     )
                 else:
                     msg = (
                         "💳 *Métodos de Pago — Texeira Travel:*\n\n"
                         "Coordinamos tus pagos y confirmación de reservas mediante:\n"
                         "• 🏦 *Transferencia Bancaria / Interbancaria:* Cuentas BCP e Interbank (Soles y Dólares USD).\n"
-                        "• 📱 *Billeteras Digitales:* Yape y Plin (para transferencias inmediatas en Soles).\n"
                         "• 💳 *Tarjetas de Crédito / Débito:* Visa y Mastercard (previa coordinación).\n"
                         "• 💵 *Efectivo:* Directamente en nuestra oficina oficial en Cusco (Calle Carmen Quicllu N.° 250).\n\n"
-                        "👉 Para proporcionarte los números de cuenta oficiales o coordinar con la agencia, escribe: *asesor*."
+                        "👉 Para proporcionarte los números de cuenta o coordinar tu reserva, escribe: *asesor*."
                     )
                 return finish(msg, 'evidence_unknown', True, entity_id=None)
 
