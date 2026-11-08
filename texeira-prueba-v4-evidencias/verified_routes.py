@@ -1675,6 +1675,285 @@ def install(ns, support, original):
 
                     return finish("\n".join(lines), 'evidence_no_special_rate', pending=True, sources=['CATALOGO_OFICIAL'], entity_id=eid_rate)
 
+        # --- EXPERTO EN DESTINO Y LOGISTICA REAL (Machu Picchu, BTC, Altura, Rutas) ---
+
+        # 1. Circuitos y Logística de Machu Picchu (Circuitos 1, 2, 3, Equipaje en tren, Traslado y Documentos)
+        is_mp_circuits = bool(re.search(
+            r'\b(?:circuitos?|que\s+circuito|circuito\s+1|circuito\s+2|circuito\s+3|huayna\s+picchu|wayna\s+picchu|huchuy\s+picchu|machu\s+picchu\s+monta[nñ]a|foto\s+postal|panor[aá]mic[oa]|cl[aá]sic[oa]|realeza)\b',
+            q
+        )) and bool(re.search(r'\b(?:machu\s*picchu|llaqta|ciudadela|maravilla)\b', q) or 'machu-picchu' in (eid or ''))
+
+        is_mp_luggage = bool(re.search(
+            r'\b(?:equipaje|mochila|maleta|maletas|bolso|valija|luggage|baggage|carry\s*on)\b',
+            q
+        )) and bool(re.search(r'\b(?:tren|perurail|inca\s*rail|machu\s*picchu|aguas\s*calientes)\b', q))
+
+        is_mp_transfer_route = bool(re.search(
+            r'\b(?:como\s+se\s+llega|como\s+es\s+el\s+viaje|como\s+viajar|tramos?|etapas?|cuanto\s+demora\s+el\s+viaje)\b',
+            q
+        )) and bool(re.search(r'\b(?:machu\s*picchu|aguas\s*calientes)\b', q))
+
+        if is_mp_circuits or is_mp_luggage or is_mp_transfer_route:
+            if is_mp_luggage:
+                if en:
+                    msg = (
+                        "🎒 *Luggage Policy on Train to Machu Picchu:*\n\n"
+                        "Per official regulations of train operators (PeruRail and Inca Rail):\n"
+                        "• 🧳 *Allowance:* 1 personal backpack or carry-on of up to **5 to 8 kg (20 L)** per passenger.\n"
+                        "• 🏨 *Large suitcases:* Large luggage is not permitted inside train cabins. It is safely stored in **free luggage storage** at your hotel in Cusco or at our agency office.\n"
+                        "• 🪪 *Mandatory Document:* You must carry your **original physical Passport or ID card**; photos or copies are not accepted at train or citadel boarding.\n\n"
+                        "👉 Write: *advisor* if you have special baggage or need departure coordination 😊"
+                    )
+                elif pt:
+                    msg = (
+                        "🎒 *Política de Bagagem no Trem para Machu Picchu:*\n\n"
+                        "Conforme as regras oficiais das empresas ferroviárias (PeruRail e Inca Rail):\n"
+                        "• 🧳 *Permitido:* 1 mochila pessoal ou mala de mão de até **5 a 8 kg (20 L)** por passageiro.\n"
+                        "• 🏨 *Malas grandes:* Malas volumosas não sobem nos vagões. Ficam em **guarda-volumes gratuito** no seu hotel em Cusco ou em nossa agência.\n"
+                        "• 🪪 *Documento obrigatório:* É obrigatório portar o **Passaporte ou RG físico original**; fotos ou cópias não são aceitas nos controles.\n\n"
+                        "👉 Escreva: *assessor* se tiver bagagem especial ou dúvidas de embarque 😊"
+                    )
+                else:
+                    msg = (
+                        "🎒 *Política de Equipaje en el Tren a Machu Picchu:*\n\n"
+                        "Según la normativa oficial de las empresas de tren (PeruRail e Inca Rail):\n"
+                        "• 🧳 *Permitido:* 1 mochila o bolso de mano de máximo **5 a 8 kg (20 litros)** por pasajero.\n"
+                        "• 🏨 *Maletas grandes:* Las maletas pesadas no viajan en los vagones. Se quedan en **custodia gratuita** en tu hotel de Cusco o en nuestra oficina de la agencia.\n"
+                        "• 🪪 *Documento obligatorio:* Es indispensable portar el **DNI o Pasaporte físico original**; el Ministerio y el tren no aceptan fotos ni fotocopias en los controles.\n\n"
+                        "👉 Escribe: *asesor* para coordinar detalles de tu salida y recojo 😊"
+                    )
+                return finish(msg, 'evidence_destination_machupicchu', pending=False, sources=['CATALOGO_OFICIAL'], entity_id='machu-picchu-tren')
+
+            # Circuitos o cómo se llega a Machu Picchu
+            if en:
+                msg = (
+                    "🏛️ *Machu Picchu Official Circuits & Logistics (Ministry of Culture):*\n\n"
+                    "Visits are divided into 3 official designated circuits:\n"
+                    "• 📸 *Circuit 1 (Panoramic):* Upper terrace route. Offers the classic postcard view of Machu Picchu without descending into the lower temples. Ideal for travelers wanting light walking.\n"
+                    "• 🏛️ *Circuit 2 (Classic):* **The most requested and complete circuit.** Includes the classic postcard view plus the urban sector: Sun Temple, Sacred Rock, and ceremonial plazas. *Spots sell out 2 to 3 months ahead.*\n"
+                    "• 🧗 *Circuit 3 (Royalty & Mountains):* Lower agricultural zone, Inca Houses, and exclusive access routes to hike **Huayna Picchu** or Huchuy Picchu.\n\n"
+                    "🚂 *Travel Stages:* Minivan Cusco ➔ Ollantaytambo (1h 40m) + Tourist Train ➔ Aguas Calientes (1h 30m) + Consettur Bus ➔ Citadel (30m).\n\n"
+                    "👉 Write: *advisor* with your planned date to check official circuit availability!"
+                )
+            elif pt:
+                msg = (
+                    "🏛️ *Circuitos Oficiais e Logística de Machu Picchu (Ministério da Cultura):*\n\n"
+                    "As visitas à cidadela dividem-se em 3 circuitos oficiais:\n"
+                    "• 📸 *Circuito 1 (Panorâmico):* Terraço superior com a clássica foto postal. Não desce ao setor urbano; ideal para caminhada leve.\n"
+                    "• 🏛️ *Circuito 2 (Clássico):* **O mais procurado e completo.** Inclui a foto postal mais o setor urbano: Templo do Sol, Rocha Sagrada e praças cerimoniais. *Esgota com 2 a 3 meses de antecedência.*\n"
+                    "• 🧗 *Circuito 3 (Realeza e Montanhas):* Zona agrícola inferior e acesso exclusivo para subir a montanha **Huayna Picchu** ou Huchuy Picchu.\n\n"
+                    "🚂 *Etapas de viagem:* Minivan Cusco ➔ Ollantaytambo (1h 40m) + Trem Turístico ➔ Aguas Calientes (1h 30m) + Ônibus Consettur ➔ Cidadela (30m).\n\n"
+                    "👉 Escreva: *assessor* com sua data prevista para verificar a disponibilidade dos circuitos!"
+                )
+            else:
+                msg = (
+                    "🏛️ *Circuitos Oficiales y Logística de Machu Picchu (Ministerio de Cultura):*\n\n"
+                    "El ingreso a la ciudadela inca se divide en 3 circuitos oficiales:\n"
+                    "• 📸 *Circuito 1 (Panorámico):* Ruta por la terraza superior. Brinda la clásica foto postal de Machu Picchu sin bajar a la zona urbana. Ideal para quienes buscan un recorrido suave.\n"
+                    "• 🏛️ *Circuito 2 (Clásico):* **El más solicitado y completo.** Incluye la foto postal clásica más el sector urbano: Templo del Sol, Roca Sagrada y plazas principales. *Los cupos se agotan con 2 a 3 meses de anticipación.*\n"
+                    "• 🧗 *Circuito 3 (Realeza y Montañas):* Parte baja y agrícola, además de las rutas de ascenso a la montaña **Huayna Picchu** o Huchuy Picchu.\n\n"
+                    "🚂 *Etapas del viaje:* Minivan turística Cusco ➔ Ollantaytambo (1 h 40 min) + Tren turístico ➔ Aguas Calientes (1 h 30 min) + Bus Consettur ➔ Ciudadela (30 min).\n\n"
+                    "👉 Escribe: *asesor* indicando tu fecha para verificar disponibilidad de circuitos oficiales."
+                )
+            return finish(msg, 'evidence_destination_machupicchu', pending=False, sources=['CATALOGO_OFICIAL'], entity_id='machu-picchu-tren')
+
+        # 2. Boleto Turístico del Cusco (BTC - COSITUC) y Entradas Comunales (Salineras de Maras, Vinicunca, Humantay)
+        is_btc_query = bool(re.search(
+            r'\b(?:boleto\s+tur[ií]stico|btc|cosituc|tourist\s+ticket)\b|\b(?:entradas?|ingresos?|tickets?)\b.*\b(?:ruinas|sitios?\s+arqueol[oó]gic\w*|pisac|ollantaytambo|chinchero|moray|saqsayhuam[aá]n|sacsayhuam[aá]n)\b',
+            q
+        ))
+        is_communal_entrance = bool(re.search(
+            r'\b(?:salineras?\s+(?:de\s+)?maras?|maras?|vinicunca|7\s*colores|humantay)\b.*\b(?:entrada|ingreso|ticket|cuanto\s+cuesta|precio|comunidad)\b|\b(?:entrada|ingreso|ticket|cuanto\s+cuesta|precio)\b.*\b(?:salineras?\s+(?:de\s+)?maras?|maras?|vinicunca|7\s*colores|humantay)\b',
+            q
+        ))
+
+        if is_btc_query or is_communal_entrance:
+            if en:
+                msg = (
+                    "🎫 *Cusco Tourist Ticket (BTC) & Entrance Fees Information:*\n\n"
+                    "Archaeological and communal sites in Cusco have official entrance fees managed by government and local communities:\n\n"
+                    "• 🏛️ *Boleto Turístico del Cusco (BTC - COSITUC):*\n"
+                    "  - *Full Circuit (16 attractions, 10 days):* S/ 130 PEN (~$35 USD) for foreign tourists / S/ 70 PEN for Peruvian nationals.\n"
+                    "  - *Partial Circuit (1-2 days, covers City Tour or Sacred Valley):* S/ 70 PEN (~$19 USD) foreign / S/ 40 PEN national.\n\n"
+                    "• 🏞️ *Direct Communal Entrance Fees (paid on site):*\n"
+                    "  - *Maras Salt Mines (Salineras):* S/ 20 PEN (Maras local community).\n"
+                    "  - *Rainbow Mountain (Vinicunca):* S/ 25 PEN (local community administration).\n"
+                    "  - *Humantay Lake:* S/ 20 PEN (Mollepata community).\n\n"
+                    "💡 *Note:* Government tourist tickets are personal and sold directly by COSITUC control booths; transport and professional guide are fully included in our agency tours.\n\n"
+                    "👉 Write: *advisor* to coordinate your itinerary and ticket advice 😊"
+                )
+            elif pt:
+                msg = (
+                    "🎫 *Boleto Turístico de Cusco (BTC) e Ingressos Locais:*\n\n"
+                    "Os sítios arqueológicos e atrativos naturais em Cusco possuem ingressos oficiais regulamentados:\n\n"
+                    "• 🏛️ *Boleto Turístico de Cusco (BTC - COSITUC):*\n"
+                    "  - *Integral (16 atrações, 10 dias):* S/ 130 Soles para estrangeiros / S/ 70 Soles para peruanos.\n"
+                    "  - *Parcial (1-2 dias, cobre City Tour ou Vale Sagrado):* S/ 70 Soles estrangeiro / S/ 40 Soles nacional.\n\n"
+                    "• 🏞️ *Ingressos Comunais Diretos (pagos no local):*\n"
+                    "  - *Salineras de Maras:* S/ 20 Soles (Comunidade de Maras).\n"
+                    "  - *Montanha 7 Cores (Vinicunca):* S/ 25 Soles (Comunidades locais).\n"
+                    "  - *Laguna Humantay:* S/ 20 Soles (Comunidade de Mollepata).\n\n"
+                    "💡 *Importante:* O Boleto Turístico é pessoal e emitido pelo órgão oficial (COSITUC); transporte e guia credenciado estão 100% incluídos em nossos passeios da agência.\n\n"
+                    "👉 Escreva: *assessor* para planejar seu roteiro de ingressos 😊"
+                )
+            else:
+                msg = (
+                    "🎫 *Boleto Turístico del Cusco (BTC) y Entradas Oficiales:*\n\n"
+                    "Los ingresos a sitios arqueológicos y atractivos naturales en Cusco se gestionan de manera oficial y transparente:\n\n"
+                    "• 🏛️ *Boleto Turístico del Cusco (BTC - COSITUC):*\n"
+                    "  - *Boleto Integral (16 atractivos, 10 días de vigencia):* S/ 130 Soles extranjero / S/ 70 Soles nacional.\n"
+                    "  - *Boleto Parcial (1 o 2 días, cubre City Tour o Valle Sagrado según circuito):* S/ 70 Soles extranjero / S/ 40 Soles nacional.\n\n"
+                    "• 🏞️ *Entradas Comunales Directas (pago en garita local):*\n"
+                    "  - *Salineras de Maras:* S/ 20 Soles (Comunidad campesina de Maras).\n"
+                    "  - *Montaña de 7 Colores (Vinicunca):* S/ 25 Soles (Comunidades locales).\n"
+                    "  - *Laguna Humantay:* S/ 20 Soles (Comunidad de Mollepata).\n\n"
+                    "💡 *Transparencia Texeira Travel:* El BTC lo expide el Estado de forma personal e intransferible. El transporte turístico y el guía oficial están totalmente cubiertos en nuestros tours.\n\n"
+                    "👉 Escribe: *asesor* para ayudarte a planificar qué boleto te conviene comprar 😊"
+                )
+            return finish(msg, 'evidence_destination_btc', pending=False, sources=['CATALOGO_OFICIAL'], entity_id=None)
+
+        # 3. Altitud, Soroche y Alquiler de Caballos (Humantay, Vinicunca, Machu Picchu)
+        is_horse_query = bool(re.search(
+            r'\b(?:caballo\w*|horse\w*|cavalo\w*)\b',
+            q
+        )) and bool(re.search(r'\b(?:humantay|vinicunca|7\s*colores|monta[nñ]a|subida|caminata|trek)\b', q))
+
+        is_mp_altitude_query = bool(re.search(
+            r'\b(?:altura|altitud|msnm|soroche|mal\s+de\s+altura|altitude\s+sickness)\b',
+            q
+        )) and bool(re.search(r'\b(?:machu\s*picchu|aguas\s*calientes)\b', q))
+
+        if is_horse_query or is_mp_altitude_query:
+            if is_horse_query:
+                if en:
+                    msg = (
+                        "🐎 *Horse Rental on Mountain Treks (Humantay Lake & Rainbow Mountain):*\n\n"
+                        "For high-altitude treks where climbing can be demanding:\n"
+                        "• 🏔️ *Availability:* Local community members offer horse rentals directly at the trailhead for the uphill section.\n"
+                        "• 💵 *Estimated cost:* Between **S/ 80 and S/ 100 PEN** (~$22 to $27 USD) per horse, paid in cash directly to the local muleteer.\n"
+                        "• ⚠️ *Important:* Horses carry travelers up to near the viewpoint; the final short rocky section must be walked on foot.\n\n"
+                        "👉 Write: *advisor* to coordinate your trek departure and packing list 😊"
+                    )
+                elif pt:
+                    msg = (
+                        "🐎 *Aluguel de Cavalos nas Trilhas (Laguna Humantay e Montanha 7 Cores):*\n\n"
+                        "Para passeios de alta montanha onde a subida exige esforço físico:\n"
+                        "• 🏔️ *Disponibilidade:* Moradores das comunidades locais oferecem aluguel de cavalos no início da trilha para o trecho de subida.\n"
+                        "• 💵 *Valor estimado:* Entre **S/ 80 e S/ 100 Soles** por cavalo, pago em espécie diretamente ao condutor local.\n"
+                        "• ⚠️ *Aviso:* O cavalo leva o visitante até próximo ao mirante; os metros finais em terreno rochoso são percorridos a pé.\n\n"
+                        "👉 Escreva: *assessor* para coordenar sua viagem e recomendações 😊"
+                    )
+                else:
+                    msg = (
+                        "🐎 *Alquiler de Caballos en Rutas de Montaña (Humantay y 7 Colores):*\n\n"
+                        "Para quienes desean disfrutar los paisajes sin el desgaste físico de la caminata empinada:\n"
+                        "• 🏔️ *Disponibilidad:* Los comuneros locales ofrecen alquiler de caballos al inicio del sendero para el tramo de subida.\n"
+                        "• 💵 *Costo referencial:* Entre **S/ 80 y S/ 100 Soles** por trayecto, pagados directamente en efectivo a la comunidad.\n"
+                        "• ⚠️ *Dato útil:* El caballo sube hasta las cercanías del mirador; los últimos metros en sendero pedregoso se completan a pie.\n\n"
+                        "👉 Escribe: *asesor* para ayudarte a planificar tu tour y recomendaciones de vestimenta 😊"
+                    )
+                return finish(msg, 'evidence_destination_altitude', pending=False, sources=['CATALOGO_OFICIAL'], entity_id='laguna-humantay')
+
+            # Altitud en Machu Picchu
+            if en:
+                msg = (
+                    "🏔️ *Altitude at Machu Picchu & Soroche Information:*\n\n"
+                    "• 🌿 *Citadel Altitude:* Machu Picchu sits at **2,430 meters (7,972 ft)** above sea level — almost **1,000 meters lower than Cusco (3,399 m / 11,152 ft)**.\n"
+                    "• ☀️ *Climate & Oxygen:* It is located in a lush cloud forest zone, with warmer weather and significantly higher oxygen levels than Cusco. Altitude sickness (soroche) is very rare at the citadel.\n"
+                    "• 💡 *Tip:* If you are acclimatizing in Cusco, visiting Machu Picchu is relaxing and gentle on your body.\n\n"
+                    "👉 Write: *advisor* to coordinate your dates and tickets!"
+                )
+            elif pt:
+                msg = (
+                    "🏔️ *Altitude em Machu Picchu e Informações sobre Soroche:*\n\n"
+                    "• 🌿 *Altitude da Cidadela:* Machu Picchu está a **2.430 metros de altitude**, quase **1.000 metros mais baixo que Cusco (3.399 m)**.\n"
+                    "• ☀️ *Clima e Oxigênio:* Fica em uma área de clima subtropical e borda de selva, com ar mais aquecido e maior concentração de oxigênio. O mal da altitude (soroche) é muito raro em Machu Picchu.\n"
+                    "• 💡 *Dica:* Se você está se aclimatando em Cusco, visitar Machu Picchu é um passeio confortável e leve para o corpo.\n\n"
+                    "👉 Escreva: *assessor* para agendar suas datas e ingressos!"
+                )
+            else:
+                msg = (
+                    "🏔️ *Altitud en Machu Picchu e Información de Soroche:*\n\n"
+                    "• 🌿 *Altitud de la Llaqta:* Machu Picchu se encuentra a **2,430 msnm**, casi **1,000 metros más abajo que la ciudad de Cusco (3,399 msnm)**.\n"
+                    "• ☀️ *Clima y Oxígeno:* Está en zona de ceja de selva, con clima templado y mucho mayor concentración de oxígeno que Cusco. El mal de altura o soroche es prácticamente inexistente en la ciudadela.\n"
+                    "• 💡 *Tip viajero Texeira:* Si sientes el impacto de la altura en Cusco, descender hacia Machu Picchu es reconfortante y muy favorable para el cuerpo.\n\n"
+                    "👉 Escribe: *asesor* para coordinar fechas y asegurar tus boletos oficiales 😊"
+                )
+            return finish(msg, 'evidence_destination_altitude', pending=False, sources=['CATALOGO_OFICIAL'], entity_id='machu-picchu-tren')
+
+        # 4. Conexión Estratégica Valle Sagrado ➔ Machu Picchu (Itinerario inteligente de 2 días)
+        is_sacred_mp_connection = bool(re.search(r'\bvalle\s+sagrado\b', q) and re.search(r'\bmachu\s*picchu\b', q))
+        if is_sacred_mp_connection:
+            if en:
+                msg = (
+                    "🌟 *Strategic Connection: Sacred Valley + Machu Picchu (Recommended Itinerary):*\n\n"
+                    "The most efficient and comfortable way to visit both destinations:\n"
+                    "• 🗓️ *Day 1 (Sacred Valley):* Pickup in Cusco, visit Pisac, Urubamba buffet lunch, and explore the fortress of Ollantaytambo in the afternoon.\n"
+                    "• 🚂 *Direct Train Connection:* Instead of traveling 2 hours back to Cusco, you board your afternoon train directly at **Ollantaytambo Station** to Aguas Calientes.\n"
+                    "• 🗓️ *Day 2 (Machu Picchu):* Wake up at the foot of the citadel, enter Machu Picchu in the early morning shifts with beautiful light, and return by train to Cusco in the evening.\n\n"
+                    "💡 *Major Advantages:* Saves 4 hours of highway travel, eliminates a 4:00 AM wake-up call from Cusco, and offers a much more relaxed experience.\n\n"
+                    "👉 Write: *advisor* to book this connected 2-day package!"
+                )
+            elif pt:
+                msg = (
+                    "🌟 *Conexão Estratégica: Vale Sagrado + Machu Picchu (Roteiro Recomendado):*\n\n"
+                    "A maneira mais inteligente e confortável de conhecer os dois destinos:\n"
+                    "• 🗓️ *Dia 1 (Vale Sagrado):* Saída de Cusco, visita a Pisac, almoço em Urubamba e visita à fortaleza de Ollantaytambo à tarde.\n"
+                    "• 🚂 *Conexão direta de trem:* Em vez de voltar 2 horas para Cusco, você embarca à tarde na **Estação de Ollantaytambo** direto para Aguas Calientes.\n"
+                    "• 🗓️ *Dia 2 (Machu Picchu):* Você amanhece ao pé da montanha, visita a cidadela nos primeiros turnos da manhã e retorna de trem para Cusco ao final do dia.\n\n"
+                    "💡 *Vantagens:* Economiza 4 horas de estrada, evita acordar às 4h da madrugada em Cusco e proporciona uma viagem muito mais descansada.\n\n"
+                    "👉 Escreva: *assessor* para reservar esse roteiro conectado de 2 dias!"
+                )
+            else:
+                msg = (
+                    "🌟 *Conexión Estratégica: Valle Sagrado + Machu Picchu (Ruta Recomendada):*\n\n"
+                    "Es la forma más inteligente y descansada de conocer ambos destinos:\n"
+                    "• 🗓️ *Día 1 (Valle Sagrado):* Recojo en Cusco, recorrido por Pisac, almuerzo buffet en Urubamba y visita a la fortaleza de Ollantaytambo por la tarde.\n"
+                    "• 🚂 *Conexión directa en tren:* En lugar de regresar 2 horas a Cusco por carretera, tomas el tren de la tarde en la **Estación de Ollantaytambo** hacia Aguas Calientes.\n"
+                    "• 🗓️ *Día 2 (Machu Picchu):* Amaneces al pie de la maravilla, subes en los primeros turnos con la mejor luz para fotos y retornas a Cusco en tren por la tarde.\n\n"
+                    "💡 *Gran Ventaja Texeira:* Ahorras más de 4 horas de carretera, evitas madrugar a las 4:00 AM desde Cusco y disfrutas el viaje con total tranquilidad.\n\n"
+                    "👉 Escribe: *asesor* para cotizar esta combinación de 2 días a tu medida 😊"
+                )
+            return finish(msg, 'evidence_destination_connection', pending=False, sources=['CATALOGO_OFICIAL'], entity_id='machu-picchu-tren')
+
+        # 5. Requisitos de Datos para Emitir Reservas
+        is_booking_req_query = bool(re.search(
+            r'\b(?:que\s+datos|que\s+documentos|requisitos?|que\s+piden|que\s+se\s+necesita|datos\s+necesarios)\b.*\b(?:para\s+reservar|para\s+la\s+reserva|para\s+emitir|boletos?|tickets?|reserva)\b',
+            q
+        ))
+        if is_booking_req_query:
+            if en:
+                msg = (
+                    "📋 *Required Information to Issue Tour Bookings — Texeira Travel:*\n\n"
+                    "To issue official government permits, train tickets, and confirm transport, we need:\n"
+                    "1. 👤 *Full names and surnames* (exactly as shown on your passport or ID).\n"
+                    "2. 🪪 *Passport or National ID number* (the original physical document must be carried during travel).\n"
+                    "3. 🌍 *Nationality and date of birth* (required for age and Community/foreign tariff validation).\n"
+                    "4. 🏨 *Pickup hotel in Cusco* (hotel name and address for morning pickup coordination).\n\n"
+                    "👉 Have these details ready and write: *advisor* to proceed with your booking 😊"
+                )
+            elif pt:
+                msg = (
+                    "📋 *Dados Necessários para Emissão de Reservas — Texeira Travel:*\n\n"
+                    "Para emitir ingressos oficiais do Governo, passagens de trem e transporte, solicitamos:\n"
+                    "1. 👤 *Nomes e sobrenomes completos* (exatamente como constam no documento ou passaporte).\n"
+                    "2. 🪪 *Número do Passaporte ou RG* (o documento original físico deve ser levado na viagem).\n"
+                    "3. 🌍 *Nacionalidade e data de nascimento* (necessário para validação de tarifas oficiais).\n"
+                    "4. 🏨 *Hotel de saída em Cusco* (nome e endereço do hotel para coordenar o transporte).\n\n"
+                    "👉 Tenha esses dados em mãos e escreva: *assessor* para confirmar sua vaga 😊"
+                )
+            else:
+                msg = (
+                    "📋 *Datos Requeridos para Emitir tu Reserva — Texeira Travel:*\n\n"
+                    "Para emitir los boletos oficiales del Ministerio, tickets de tren y coordinar el transporte, requerimos:\n"
+                    "1. 👤 *Nombres y apellidos completos* (tal como figuran en tu documento o pasaporte).\n"
+                    "2. 🪪 *Número de DNI o Pasaporte* (deberás portar el documento original físico el día del tour).\n"
+                    "3. 🌍 *Nacionalidad y fecha de nacimiento* (indispensable para validar tarifas oficiales).\n"
+                    "4. 🏨 *Hotel de recojo en Cusco* (nombre y dirección del alojamiento para coordinar la van).\n\n"
+                    "👉 Ten estos datos listos y escribe: *asesor* para emitir tu orden de reserva 😊"
+                )
+            return finish(msg, 'evidence_booking_requirements', pending=False, sources=['CATALOGO_OFICIAL'], entity_id=None)
+
         # Operaciones comerciales, pagos y disponibilidad de cupos/fechas
         if re.search(r'cancel|reembols|refund|yape|paypal|\bpagar\b|\bpago\b|pagamento|adelant|deposit|\bpay\b|payment|descuento|discount|reserva|booking|\bbook\b|cupos?|espacios?|vagas?|spots?|availability|available|disponib|agotad|ocupad|sold\s*out|manana|tomorrow|\d{1,2}\s+de\s+\w+|\d{4}-\d{2}-\d{2}|febrero|february|fevereiro', commercial_q):
             # 1.1 Anticipo / depósito / proceso de reserva.
